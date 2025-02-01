@@ -17,6 +17,10 @@ public:
     Flow(QWidget *parent = nullptr);
     ~Flow();
 
+private slots:
+    void on_dockWidget_4_topLevelChanged(bool topLevel);
+    void on_dockWidget_3_topLevelChanged(bool topLevel);
+
 private:
     Ui::Flow *ui;
 };
