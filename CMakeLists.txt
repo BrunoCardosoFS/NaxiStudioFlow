@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Multimedia Core)
 
 set(TS_FILES
     lang/NaxiStudioFlow_pt_BR.ts
@@ -24,10 +25,13 @@ set(PROJECT_SOURCES
         ${TS_FILES}
 )
 
+set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/ui/resources/icons/NaxiStudioFlow.rc")
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(NaxiStudioFlow
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        frontend/resources/flow.qrc
     )
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
@@ -39,10 +43,11 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
+target_sources(NaxiStudioFlow PRIVATE ./frontend/resources/icons/NaxiStudioFlow.rc)
 target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.NaxiStudioFlow)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER org.NaxiStudio.NaxiStudioFlow)
 endif()
 set_target_properties(NaxiStudioFlow PROPERTIES
     ${BUNDLE_ID_OPTION}
