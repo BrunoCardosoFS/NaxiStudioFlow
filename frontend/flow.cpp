@@ -1,0 +1,183 @@
+#include "flow.h"
+#include "./ui_flow.h"
+
+#include "../backend/catalog/folderslist.h"
+
+#include "./widgets/filewidget.h"
+
+#include <QDateTime>
+#include <QTimer>
+#include <QMessageBox>
+
+#include <QDebug>
+
+#include <QLocale>
+
+Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
+    ui->setupUi(this);
+    this->setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition::North);
+    this->ui->DockTop->setTitleBarWidget(new QWidget());
+    // this->ui->DockTop->setTitleBarWidget(nullptr);
+
+    if(!this->settings->contains("db")){
+        this->settings->setValue("db", QCoreApplication::applicationDirPath() + "/../db");
+    }
+
+    connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
+    connect(this, &Flow::getFiles, this->filesList, &FilesList::init);
+
+    this->loadFolders();
+
+
+    // this->showFullScreen();
+    // this->showMaximized();
+
+    this->updateClock();
+    QTimer *clockTimer = new QTimer(this);
+    connect(clockTimer, &QTimer::timeout, this, &Flow::updateClock);
+    clockTimer->start(1000);
+
+    this->ui->selectProfile->addItem("Manhã Show");
+    this->ui->selectProfile->addItem("Band Bom Dia");
+    this->ui->selectProfile->addItem("Clube da Band");
+
+
+    restoreLayout();
+}
+
+Flow::~Flow(){
+    saveLayout();
+    delete ui;
+}
+
+void Flow::loadFolders(){
+    QJsonArray folders = getFolders(this->settings->value("db").toString());
+
+    foreach (QJsonValue jsonValue, folders) {
+        QJsonObject jsonObject = jsonValue.toObject();
+
+        QString title = jsonObject.value("title").toString();
+        int type = jsonObject.value("type").toInt();
+
+        QPushButton *item = new QPushButton(this->ui->FoldersListContent);
+        item->setText(title);
+        item->setToolTip(title);
+        item->setProperty("id", jsonObject.value("id").toString());
+
+        item->setIconSize(QSize(20, 20));
+        item->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        item->setCursor(Qt::PointingHandCursor);
+
+        connect(item, &QPushButton::clicked, this, [this, jsonObject](){
+            emit this->getFiles(jsonObject.value("path").toString(), "");
+        });
+
+        if(type == 0){
+            item->setProperty("type", "jingle");
+            item->setIcon(QIcon(":/images/catalog/jingle.svg"));
+            this->ui->JinglesFolders->layout()->addWidget(item);
+        }else if(type == 1){
+            item->setProperty("type", "music");
+            item->setIcon(QIcon(":/images/catalog/music.svg"));
+            this->ui->MusicFolders->layout()->addWidget(item);
+        }else if(type == 2){
+            item->setProperty("type", "commercial");
+            item->setIcon(QIcon(":/images/catalog/commercial.svg"));
+            this->ui->CommercialFolders->layout()->addWidget(item);
+        }else{
+            item->setProperty("type", "other");
+            item->setIcon(QIcon(":/images/catalog/other.svg"));
+            this->ui->OtherFolders->layout()->addWidget(item);
+        }
+    }
+}
+
+void Flow::loadFiles(QJsonArray list){
+    // Deleting all widgets from the file list
+    QLayoutItem *item;
+    while ((item = this->ui->FilesListContent->layout()->takeAt(0)) != nullptr) {
+        delete item->widget();
+    }
+
+    foreach (QJsonValue item, list) {
+        QJsonArray itemArray = item.toArray();
+        FileWidget *itemList = new FileWidget(this->ui->FilesListContent);
+        itemList->setInfo(itemArray[0].toString(), itemArray[1].toString());
+
+        this->ui->FilesListContent->layout()->addWidget(itemList);
+    }
+
+    QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    this->ui->FilesListContent->layout()->addItem(spacer);
+}
+
+
+
+
+
+void Flow::saveLayout(){
+    this->settings->setValue("layout", saveState());
+}
+
+void Flow::restoreLayout(){
+    QByteArray layoutData = this->settings->value("layout").toByteArray();
+    if (!layoutData.isEmpty()) {
+        restoreState(layoutData);
+    }
+}
+
+void Flow::updateClock(){
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QLocale locale(QLocale::Portuguese, QLocale::Brazil);
+
+    this->ui->clock->setText(currentTime.toString("hh:mm:ss"));
+    this->ui->date->setText(locale.toString(currentTime, "dddd, dd 'de' MMMM 'de' yyyy"));
+}
+
+
+void Flow::on_btnFull_clicked()
+{
+    if(this->isFullScreen()){
+        // this->showNormal();
+        this->showMaximized();
+    }else{
+        this->showFullScreen();
+    }
+}
+
+void Flow::changeEvent(QEvent *event) {
+    if (event->type() == QEvent::WindowStateChange) {
+        if (isFullScreen()) {
+            this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen-exit.svg"));
+        } else {
+            this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen.svg"));
+        }
+    }
+}
+
+void Flow::closeEvent(QCloseEvent *event) {
+    // QMessageBox msgBox;
+    // msgBox.setWindowTitle("Fechar o NaxiStudio Flow");
+    // msgBox.setText("Tem certeza que deseja fechar?");
+    // msgBox.setIcon(QMessageBox::Question);
+    // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+
+    // int res = msgBox.exec();
+
+    // if (res == QMessageBox::Yes) {
+    //     event->accept();
+    // } else {
+    //     event->ignore();
+    // }
+}
+
+
+void Flow::on_pushButton_7_clicked()
+{
+    resizeDocks({this->ui->DocCatalog}, {450}, Qt::Horizontal);
+    resizeDocks({this->ui->DoclRight}, {450}, Qt::Horizontal);
+    // qInfo() << this->ui->DocCatalog->width();
+    // qInfo() << this->ui->DocCatalog->isFloating();
+    // qInfo() << this->ui->DocCatalog->pos();
+}
+
