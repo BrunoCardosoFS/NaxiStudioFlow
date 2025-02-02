@@ -32,7 +32,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         frontend/resources/flow.qrc
-        frontend/widgets/audio.h frontend/widgets/audio.cpp
+
     )
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
@@ -46,6 +46,7 @@ endif()
 
 target_sources(NaxiStudioFlow PRIVATE ./frontend/resources/icons/NaxiStudioFlow.rc)
 target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Multimedia Qt6::Core)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER org.NaxiStudio.NaxiStudioFlow)

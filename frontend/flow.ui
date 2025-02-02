@@ -20,38 +20,7 @@
    <string>Flow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QTabWidget::pane {
-    border:  none;
-    top: 0px;
-    background: #191D24;
-    border-radius:  10px;
-}
-
-QTabWidget::tab-bar {
-    border: none;
-    border-radius: 0px;
-}
-
-QTabBar::tab {
-    background: #191D24;
-    border: none;
-    padding:  7px 15px;
-    font-weight:  bold;
-    color: #fff;
-    border-radius: 7px;
-    margin-bottom: 10px;
-    margin-right: 7px;
-}
-
-QTabBar::tab:hover {
-    background: #2D3340;
-}
-
-QTabBar::tab:selected {
-    background: #FFA60A;
-    font-weight: bold;
-    color: #000;
-}</string>
+   <string notr="true"/>
   </property>
   <property name="dockOptions">
    <set>QMainWindow::DockOption::AllowNestedDocks|QMainWindow::DockOption::AllowTabbedDocks|QMainWindow::DockOption::AnimatedDocks|QMainWindow::DockOption::GroupedDragging</set>
@@ -64,9 +33,7 @@ QTabBar::tab:selected {
     </size>
    </property>
    <property name="styleSheet">
-    <string notr="true">#centralwidget{
-	background: green;
-}</string>
+    <string notr="true"/>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
@@ -77,6 +44,136 @@ QTabBar::tab:selected {
      </widget>
     </item>
    </layout>
+  </widget>
+  <widget class="QDockWidget" name="DoclLeft">
+   <property name="minimumSize">
+    <size>
+     <width>200</width>
+     <height>73</height>
+    </size>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::DockWidgetArea::LeftDockWidgetArea|Qt::DockWidgetArea::RightDockWidgetArea</set>
+   </property>
+   <property name="windowTitle">
+    <string>Catálogo</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="DoclLeftWidget">
+    <layout class="QVBoxLayout" name="verticalLayout_2"/>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="DoclRight">
+   <property name="minimumSize">
+    <size>
+     <width>200</width>
+     <height>200</height>
+    </size>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::DockWidgetArea::LeftDockWidgetArea|Qt::DockWidgetArea::RightDockWidgetArea</set>
+   </property>
+   <property name="windowTitle">
+    <string>Botoneira</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="DoclRightWidget">
+    <layout class="QVBoxLayout" name="verticalLayout_3"/>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="DockTop">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>281</width>
+     <height>40</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>524287</width>
+     <height>40</height>
+    </size>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFeature::DockWidgetFeatureMask</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::DockWidgetArea::TopDockWidgetArea</set>
+   </property>
+   <property name="windowTitle">
+    <string/>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>4</number>
+   </attribute>
+   <widget class="QWidget" name="DockTopWidget">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>5</number>
+     </property>
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="pushButton_4">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>PushButton</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>PushButton</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>FullScreen</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
  </widget>
  <resources/>
