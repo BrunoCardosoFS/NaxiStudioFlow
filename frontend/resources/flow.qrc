@@ -3,7 +3,6 @@
         <file>icons/audio.svg</file>
         <file>icons/calendar.svg</file>
         <file>icons/clock.svg</file>
-        <file>icons/close.svg</file>
         <file>icons/config.svg</file>
         <file>icons/logo.ico</file>
         <file>icons/media-music.svg</file>
@@ -14,6 +13,13 @@
         <file>icons/repeat.svg</file>
         <file>icons/save.svg</file>
         <file>icons/search.svg</file>
-        <file>icons/stop.svg</file>
+        <file>icons/full-screen.svg</file>
+        <file>icons/full-screen-exit.svg</file>
+        <file>icons/next.svg</file>
+        <file>icons/close-black.svg</file>
+        <file>icons/close-white.svg</file>
+        <file>icons/icon.png</file>
+        <file>icons/playicon.png</file>
+        <file>icons/Stop.svg</file>
     </qresource>
 </RCC>

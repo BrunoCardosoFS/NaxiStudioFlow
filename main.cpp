@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     a.setWindowIcon(QIcon(":/images/icons/logo.ico"));
+    // a.setStyle(QStyleFactory::create("Fusion"));
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
@@ -21,5 +22,7 @@ int main(int argc, char *argv[])
     }
     Flow w;
     w.show();
+    // w.showMaximized();
+
     return a.exec();
 }

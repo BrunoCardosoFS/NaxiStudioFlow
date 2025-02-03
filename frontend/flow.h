@@ -2,6 +2,7 @@
 #define FLOW_H
 
 #include <QMainWindow>
+#include <QCloseEvent>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,12 +20,19 @@ public:
 
 private slots:
 
-    void on_pushButton_clicked();
+    void on_btnFull_clicked();
+
+    void on_btnClose_clicked();
 
 private:
     Ui::Flow *ui;
 
     void saveLayout();
     void restoreLayout();
+    void updateClock();
+
+protected:
+    void changeEvent(QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 };
 #endif // FLOW_H
