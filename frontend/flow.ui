@@ -24,6 +24,10 @@
 	background-color: #191D24;
 }
 
+QLabel{
+	color: #ffffff;
+}
+
 #Flow::separator {
 	width: 0.5px;
 	height: 0px;
@@ -35,7 +39,7 @@
 
 #DockTopWidget QPushButton, #clock{
 	background-color: #FFA60A;
-	border-radius: 7px;
+	border-radius: 9px;
 	border: 2px solid #000;
 	color: #000;
 }
@@ -48,6 +52,10 @@
 	padding: 0px 5px;
 	font-size: 20px;
 	font-weight: bold;
+}
+
+#date{
+	font-size: 14px;
 }
 
 #centralwidget{
@@ -503,14 +511,14 @@
         </size>
        </property>
        <property name="text">
-        <string>PushButton</string>
+        <string>Perfil</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QLabel" name="clock">
        <property name="text">
-        <string>01/01/2002 12:00:00</string>
+        <string>00:00:00</string>
        </property>
        <property name="textFormat">
         <enum>Qt::TextFormat::AutoText</enum>
@@ -523,6 +531,13 @@
        </property>
        <property name="indent">
         <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="date">
+       <property name="text">
+        <string>segunda-feita, 01 de janeiro de 2025</string>
        </property>
       </widget>
      </item>
@@ -540,7 +555,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="Logo">
        <property name="minimumSize">
         <size>
          <width>143</width>

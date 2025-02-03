@@ -6,6 +6,8 @@
 #include <QTimer>
 #include <QMessageBox>
 
+#include <QLocale>
+
 Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     ui->setupUi(this);
     this->setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition::North);
@@ -51,7 +53,10 @@ void Flow::restoreLayout(){
 
 void Flow::updateClock(){
     QDateTime currentTime = QDateTime::currentDateTime();
-    this->ui->clock->setText(currentTime.toString("dd/MM/yyyy  hh:mm:ss"));
+    QLocale locale(QLocale::Portuguese, QLocale::Brazil);
+
+    this->ui->clock->setText(currentTime.toString("hh:mm:ss"));
+    this->ui->date->setText(locale.toString(currentTime, "dddd, dd 'de' MMMM 'de' yyyy"));
 }
 
 
