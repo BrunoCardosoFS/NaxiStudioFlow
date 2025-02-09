@@ -14,20 +14,19 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->DockTop->setTitleBarWidget(new QWidget());
     // this->ui->DockTop->setTitleBarWidget(nullptr);
 
+
     // this->showFullScreen();
-    // this->showMaximized();
+    this->showMaximized();
 
     this->updateClock();
     QTimer *clockTimer = new QTimer(this);
     connect(clockTimer, &QTimer::timeout, this, &Flow::updateClock);
     clockTimer->start(1000);
 
+    this->ui->selectProfile->addItem("Manhã Show");
+    this->ui->selectProfile->addItem("Band Bom Dia");
+    this->ui->selectProfile->addItem("Clube da Band");
 
-
-
-    this->ui->btnClose->hide();
-
-    this->layout()->setSpacing(0);
 
     restoreLayout();
 }
@@ -74,10 +73,8 @@ void Flow::changeEvent(QEvent *event) {
     if (event->type() == QEvent::WindowStateChange) {
         if (isFullScreen()) {
             this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen-exit.svg"));
-            this->ui->btnClose->show();
         } else {
             this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen.svg"));
-            this->ui->btnClose->hide();
         }
     }
 }
@@ -98,10 +95,5 @@ void Flow::closeEvent(QCloseEvent *event) {
     }else{
         event->ignore();
     }
-}
-
-void Flow::on_btnClose_clicked()
-{
-    this->close();
 }
 

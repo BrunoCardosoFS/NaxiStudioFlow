@@ -22,8 +22,6 @@ private slots:
 
     void on_btnFull_clicked();
 
-    void on_btnClose_clicked();
-
 private:
     Ui::Flow *ui;
 
