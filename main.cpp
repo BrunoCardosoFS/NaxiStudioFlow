@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
         }
     }
     Flow w;
-    w.show();
-    // w.showMaximized();
+    // w.show();
+    w.showMaximized();
 
     return a.exec();
 }
