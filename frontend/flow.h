@@ -6,6 +6,8 @@
 #include <QCloseEvent>
 #include <QLocale>
 
+#include "../backend/catalog/fileslist.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class Flow;
@@ -31,7 +33,10 @@ private:
 
     QSettings *settings = new QSettings("NaxiStudio", "NaxiStudio Flow");
 
+    FilesList *filesList = new FilesList(this);
+
     void loadFolders();
+    void loadFiles(QJsonArray list);
 
     void saveLayout();
     void restoreLayout();
@@ -42,7 +47,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 signals:
-    void loadFiles(QString folder, QString search);
+    void getFiles(QString folder, QString search);
 };
 
 #endif // FLOW_H

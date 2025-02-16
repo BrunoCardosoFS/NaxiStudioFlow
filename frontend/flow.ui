@@ -209,7 +209,7 @@ QTabBar::tab:selected {
 }
 
 #PlayerControl QPushButton:hover{
-	background-color: #191D24;
+	background-color: #0c101a;
 }
 
 #PlaylistScroll, #PlaylistScroll #PlaylistContent{
@@ -233,6 +233,20 @@ QTabBar::tab:selected {
 #FilesListContent, #FoldersListContent{
 	background-color: #1F232C;
 	border-radius: 10px;
+}
+
+QLabel{
+	font-weight: bold;
+	color: #fff;
+}
+
+FileWidget{
+	background-color: #232731;
+	border-radius: 7px;
+}
+
+FileWidget:hover{
+	background-color: #2D3340;
 }
 
 
@@ -1128,7 +1142,7 @@ QTabBar::tab:selected {
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_8">
             <property name="spacing">
-             <number>10</number>
+             <number>15</number>
             </property>
             <property name="leftMargin">
              <number>5</number>
@@ -1319,32 +1333,6 @@ QTabBar::tab:selected {
             <property name="bottomMargin">
              <number>5</number>
             </property>
-            <item>
-             <widget class="QPushButton" name="pushButton_6">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Files: ToDo</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Orientation::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
            </layout>
           </widget>
          </widget>

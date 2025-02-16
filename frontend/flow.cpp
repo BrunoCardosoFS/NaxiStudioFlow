@@ -3,6 +3,8 @@
 
 #include "../backend/catalog/folderslist.h"
 
+#include "./widgets/filewidget.h"
+
 #include <QDateTime>
 #include <QTimer>
 #include <QMessageBox>
@@ -20,6 +22,9 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     if(!this->settings->contains("db")){
         this->settings->setValue("db", QCoreApplication::applicationDirPath() + "/../db");
     }
+
+    connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
+    connect(this, &Flow::getFiles, this->filesList, &FilesList::init);
 
     this->loadFolders();
 
@@ -64,7 +69,7 @@ void Flow::loadFolders(){
         item->setCursor(Qt::PointingHandCursor);
 
         connect(item, &QPushButton::clicked, this, [this, jsonObject](){
-            emit this->loadFiles(jsonObject.value("path").toString(), "");
+            emit this->getFiles(jsonObject.value("path").toString(), "");
         });
 
         if(type == 0){
@@ -86,6 +91,29 @@ void Flow::loadFolders(){
         }
     }
 }
+
+void Flow::loadFiles(QJsonArray list){
+    // Deleting all widgets from the file list
+    QLayoutItem *item;
+    while ((item = this->ui->FilesListContent->layout()->takeAt(0)) != nullptr) {
+        delete item->widget();
+    }
+
+    foreach (QJsonValue item, list) {
+        QJsonArray itemArray = item.toArray();
+        FileWidget *itemList = new FileWidget(this->ui->FilesListContent);
+        itemList->setInfo(itemArray[0].toString(), itemArray[1].toString());
+
+        this->ui->FilesListContent->layout()->addWidget(itemList);
+    }
+
+    QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    this->ui->FilesListContent->layout()->addItem(spacer);
+}
+
+
+
+
 
 void Flow::saveLayout(){
     this->settings->setValue("layout", saveState());

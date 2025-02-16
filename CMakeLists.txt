@@ -33,6 +33,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         frontend/resources/flow.qrc
         backend/catalog/folderslist.h
+        frontend/widgets/filewidget.h frontend/widgets/filewidget.cpp
+        backend/catalog/fileslist.h backend/catalog/fileslist.cpp
 
     )
 
