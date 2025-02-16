@@ -1,10 +1,13 @@
 #include "flow.h"
 #include "./ui_flow.h"
 
-#include <QSettings>
+#include "../backend/catalog/folderslist.h"
+
 #include <QDateTime>
 #include <QTimer>
 #include <QMessageBox>
+
+#include <QDebug>
 
 #include <QLocale>
 
@@ -14,9 +17,15 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->DockTop->setTitleBarWidget(new QWidget());
     // this->ui->DockTop->setTitleBarWidget(nullptr);
 
+    if(!this->settings->contains("db")){
+        this->settings->setValue("db", QCoreApplication::applicationDirPath() + "/../db");
+    }
+
+    this->loadFolders();
+
 
     // this->showFullScreen();
-    this->showMaximized();
+    // this->showMaximized();
 
     this->updateClock();
     QTimer *clockTimer = new QTimer(this);
@@ -36,15 +45,54 @@ Flow::~Flow(){
     delete ui;
 }
 
+void Flow::loadFolders(){
+    QJsonArray folders = getFolders(this->settings->value("db").toString());
+
+    foreach (QJsonValue jsonValue, folders) {
+        QJsonObject jsonObject = jsonValue.toObject();
+
+        QString title = jsonObject.value("title").toString();
+        int type = jsonObject.value("type").toInt();
+
+        QPushButton *item = new QPushButton(this->ui->FoldersListContent);
+        item->setText(title);
+        item->setToolTip(title);
+        item->setProperty("id", jsonObject.value("id").toString());
+
+        item->setIconSize(QSize(20, 20));
+        item->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        item->setCursor(Qt::PointingHandCursor);
+
+        connect(item, &QPushButton::clicked, this, [this, jsonObject](){
+            emit this->loadFiles(jsonObject.value("path").toString(), "");
+        });
+
+        if(type == 0){
+            item->setProperty("type", "jingle");
+            item->setIcon(QIcon(":/images/catalog/jingle.svg"));
+            this->ui->JinglesFolders->layout()->addWidget(item);
+        }else if(type == 1){
+            item->setProperty("type", "music");
+            item->setIcon(QIcon(":/images/catalog/music.svg"));
+            this->ui->MusicFolders->layout()->addWidget(item);
+        }else if(type == 2){
+            item->setProperty("type", "commercial");
+            item->setIcon(QIcon(":/images/catalog/commercial.svg"));
+            this->ui->CommercialFolders->layout()->addWidget(item);
+        }else{
+            item->setProperty("type", "other");
+            item->setIcon(QIcon(":/images/catalog/other.svg"));
+            this->ui->OtherFolders->layout()->addWidget(item);
+        }
+    }
+}
+
 void Flow::saveLayout(){
-    QSettings settings("NaxiStudio", "PlayerFlow");
-    settings.setValue("layout", saveState());
+    this->settings->setValue("layout", saveState());
 }
 
 void Flow::restoreLayout(){
-    QSettings settings("NaxiStudio", "PlayerFlow");
-
-    QByteArray layoutData = settings.value("layout").toByteArray();
+    QByteArray layoutData = this->settings->value("layout").toByteArray();
     if (!layoutData.isEmpty()) {
         restoreState(layoutData);
     }
@@ -80,20 +128,28 @@ void Flow::changeEvent(QEvent *event) {
 }
 
 void Flow::closeEvent(QCloseEvent *event) {
-    QMessageBox msgBox;
-    msgBox.setWindowTitle("Fechar o NaxiStudio Flow");
-    msgBox.setText("Tem certeza que deseja fechar?");
-    msgBox.setIcon(QMessageBox::Question);
+    // QMessageBox msgBox;
+    // msgBox.setWindowTitle("Fechar o NaxiStudio Flow");
+    // msgBox.setText("Tem certeza que deseja fechar?");
+    // msgBox.setIcon(QMessageBox::Question);
+    // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
 
-    QPushButton *yesButton = msgBox.addButton("Sim", QMessageBox::YesRole);
-    QPushButton *noButton = msgBox.addButton("Não", QMessageBox::NoRole);
+    // int res = msgBox.exec();
 
-    msgBox.exec();
+    // if (res == QMessageBox::Yes) {
+    //     event->accept();
+    // } else {
+    //     event->ignore();
+    // }
+}
 
-    if (msgBox.clickedButton() == yesButton) {
-        event->accept();
-    }else{
-        event->ignore();
-    }
+
+void Flow::on_pushButton_7_clicked()
+{
+    resizeDocks({this->ui->DocCatalog}, {450}, Qt::Horizontal);
+    resizeDocks({this->ui->DoclRight}, {450}, Qt::Horizontal);
+    // qInfo() << this->ui->DocCatalog->width();
+    // qInfo() << this->ui->DocCatalog->isFloating();
+    // qInfo() << this->ui->DocCatalog->pos();
 }
 

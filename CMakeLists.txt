@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(NaxiStudioFlow VERSION 0.1 LANGUAGES CXX)
+project(NaxiStudioFlow VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -32,6 +32,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         frontend/resources/flow.qrc
+        backend/catalog/folderslist.h
 
     )
 
