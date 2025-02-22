@@ -25,7 +25,7 @@ set(PROJECT_SOURCES
         ${TS_FILES}
 )
 
-set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/ui/resources/icons/NaxiStudioFlow.rc")
+set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/frontend/resources/NaxiStudioFlow.rc")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(NaxiStudioFlow
@@ -35,6 +35,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         backend/catalog/folderslist.h
         frontend/widgets/filewidget.h frontend/widgets/filewidget.cpp
         backend/catalog/fileslist.h backend/catalog/fileslist.cpp
+        frontend/widgets/playlist/programblock.h frontend/widgets/playlist/programblock.cpp frontend/widgets/playlist/programblock.ui
+        frontend/widgets/playlist/programblock.h
+        frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
+        backend/functions/timeFunctions.h
+
 
     )
 
@@ -47,7 +52,7 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_sources(NaxiStudioFlow PRIVATE ./frontend/resources/icons/NaxiStudioFlow.rc)
+target_sources(NaxiStudioFlow PRIVATE ${app_icon_resource_windows})
 target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Multimedia Qt6::Core)
 

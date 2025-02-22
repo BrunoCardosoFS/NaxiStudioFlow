@@ -28,6 +28,12 @@ private slots:
 
     void on_pushButton_7_clicked();
 
+    void on_SearchLocal_clicked();
+
+    void on_SearchClean_clicked();
+
+    void on_SearchLine_returnPressed();
+
 private:
     Ui::Flow *ui;
 
@@ -36,7 +42,8 @@ private:
     FilesList *filesList = new FilesList(this);
 
     void loadFolders();
-    void loadFiles(QJsonArray list);
+    void loadFiles(QJsonArray list, QString pathFolder);
+    QString openFolder = "";
 
     void saveLayout();
     void restoreLayout();

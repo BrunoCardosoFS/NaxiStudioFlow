@@ -4,6 +4,7 @@
 #include "../backend/catalog/folderslist.h"
 
 #include "./widgets/filewidget.h"
+#include "./widgets/playlist/programblock.h"
 
 #include <QDateTime>
 #include <QTimer>
@@ -24,6 +25,7 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     }
 
     connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
+
     connect(this, &Flow::getFiles, this->filesList, &FilesList::init);
 
     this->loadFolders();
@@ -40,6 +42,28 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->selectProfile->addItem("Manhã Show");
     this->ui->selectProfile->addItem("Band Bom Dia");
     this->ui->selectProfile->addItem("Clube da Band");
+
+
+    this->ui->pushButton_7->hide();
+    this->ui->label->hide();
+
+    ProgramBlock *blocoteste = new ProgramBlock(this);
+    blocoteste->setHour("14:00");
+    blocoteste->setTitle("Clube da Band");
+    this->ui->PlaylistContent->layout()->addWidget(blocoteste);
+
+    ProgramBlock *blocoteste2 = new ProgramBlock(this);
+    blocoteste2->setHour("14:30");
+    blocoteste2->setTitle("Clube da Band");
+    this->ui->PlaylistContent->layout()->addWidget(blocoteste2);
+
+    ProgramBlock *blocoteste3 = new ProgramBlock(this);
+    blocoteste3->setHour("15:00");
+    blocoteste3->setTitle("Clube da Band");
+    this->ui->PlaylistContent->layout()->addWidget(blocoteste3);
+
+    QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    this->ui->PlaylistContent->layout()->addItem(spacer);
 
 
     restoreLayout();
@@ -92,7 +116,9 @@ void Flow::loadFolders(){
     }
 }
 
-void Flow::loadFiles(QJsonArray list){
+void Flow::loadFiles(QJsonArray list, QString pathFolder){
+    this->openFolder = pathFolder;
+
     // Deleting all widgets from the file list
     QLayoutItem *item;
     while ((item = this->ui->FilesListContent->layout()->takeAt(0)) != nullptr) {
@@ -179,5 +205,26 @@ void Flow::on_pushButton_7_clicked()
     // qInfo() << this->ui->DocCatalog->width();
     // qInfo() << this->ui->DocCatalog->isFloating();
     // qInfo() << this->ui->DocCatalog->pos();
+}
+
+
+
+void Flow::on_SearchLocal_clicked()
+{
+    this->filesList->init(this->openFolder, this->ui->SearchLine->text());
+}
+
+
+void Flow::on_SearchClean_clicked()
+{
+    this->ui->SearchLine->setText("");
+    if(this->openFolder != ""){
+        this->filesList->init(this->openFolder, "");
+    }
+}
+
+void Flow::on_SearchLine_returnPressed()
+{
+    this->on_SearchLocal_clicked();
 }
 

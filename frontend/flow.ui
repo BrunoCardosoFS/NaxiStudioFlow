@@ -187,6 +187,38 @@ QTabBar::tab:selected {
 }
 
 
+/* Doc Catalog */
+
+#DocCatalog, #DocCatalogWidget{
+	background-color: #191D24;
+}
+
+#DocCatalog QScrollArea{
+	background-color: #1F232C;
+	border: none;
+	border-radius: 10px;
+}
+
+#FilesListContent, #FoldersListContent{
+	background-color: #1F232C;
+	border-radius: 10px;
+}
+
+#DocCatalog QLabel{
+	font-weight: bold;
+	color: #fff;
+}
+
+FileWidget{
+	background-color: #2D3340;
+	border-radius: 7px;
+}
+
+FileWidget:hover{
+	background-color: #292e38;
+}
+
+
 /* Central Widget */
 
 #centralwidget{
@@ -217,38 +249,23 @@ QTabBar::tab:selected {
 	border: none;
 }
 
-
-/* Doc Catalog */
-
-#DocCatalog, #DocCatalogWidget{
-	background-color: #191D24;
+ProgramBlock{
+	background: #1F232C;
+	border-radius: 12px;
 }
 
-#DocCatalog QScrollArea{
-	background-color: #1F232C;
+ProgramBlock #BlockContent{
+	background: #272C37;
 	border: none;
 	border-radius: 10px;
 }
 
-#FilesListContent, #FoldersListContent{
-	background-color: #1F232C;
+ProgramBlock PlaylistItem{
+	background: #0066A5;
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #418DB4, stop:1 #0066A5);
 	border-radius: 10px;
 }
-
-QLabel{
-	font-weight: bold;
-	color: #fff;
-}
-
-FileWidget{
-	background-color: #232731;
-	border-radius: 7px;
-}
-
-FileWidget:hover{
-	background-color: #2D3340;
-}
-
 
 </string>
   </property>
@@ -814,7 +831,7 @@ FileWidget:hover{
        <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
       </property>
       <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
       </property>
       <property name="sizeAdjustPolicy">
        <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
@@ -836,22 +853,28 @@ FileWidget:hover{
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_7">
         <property name="spacing">
-         <number>5</number>
+         <number>10</number>
         </property>
         <property name="leftMargin">
-         <number>10</number>
+         <number>20</number>
         </property>
         <property name="topMargin">
-         <number>10</number>
+         <number>20</number>
         </property>
         <property name="rightMargin">
-         <number>10</number>
+         <number>20</number>
         </property>
         <property name="bottomMargin">
-         <number>10</number>
+         <number>20</number>
         </property>
         <item>
          <widget class="QPushButton" name="pushButton_7">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="text">
            <string>PushButton</string>
           </property>
@@ -860,7 +883,7 @@ FileWidget:hover{
         <item>
          <widget class="QLabel" name="label">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -893,7 +916,7 @@ FileWidget:hover{
     </size>
    </property>
    <property name="features">
-    <set>QDockWidget::DockWidgetFeature::DockWidgetFloatable|QDockWidget::DockWidgetFeature::DockWidgetMovable</set>
+    <set>QDockWidget::DockWidgetFeature::DockWidgetMovable</set>
    </property>
    <property name="allowedAreas">
     <set>Qt::DockWidgetArea::LeftDockWidgetArea|Qt::DockWidgetArea::RightDockWidgetArea</set>
@@ -946,7 +969,7 @@ FileWidget:hover{
          <number>0</number>
         </property>
         <item>
-         <widget class="QLineEdit" name="lineEdit">
+         <widget class="QLineEdit" name="SearchLine">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -965,7 +988,7 @@ FileWidget:hover{
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_2">
+         <widget class="QPushButton" name="SearchClean">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -997,7 +1020,7 @@ FileWidget:hover{
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="SearchLocal">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -1029,7 +1052,7 @@ FileWidget:hover{
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_4">
+         <widget class="QPushButton" name="SearchGlobal">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -1145,16 +1168,16 @@ FileWidget:hover{
              <number>15</number>
             </property>
             <property name="leftMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="topMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="rightMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="bottomMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <item>
              <widget class="QWidget" name="JinglesFolders" native="true">
@@ -1322,16 +1345,16 @@ FileWidget:hover{
              <number>5</number>
             </property>
             <property name="leftMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="topMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="rightMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
             <property name="bottomMargin">
-             <number>5</number>
+             <number>7</number>
             </property>
            </layout>
           </widget>

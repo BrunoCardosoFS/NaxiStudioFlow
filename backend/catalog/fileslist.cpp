@@ -33,5 +33,5 @@ void FilesList::run(){
         }
     }
 
-    emit finish(jsonArray);
+    emit finish(jsonArray, this->path);
 }
