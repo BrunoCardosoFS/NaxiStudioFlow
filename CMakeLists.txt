@@ -35,6 +35,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         backend/catalog/folderslist.h
         frontend/widgets/filewidget.h frontend/widgets/filewidget.cpp
         backend/catalog/fileslist.h backend/catalog/fileslist.cpp
+        frontend/widgets/playlist/programblock.h frontend/widgets/playlist/programblock.cpp frontend/widgets/playlist/programblock.ui
+        frontend/widgets/playlist/programblock.h
+        frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
 
     )
 

@@ -19,8 +19,6 @@ private:
 
     QLabel *DurationLabel = new QLabel(this);
     QLabel *TitleLabel = new QLabel(this);
-signals:
-    void clicked(QString path);
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 };

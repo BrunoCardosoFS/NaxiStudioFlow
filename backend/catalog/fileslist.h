@@ -21,7 +21,7 @@ private:
     QString search;
 
 signals:
-    void finish(const QJsonArray list);
+    void finish(const QJsonArray list, const QString pathFolder);
 };
 
 #endif // FILESLIST_H
