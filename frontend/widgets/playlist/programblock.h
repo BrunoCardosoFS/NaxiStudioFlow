@@ -3,6 +3,13 @@
 
 #include <QWidget>
 
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QByteArray>
+#include <QMimeData>
+#include <QLabel>
+#include <QVBoxLayout>
+
 namespace Ui {
 class ProgramBlock;
 }
@@ -20,6 +27,13 @@ public:
 
 private:
     Ui::ProgramBlock *ui;
+
+    QVBoxLayout *blockContentLayout;
+
+protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 };
 
 #endif // PROGRAMBLOCK_H

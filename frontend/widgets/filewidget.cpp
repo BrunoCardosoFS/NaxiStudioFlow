@@ -23,12 +23,15 @@ FileWidget::FileWidget(QWidget *parent):QWidget{parent} {
 }
 
 void FileWidget::setInfo(QString title, QString path){
+    this->title = title;
+    this->path = path;
+
     this->TitleLabel->setText(title);
     this->setToolTip(title);
-    this->path = path;
 }
 
 void FileWidget::setDuration(QString duration){
+    this->duration = duration;
     this->DurationLabel->setText(duration);
     this->DurationLabel->setFixedWidth(60);
 }
