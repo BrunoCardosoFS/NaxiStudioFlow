@@ -38,6 +38,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         frontend/widgets/playlist/programblock.h frontend/widgets/playlist/programblock.cpp frontend/widgets/playlist/programblock.ui
         frontend/widgets/playlist/programblock.h
         frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
+        backend/functions/timeFunctions.h
+
 
     )
 

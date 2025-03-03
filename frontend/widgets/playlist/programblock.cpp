@@ -62,7 +62,7 @@ void ProgramBlock::dropEvent(QDropEvent *event) {
         }
     }
 
-    PlaylistItem *item = new PlaylistItem(this);
+    PlaylistItem *item = new PlaylistItem(this->ui->BlockContent);
     item->setInfo(title, path);
 
     this->blockContentLayout->insertWidget(insertIndex, item);

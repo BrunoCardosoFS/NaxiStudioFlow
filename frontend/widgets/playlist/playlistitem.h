@@ -7,6 +7,8 @@
 #include <QDrag>
 #include <QMimeData>
 
+#include <QtMultimedia>
+
 namespace Ui {
 class PlaylistItem;
 }
@@ -19,6 +21,9 @@ public:
     explicit PlaylistItem(QWidget *parent = nullptr);
     ~PlaylistItem();
 
+    QMediaPlayer *Player = new QMediaPlayer(this);
+    QAudioOutput *AudioOutput = new QAudioOutput(this->Player);
+
     QString title, path;
 
     void setInfo(QString title, QString path);
@@ -26,8 +31,18 @@ public:
 private:
     Ui::PlaylistItem *ui;
 
-    qreal progress;
-    qreal opening;
+    qint64 duration, progress;
+    bool isPlaying, wasPlayed;
+
+    qreal progressPorcent;
+    qreal openingPorcent;
+
+private slots:
+    void updateDuration(qint64 duration);
+    void updateProgress(qint64 progress);
+    void updatePlaying(qint64 playing);
+
+    void handleMediaStatusChanged(QMediaPlayer::MediaStatus status);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -47,8 +62,23 @@ protected:
     // }
 
     void mouseReleaseEvent(QMouseEvent *event) override{
-        if (event->button() == Qt::RightButton){
+        switch (event->button()) {
+        case Qt::LeftButton:
+            if(this->isPlaying){
+                this->Player->pause();
+            }else{
+                this->Player->play();
+            }
+            break;
+        case Qt::MiddleButton:
             this->deleteLater();
+            break;
+        case Qt::RightButton:
+            this->Player->pause();
+            this->Player->setPosition(0);
+            break;
+        default:
+            break;
         }
     }
 };
