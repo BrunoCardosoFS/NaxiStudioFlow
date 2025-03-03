@@ -32,6 +32,8 @@ private slots:
 
     void on_SearchClean_clicked();
 
+    void on_SearchLine_returnPressed();
+
 private:
     Ui::Flow *ui;
 

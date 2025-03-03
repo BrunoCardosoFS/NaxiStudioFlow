@@ -211,9 +211,7 @@ void Flow::on_pushButton_7_clicked()
 
 void Flow::on_SearchLocal_clicked()
 {
-    if(this->openFolder != ""){
-        this->filesList->init(this->openFolder, this->ui->SearchLine->text());
-    }
+    this->filesList->init(this->openFolder, this->ui->SearchLine->text());
 }
 
 
@@ -223,5 +221,10 @@ void Flow::on_SearchClean_clicked()
     if(this->openFolder != ""){
         this->filesList->init(this->openFolder, "");
     }
+}
+
+void Flow::on_SearchLine_returnPressed()
+{
+    this->on_SearchLocal_clicked();
 }
 

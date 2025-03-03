@@ -204,7 +204,7 @@ QTabBar::tab:selected {
 	border-radius: 10px;
 }
 
-QLabel{
+#DocCatalog QLabel{
 	font-weight: bold;
 	color: #fff;
 }
@@ -831,7 +831,7 @@ ProgramBlock PlaylistItem{
        <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
       </property>
       <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
       </property>
       <property name="sizeAdjustPolicy">
        <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
