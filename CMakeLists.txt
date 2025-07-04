@@ -13,6 +13,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia Core)
 
+set(QT_MEDIA_BACKEND ffmpeg)
+
 set(TS_FILES
     lang/NaxiStudioFlow_pt_BR.ts
 )

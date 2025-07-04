@@ -8,6 +8,7 @@
 #include <QMimeData>
 
 #include <QtMultimedia>
+#include <QDebug>
 
 namespace Ui {
 class PlaylistItem;
@@ -46,6 +47,7 @@ private slots:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+
     // void mousePressEvent(QMouseEvent *event) override {
     //     if (event->button() == Qt::LeftButton) {
     //         QDrag *drag = new QDrag(this);
@@ -68,14 +70,18 @@ protected:
                 this->Player->pause();
             }else{
                 this->Player->play();
+                this->Player->setActiveAudioTrack(0);
             }
             break;
         case Qt::MiddleButton:
             this->deleteLater();
+            qInfo() << "Deletado";
             break;
         case Qt::RightButton:
             this->Player->pause();
             this->Player->setPosition(0);
+
+            qInfo() << "Reiniciado";
             break;
         default:
             break;
