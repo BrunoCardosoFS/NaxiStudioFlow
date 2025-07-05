@@ -10,6 +10,8 @@
 #include <QtMultimedia>
 #include <QDebug>
 
+#include "../../../backend/player/playerplaylistitem.h"
+
 namespace Ui {
 class PlaylistItem;
 }
@@ -22,12 +24,14 @@ public:
     explicit PlaylistItem(QWidget *parent = nullptr);
     ~PlaylistItem();
 
-    QMediaPlayer *Player = new QMediaPlayer(this);
-    QAudioOutput *AudioOutput = new QAudioOutput(this->Player);
+    PlayerPlaylistItem *Player = new PlayerPlaylistItem(this);
 
     QString title, path;
 
     void setInfo(QString title, QString path);
+    void play();
+    void pause();
+    void stop();
 
 private:
     Ui::PlaylistItem *ui;
@@ -67,10 +71,9 @@ protected:
         switch (event->button()) {
         case Qt::LeftButton:
             if(this->isPlaying){
-                this->Player->pause();
+                this->pause();
             }else{
-                this->Player->play();
-                this->Player->setActiveAudioTrack(0);
+                this->play();
             }
             break;
         case Qt::MiddleButton:
@@ -78,8 +81,7 @@ protected:
             qInfo() << "Deletado";
             break;
         case Qt::RightButton:
-            this->Player->pause();
-            this->Player->setPosition(0);
+            this->stop();
 
             qInfo() << "Reiniciado";
             break;

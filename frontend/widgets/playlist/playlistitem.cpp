@@ -12,26 +12,21 @@ PlaylistItem::PlaylistItem(QWidget *parent):QWidget(parent), ui(new Ui::Playlist
     ui->setupUi(this);
     this->setAttribute(Qt::WA_StyledBackground, true);
 
-    this->AudioOutput->setVolume(100);
-    this->Player->setAudioOutput(this->AudioOutput);
+    connect(this->Player->MediaPlayer, &QMediaPlayer::durationChanged, this, &PlaylistItem::updateDuration);
+    connect(this->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistItem::updateProgress);
+    connect(this->Player->MediaPlayer, &QMediaPlayer::playingChanged, this, &PlaylistItem::updatePlaying);
+    connect(this->Player->MediaPlayer, &QMediaPlayer::mediaStatusChanged, this, &PlaylistItem::handleMediaStatusChanged);
 
-    connect(this->Player, &QMediaPlayer::durationChanged, this, &PlaylistItem::updateDuration);
-    connect(this->Player, &QMediaPlayer::positionChanged, this, &PlaylistItem::updateProgress);
-    connect(this->Player, &QMediaPlayer::playingChanged, this, &PlaylistItem::updatePlaying);
-    connect(this->Player, &QMediaPlayer::mediaStatusChanged, this, &PlaylistItem::handleMediaStatusChanged);
-
-    connect(this->Player, &QMediaPlayer::errorOccurred, this, [](QMediaPlayer::Error error) {
+    connect(this->Player->MediaPlayer, &QMediaPlayer::errorOccurred, this, [](QMediaPlayer::Error error) {
         qDebug() << "Error:" << error;
-    });
-
-    connect(this->Player, &QMediaPlayer::mediaStatusChanged, this, [](QMediaPlayer::MediaStatus status) {
-        qDebug() << "Status:" << status;
     });
 
     this->isPlaying = false;
     this->wasPlayed = false;
     this->progressPorcent = 0.0;
     this->openingPorcent = 0.0;
+
+    this->Player->setFade(5000, 3000); // Test Fade
 }
 
 PlaylistItem::~PlaylistItem()
@@ -43,20 +38,30 @@ void PlaylistItem::setInfo(QString title, QString path){
     this->title = title;
     this->path = path;
 
-    this->Player->setSource(QUrl());
-    this->Player->setSource(QUrl::fromLocalFile(path));
+    this->Player->setSourceFromPath(path);
 
     this->ui->title->setText(title);
     this->setToolTip(title);
 }
 
+void PlaylistItem::play(){
+    this->Player->MediaPlayer->setActiveAudioTrack(-1);
+    this->Player->MediaPlayer->play();
+    this->Player->MediaPlayer->setActiveAudioTrack(0);
+}
+
+void PlaylistItem::pause(){
+    this->Player->MediaPlayer->pause();
+}
+
+void PlaylistItem::stop(){
+    this->Player->MediaPlayer->pause();
+    this->Player->MediaPlayer->setPosition(0);
+}
+
 void PlaylistItem::updateDuration(qint64 duration){
     this->duration = duration;
     this->ui->duration->setText(msec2string(duration));
-
-    this->Player->setActiveAudioTrack(-1);
-
-    // this->Player->setActiveAudioTrack(0);
 }
 
 void PlaylistItem::updateProgress(qint64 progress){
