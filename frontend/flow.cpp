@@ -43,10 +43,6 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->selectProfile->addItem("Band Bom Dia");
     this->ui->selectProfile->addItem("Clube da Band");
 
-
-    this->ui->pushButton_7->hide();
-    this->ui->label->hide();
-
     ProgramBlock *blocoteste = new ProgramBlock(this);
     blocoteste->setHour("14:00");
     blocoteste->setTitle("Clube da Band");

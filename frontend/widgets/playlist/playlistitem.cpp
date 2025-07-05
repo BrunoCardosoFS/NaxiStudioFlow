@@ -21,11 +21,11 @@ PlaylistItem::PlaylistItem(QWidget *parent):QWidget(parent), ui(new Ui::Playlist
     connect(this->Player, &QMediaPlayer::mediaStatusChanged, this, &PlaylistItem::handleMediaStatusChanged);
 
     connect(this->Player, &QMediaPlayer::errorOccurred, this, [](QMediaPlayer::Error error) {
-        qDebug() << "Erro no QMediaPlayer:" << error;
+        qDebug() << "Error:" << error;
     });
 
     connect(this->Player, &QMediaPlayer::mediaStatusChanged, this, [](QMediaPlayer::MediaStatus status) {
-        qDebug() << "Status da mídia:" << status;
+        qDebug() << "Status:" << status;
     });
 
     this->isPlaying = false;
@@ -88,6 +88,10 @@ void PlaylistItem::paintEvent(QPaintEvent *event)
 
     QPainter painter(this);
 
+    QPainterPath clipPath;
+    clipPath.addRoundedRect(this->rect(), 10, 10);
+    painter.setClipPath(clipPath);
+
     QLinearGradient gradientOpening(0, 0, 0, height());
     gradientOpening.setColorAt(0.0, QColor("#6CB03D"));
     gradientOpening.setColorAt(1.0, QColor("#3A8606"));
@@ -95,7 +99,7 @@ void PlaylistItem::paintEvent(QPaintEvent *event)
     QRectF openingRect(0, 0, width() * this->openingPorcent, height());
     painter.setBrush(gradientOpening);
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(openingRect, 10, 10);
+    painter.drawRect(openingRect);
 
 
     QLinearGradient gradientProgress(0, 0, 0, height());
@@ -105,5 +109,5 @@ void PlaylistItem::paintEvent(QPaintEvent *event)
     QRectF progressRect(0, 0, width() * this->progressPorcent, height());
     painter.setBrush(gradientProgress);
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(progressRect, 10, 10);
+    painter.drawRect(progressRect);
 }
