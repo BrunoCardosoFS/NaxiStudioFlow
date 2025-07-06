@@ -26,7 +26,7 @@ PlaylistItem::PlaylistItem(QWidget *parent):QWidget(parent), ui(new Ui::Playlist
     this->progressPorcent = 0.0;
     this->openingPorcent = 0.0;
 
-    this->Player->setFade(5000, 3000); // Test Fade
+    // this->Player->setFade(0.5, 0.3, 2000, 4000, 6000, 6000, 4000, 2000); // Test Fade
 }
 
 PlaylistItem::~PlaylistItem()

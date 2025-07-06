@@ -28,6 +28,8 @@ public:
 
     QString title, path;
 
+    qint8 mediaType = 0;
+
     void setInfo(QString title, QString path);
     void play();
     void pause();

@@ -14,6 +14,8 @@ public:
 
     QString title, path, duration;
 
+    qint8 mediaType = 0;
+
     void setInfo(QString title, QString path);
     void setDuration(QString duration);
 
