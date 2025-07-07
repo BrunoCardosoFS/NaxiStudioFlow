@@ -34,7 +34,7 @@ protected:
 
             QByteArray data;
             QDataStream stream(&data, QIODevice::WriteOnly);
-            stream << title << path;
+            stream << title << path << mediaType;
             mimeData->setData("application/x-catalog-item", data);
 
             drag->setMimeData(mimeData);

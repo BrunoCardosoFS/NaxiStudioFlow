@@ -4,7 +4,7 @@
 #include "../../../backend/functions/timeFunctions.h"
 
 #include <QPainter>
-
+#include <QPainterPath>
 #include <QDebug>
 
 
@@ -21,22 +21,17 @@ PlaylistItem::PlaylistItem(QWidget *parent):QWidget(parent), ui(new Ui::Playlist
         qDebug() << "Error:" << error;
     });
 
-    this->isPlaying = false;
-    this->wasPlayed = false;
-    this->progressPorcent = 0.0;
-    this->openingPorcent = 0.0;
-
     // this->Player->setFade(0.5, 0.3, 2000, 4000, 6000, 6000, 4000, 2000); // Test Fade
 }
 
-PlaylistItem::~PlaylistItem()
-{
+PlaylistItem::~PlaylistItem(){
     delete ui;
 }
 
-void PlaylistItem::setInfo(QString title, QString path){
+void PlaylistItem::setInfo(QString title, QString path, qint8 mediaType){
     this->title = title;
     this->path = path;
+    this->mediaType = mediaType;
 
     this->Player->setSourceFromPath(path);
 
@@ -77,8 +72,7 @@ void PlaylistItem::updatePlaying(qint64 playing){
     this->isPlaying = playing;
 }
 
-void PlaylistItem::handleMediaStatusChanged(QMediaPlayer::MediaStatus status)
-{
+void PlaylistItem::handleMediaStatusChanged(QMediaPlayer::MediaStatus status){
     if (status == QMediaPlayer::EndOfMedia) {
         this->wasPlayed = true;
     }
@@ -87,32 +81,38 @@ void PlaylistItem::handleMediaStatusChanged(QMediaPlayer::MediaStatus status)
 
 
 
-void PlaylistItem::paintEvent(QPaintEvent *event)
-{
+void PlaylistItem::paintEvent(QPaintEvent *event){
     Q_UNUSED(event);
 
     QPainter painter(this);
+    painter.setPen(Qt::NoPen);
 
     QPainterPath clipPath;
     clipPath.addRoundedRect(this->rect(), 10, 10);
     painter.setClipPath(clipPath);
 
+    QLinearGradient gradientBackground(0, 0, 0, height());
+    gradientBackground.setColorAt(0.0, this->bgColor1);
+    gradientBackground.setColorAt(1.0, this->bgColor2);
+
+    QRectF backgroundRect(0, 0, width(), height());
+    painter.setBrush(gradientBackground);
+    painter.drawRect(backgroundRect);
+
     QLinearGradient gradientOpening(0, 0, 0, height());
-    gradientOpening.setColorAt(0.0, QColor("#6CB03D"));
-    gradientOpening.setColorAt(1.0, QColor("#3A8606"));
+    gradientOpening.setColorAt(0.0, this->opColor1);
+    gradientOpening.setColorAt(1.0, this->opColor2);
 
     QRectF openingRect(0, 0, width() * this->openingPorcent, height());
     painter.setBrush(gradientOpening);
-    painter.setPen(Qt::NoPen);
     painter.drawRect(openingRect);
 
 
     QLinearGradient gradientProgress(0, 0, 0, height());
-    gradientProgress.setColorAt(0.0, QColor("#CF3B6B"));
-    gradientProgress.setColorAt(1.0, QColor("#AC073C"));
+    gradientProgress.setColorAt(0.0, this->pgColor1);
+    gradientProgress.setColorAt(1.0, this->pgColor2);
 
     QRectF progressRect(0, 0, width() * this->progressPorcent, height());
     painter.setBrush(gradientProgress);
-    painter.setPen(Qt::NoPen);
     painter.drawRect(progressRect);
 }

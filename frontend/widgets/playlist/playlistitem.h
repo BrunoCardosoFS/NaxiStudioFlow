@@ -7,7 +7,6 @@
 #include <QDrag>
 #include <QMimeData>
 
-#include <QtMultimedia>
 #include <QDebug>
 
 #include "../../../backend/player/playerplaylistitem.h"
@@ -27,10 +26,14 @@ public:
     PlayerPlaylistItem *Player = new PlayerPlaylistItem(this);
 
     QString title, path;
-
     qint8 mediaType = 0;
+    bool isPlaying = false;
+    bool wasPlayed = false;
 
-    void setInfo(QString title, QString path);
+    qint64 mixStart = 0;
+    qint64 mixEnd;
+
+    void setInfo(QString title, QString path, qint8 mediaType);
     void play();
     void pause();
     void stop();
@@ -39,10 +42,17 @@ private:
     Ui::PlaylistItem *ui;
 
     qint64 duration, progress;
-    bool isPlaying, wasPlayed;
+    qreal progressPorcent = 0.0;
+    qreal openingPorcent = 0.0;
 
-    qreal progressPorcent;
-    qreal openingPorcent;
+    QColor bgColor1 = QColor(QStringLiteral("#418DB4"));
+    QColor bgColor2 = QColor(QStringLiteral("#0066A5"));
+
+    QColor opColor1 = QColor(QStringLiteral("#6CB03D"));
+    QColor opColor2 = QColor(QStringLiteral("#3A8606"));
+
+    QColor pgColor1 = QColor(QStringLiteral("#CF3B6B"));
+    QColor pgColor2 = QColor(QStringLiteral("#AC073C"));
 
 private slots:
     void updateDuration(qint64 duration);

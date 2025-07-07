@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
+#include "../../../backend/playlist/playlistcontoller.h"
+
 namespace Ui {
 class ProgramBlock;
 }
@@ -21,6 +23,10 @@ class ProgramBlock : public QWidget
 public:
     explicit ProgramBlock(QWidget *parent = nullptr);
     ~ProgramBlock();
+
+    qint8 blockType = 0;
+
+    PlaylistContoller *controller = new PlaylistContoller(this);
 
     void setHour(QString hour);
     void setTitle(QString title);

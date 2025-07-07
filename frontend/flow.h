@@ -5,8 +5,10 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QLocale>
+#include <QList>
 
 #include "../backend/catalog/fileslist.h"
+#include "./widgets/playlist/programblock.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,16 +25,12 @@ public:
     ~Flow();
 
 private slots:
-
     void on_btnFull_clicked();
-
-    void on_pushButton_7_clicked();
-
     void on_SearchLocal_clicked();
-
     void on_SearchClean_clicked();
-
     void on_SearchLine_returnPressed();
+
+    void on_btnPlay_clicked();
 
 private:
     Ui::Flow *ui;
@@ -48,6 +46,8 @@ private:
     void saveLayout();
     void restoreLayout();
     void updateClock();
+
+    QList<ProgramBlock*> blocks;
 
 protected:
     void changeEvent(QEvent *event) override;

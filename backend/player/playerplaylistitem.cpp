@@ -9,11 +9,6 @@ PlayerPlaylistItem::PlayerPlaylistItem(QObject *parent):QObject{parent}{
     connect(this->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlayerPlaylistItem::volumeControl);
     connect(this->MediaPlayer, &QMediaPlayer::durationChanged, this, [this](qint64 durationChanged){
         this->duration = durationChanged;
-
-        this->duckingStartPosition = durationChanged - this->duckingStartPoint;
-        this->duckingEndPosition = durationChanged - this->duckingEndPoint;
-        this->fadeOutStartPosition = durationChanged - this->fadeOutStartPoint;
-
         this->updateCoefficients();
     });
 }
@@ -23,6 +18,10 @@ void PlayerPlaylistItem::setSourceFromPath(QString path){
 }
 
 void PlayerPlaylistItem::updateCoefficients(){
+    this->duckingStartPosition = this->duration - this->duckingStartPoint;
+    this->duckingEndPosition = this->duration - this->duckingEndPoint;
+    this->fadeOutStartPosition = this->duration - this->fadeOutStartPoint;
+
     this->fadeInSlope = (this->introLevel/this->fadeInEndPoint);
 
     this->mainRampUpSlope = (this->introLevel-1)/(this->mainRampUpStartPoint-this->peakStartPoin);
@@ -47,10 +46,6 @@ void PlayerPlaylistItem::setFade(float introLevel, float duckingLevel, qint64 fa
     this->duckingEndPoint = duckingEndPoint;
     this->fadeOutStartPoint = fadeOutStartPoint;
 
-    this->duckingStartPosition = this->duration - this->duckingStartPoint;
-    this->duckingEndPosition = this->duration - this->duckingEndPoint;
-    this->fadeOutStartPosition = this->duration - this->fadeOutStartPoint;
-
     this->updateCoefficients();
 }
 
@@ -72,8 +67,6 @@ void PlayerPlaylistItem::volumeControl(qint64 position){
     }else{
         vol = (position*this->fadeOutSlope) + this->fadeOutIntercept;
     }
-
-    qInfo() << vol;
 
     this->AudioOutput->setVolume(qBound(0.0, vol, 1.0));
 }

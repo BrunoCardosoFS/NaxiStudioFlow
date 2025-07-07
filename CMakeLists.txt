@@ -13,6 +13,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia Core)
 find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Core)
 
 set(QT_MEDIA_BACKEND ffmpeg)
 
@@ -43,6 +44,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
         backend/functions/timeFunctions.h
         backend/player/playerplaylistitem.h backend/player/playerplaylistitem.cpp
+        backend/playlist/playlistcontoller.h backend/playlist/playlistcontoller.cpp
 
 
     )
@@ -59,6 +61,7 @@ endif()
 target_sources(NaxiStudioFlow PRIVATE ${app_icon_resource_windows})
 target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Multimedia Qt6::Core)
+target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Core)
 target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Core)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)

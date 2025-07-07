@@ -4,7 +4,6 @@
 #include "../backend/catalog/folderslist.h"
 
 #include "./widgets/filewidget.h"
-#include "./widgets/playlist/programblock.h"
 
 #include <QDateTime>
 #include <QTimer>
@@ -39,24 +38,28 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     connect(clockTimer, &QTimer::timeout, this, &Flow::updateClock);
     clockTimer->start(1000);
 
-    this->ui->selectProfile->addItem("Manhã Show");
-    this->ui->selectProfile->addItem("Band Bom Dia");
-    this->ui->selectProfile->addItem("Clube da Band");
+    // this->ui->selectProfile->addItem("Manhã Show");
+    // this->ui->selectProfile->addItem("Band Bom Dia");
+    // this->ui->selectProfile->addItem("Clube da Band");
+    this->ui->selectProfile->hide();
 
     ProgramBlock *blocoteste = new ProgramBlock(this);
-    blocoteste->setHour("14:00");
-    blocoteste->setTitle("Clube da Band");
+    blocoteste->setHour("21:30");
+    blocoteste->setTitle("Musical");
     this->ui->PlaylistContent->layout()->addWidget(blocoteste);
+    this->blocks.append(blocoteste);
 
-    ProgramBlock *blocoteste2 = new ProgramBlock(this);
-    blocoteste2->setHour("14:30");
-    blocoteste2->setTitle("Clube da Band");
-    this->ui->PlaylistContent->layout()->addWidget(blocoteste2);
+    // ProgramBlock *blocoteste2 = new ProgramBlock(this);
+    // blocoteste2->setHour("22:00");
+    // blocoteste2->setTitle("Comercial");
+    // this->ui->PlaylistContent->layout()->addWidget(blocoteste2);
+    // this->blocks.append(blocoteste2);
 
-    ProgramBlock *blocoteste3 = new ProgramBlock(this);
-    blocoteste3->setHour("15:00");
-    blocoteste3->setTitle("Clube da Band");
-    this->ui->PlaylistContent->layout()->addWidget(blocoteste3);
+    // ProgramBlock *blocoteste3 = new ProgramBlock(this);
+    // blocoteste3->setHour("22:05");
+    // blocoteste3->setTitle("Musical");
+    // this->ui->PlaylistContent->layout()->addWidget(blocoteste3);
+    // this->blocks.append(blocoteste3);
 
     QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
     this->ui->PlaylistContent->layout()->addItem(spacer);
@@ -194,16 +197,6 @@ void Flow::closeEvent(QCloseEvent *event) {
 }
 
 
-void Flow::on_pushButton_7_clicked()
-{
-    resizeDocks({this->ui->DocCatalog}, {450}, Qt::Horizontal);
-    resizeDocks({this->ui->DoclRight}, {450}, Qt::Horizontal);
-    // qInfo() << this->ui->DocCatalog->width();
-    // qInfo() << this->ui->DocCatalog->isFloating();
-    // qInfo() << this->ui->DocCatalog->pos();
-}
-
-
 
 void Flow::on_SearchLocal_clicked()
 {
@@ -222,5 +215,11 @@ void Flow::on_SearchClean_clicked()
 void Flow::on_SearchLine_returnPressed()
 {
     this->on_SearchLocal_clicked();
+}
+
+
+void Flow::on_btnPlay_clicked(){
+    this->blocks[0]->controller->toNext();
+    this->blocks[0]->controller->play(0);
 }
 
