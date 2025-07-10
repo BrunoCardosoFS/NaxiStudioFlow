@@ -89,8 +89,9 @@ protected:
             }
             break;
         case Qt::MiddleButton:
-            this->deleteLater();
-            qInfo() << "Deletado";
+            // this->deleteLater();
+            // qInfo() << "Deletado";
+            this->Player->MediaPlayer->setPosition(this->Player->MediaPlayer->position() + 5000);
             break;
         case Qt::RightButton:
             this->stop();

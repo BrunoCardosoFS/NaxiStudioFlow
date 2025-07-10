@@ -14,14 +14,13 @@ int main(int argc, char *argv[])
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
     for (const QString &locale : uiLanguages) {
-        const QString baseName = "NaxiStudioFlow_" + QLocale(locale).name();
-        if (translator.load(":/i18n/" + baseName)) {
+        if (translator.load(":/i18n/" + QLocale(locale).name() + ".qm")) {
             a.installTranslator(&translator);
             break;
         }
     }
+
     Flow w;
-    // w.show();
     w.showMaximized();
 
     return a.exec();

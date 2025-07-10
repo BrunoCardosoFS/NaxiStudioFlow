@@ -18,7 +18,12 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 set(QT_MEDIA_BACKEND ffmpeg)
 
 set(TS_FILES
-    lang/NaxiStudioFlow_pt_BR.ts
+    lang/pt_BR.ts
+    lang/en_US.ts
+)
+
+set(PROJECT_QRC_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/lang/translations.qrc
 )
 
 set(PROJECT_SOURCES
@@ -26,27 +31,37 @@ set(PROJECT_SOURCES
         frontend/flow.cpp
         frontend/flow.h
         frontend/flow.ui
-        ${TS_FILES}
+        frontend/resources/flow.qrc
+        frontend/widgets/filewidget.h frontend/widgets/filewidget.cpp
+        frontend/widgets/playlist/programblock.h frontend/widgets/playlist/programblock.cpp frontend/widgets/playlist/programblock.ui
+        frontend/widgets/playlist/programblock.h
+        frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
+        backend/functions/timeFunctions.h
+        frontend/widgets/editor/mixeditor.h frontend/widgets/editor/mixeditor.cpp frontend/widgets/editor/mixeditor.ui
+        backend/player/playerplaylistitem.h backend/player/playerplaylistitem.cpp
+        backend/playlist/playlistcontoller.h backend/playlist/playlistcontoller.cpp
+        backend/catalog/fileslist.h backend/catalog/fileslist.cpp
+        backend/catalog/folderslist.h
 )
 
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/frontend/resources/NaxiStudioFlow.rc")
+
+qt_add_lupdate(
+    SOURCE_TARGETS NaxiStudioFlow
+    TS_FILES ${TS_FILES}
+)
+
+qt_add_lrelease(
+    TS_FILES ${TS_FILES}
+    QM_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lang
+)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(NaxiStudioFlow
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        frontend/resources/flow.qrc
-        backend/catalog/folderslist.h
-        frontend/widgets/filewidget.h frontend/widgets/filewidget.cpp
-        backend/catalog/fileslist.h backend/catalog/fileslist.cpp
-        frontend/widgets/playlist/programblock.h frontend/widgets/playlist/programblock.cpp frontend/widgets/playlist/programblock.ui
-        frontend/widgets/playlist/programblock.h
-        frontend/widgets/playlist/playlistitem.h frontend/widgets/playlist/playlistitem.cpp frontend/widgets/playlist/playlistitem.ui
-        backend/functions/timeFunctions.h
-        backend/player/playerplaylistitem.h backend/player/playerplaylistitem.cpp
-        backend/playlist/playlistcontoller.h backend/playlist/playlistcontoller.cpp
-
-
+        ${TS_FILES}
+        ${PROJECT_QRC_FILES}
     )
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

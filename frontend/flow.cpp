@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QTimer>
 #include <QMessageBox>
+#include <QTranslator>
 
 #include <QDebug>
 
@@ -45,7 +46,7 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
 
     ProgramBlock *blocoteste = new ProgramBlock(this);
     blocoteste->setHour("21:30");
-    blocoteste->setTitle("Musical");
+    blocoteste->setTitle(tr("Musical"));
     this->ui->PlaylistContent->layout()->addWidget(blocoteste);
     this->blocks.append(blocoteste);
 
