@@ -8,8 +8,24 @@ PlayerPlaylistItem::PlayerPlaylistItem(QObject *parent):QObject{parent}{
 
     connect(this->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlayerPlaylistItem::volumeControl);
     connect(this->MediaPlayer, &QMediaPlayer::durationChanged, this, [this](qint64 durationChanged){
-        this->duration = durationChanged;
-        this->updateCoefficients();
+        if(!this->endPoint){
+            this->startPoint = 0;
+            this->endPoint = this->rampDownEndPoint = this->fadeOutStartPoint = durationChanged;
+            this->rampDownStartPoint = durationChanged - 500;
+
+            this->updateCoefficients();
+        }
+    });
+
+    connect(this->MediaPlayer, &QMediaPlayer::mediaStatusChanged, this, [this](QMediaPlayer::MediaStatus status){
+        if(status == QMediaPlayer::LoadedMedia && !this->isLoaded){
+            this->isLoaded = true;
+            this->MediaPlayer->setPosition(this->startPoint);
+        }
+
+        if(status == QMediaPlayer::EndOfMedia){
+            emit this->isFinished();
+        }
     });
 }
 
@@ -18,54 +34,55 @@ void PlayerPlaylistItem::setSourceFromPath(QString path){
 }
 
 void PlayerPlaylistItem::updateCoefficients(){
-    this->duckingStartPosition = this->duration - this->duckingStartPoint;
-    this->duckingEndPosition = this->duration - this->duckingEndPoint;
-    this->fadeOutStartPosition = this->duration - this->fadeOutStartPoint;
+    this->fadeInCoefficientA = this->preRampUpLevel/(this->fadeInEndPoint - this->startPoint);
 
-    this->fadeInSlope = (this->introLevel/this->fadeInEndPoint);
+    this->rampUpCoefficientA = (1 - this->preRampUpLevel)/(this->rampUpEndPoint - this->rampUpStartPoint);
+    this->rampUpCoefficientB = ((this->rampUpEndPoint*this->preRampUpLevel) - this->rampUpStartPoint)/(this->rampUpEndPoint - this->rampUpStartPoint);
 
-    this->mainRampUpSlope = (this->introLevel-1)/(this->mainRampUpStartPoint-this->peakStartPoin);
-    this->mainRampUpIntercept = (this->mainRampUpStartPoint-(this->peakStartPoin*this->introLevel))
-                                /(this->mainRampUpStartPoint-this->peakStartPoin);
+    this->rampDownCoefficientA = (1 - this->postRampDownLevel)/(this->rampDownStartPoint - this->rampDownEndPoint);
+    this->rampDownCoefficientB = ((this->postRampDownLevel*this->rampDownStartPoint) - this->rampDownEndPoint)/(this->rampDownStartPoint - this->rampDownEndPoint);
 
-    this->duckingRampDownSlope = (1-this->duckingLevel)/(this->duckingStartPosition-this->duckingEndPosition);
-    this->duckingRampDownIntercept = ((this->duckingStartPosition*this->duckingLevel)-this->duckingEndPosition)
-                                     /(this->duckingStartPosition-this->duckingEndPosition);
-
-    this->fadeOutSlope = (-this->duckingLevel/this->fadeOutStartPoint);
-    this->fadeOutIntercept = ((this->duration*this->duckingLevel)/this->fadeOutStartPoint);
+    this->fadeOutCoefficientA = this->postRampDownLevel/(this->fadeOutStartPoint - this->endPoint);
+    this->fadeOutCoefficientB = (-this->postRampDownLevel*this->endPoint)/(this->fadeOutStartPoint - this->endPoint);
 }
 
-void PlayerPlaylistItem::setFade(float introLevel, float duckingLevel, qint64 fadeInEndPoint, qint64 mainRampUpStartPoint, qint64 peakStartPoin, qint64 duckingStartPoint, qint64 duckingEndPoint, qint64 fadeOutStartPoint){
-    this->introLevel = introLevel;
-    this->duckingLevel = duckingLevel;
+void PlayerPlaylistItem::setFade(float startPoint, float endPoint, float preRampUpLevel, float postRampDownLevel, qint64 fadeInEndPoint, qint64 rampUpStartPoint, qint64 rampUpEndPoint, qint64 rampDownStartPoint, qint64 rampDownEndPoint, qint64 fadeOutStartPoint){
+    this->startPoint = startPoint;
+    this->endPoint = endPoint;
+    this->preRampUpLevel = preRampUpLevel;
+    this->postRampDownLevel = postRampDownLevel;
     this->fadeInEndPoint = fadeInEndPoint;
-    this->mainRampUpStartPoint = mainRampUpStartPoint;
-    this->peakStartPoin = peakStartPoin;
-    this->duckingStartPoint = duckingStartPoint;
-    this->duckingEndPoint = duckingEndPoint;
+    this->rampUpStartPoint = rampUpStartPoint;
+    this->rampUpEndPoint = rampUpEndPoint;
+    this->rampDownStartPoint = rampDownStartPoint;
+    this->rampDownEndPoint = rampDownEndPoint;
     this->fadeOutStartPoint = fadeOutStartPoint;
 
     this->updateCoefficients();
 }
 
 void PlayerPlaylistItem::volumeControl(qint64 position){
-    float vol = 1.0;
+    if(position >= this->endPoint){
+        emit this->isFinished();
+        return;
+    }
 
-    if(position < this->fadeInEndPoint){
-        vol = this->fadeInSlope*position;
-    }else if(position < this->mainRampUpStartPoint){
-        vol = this->introLevel;
-    }else if(position < this->peakStartPoin){
-        vol = (position*this->mainRampUpSlope) + this->mainRampUpIntercept;
-    }else if(position < this->duckingStartPosition){
-        vol = 1;
-    }else if(position < this->duckingEndPosition){
-        vol = (position*this->duckingRampDownSlope) + this->duckingRampDownIntercept;
-    }else if(position < this->fadeOutStartPosition){
-        vol = this->duckingLevel;
+    float vol;
+
+    if (position <= this->fadeInEndPoint){
+        vol = position * this->fadeInCoefficientA;
+    }else if(position < this->rampUpStartPoint){
+        vol = this->preRampUpLevel;
+    }else if(position < this->rampUpEndPoint){
+        vol = (position * this->rampUpCoefficientA) + this->rampUpCoefficientB;
+    }else if(position < this->rampDownStartPoint){
+        vol = 1.0;
+    }else if(position < this->rampDownEndPoint){
+        vol = (position * this->rampDownCoefficientA) + this->rampDownCoefficientB;
+    }else if(position < this->fadeOutStartPoint){
+        vol = this->postRampDownLevel;
     }else{
-        vol = (position*this->fadeOutSlope) + this->fadeOutIntercept;
+        vol = (position * this->fadeOutCoefficientA) + this->fadeOutCoefficientB;
     }
 
     this->AudioOutput->setVolume(qBound(0.0, vol, 1.0));

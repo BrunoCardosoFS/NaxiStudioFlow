@@ -62,6 +62,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         ${TS_FILES}
         ${PROJECT_QRC_FILES}
+        frontend/widgets/cartwall/cartwallitem.h frontend/widgets/cartwall/cartwallitem.cpp frontend/widgets/cartwall/cartwallitem.ui
     )
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

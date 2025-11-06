@@ -4,19 +4,6 @@
 <context>
     <name>Flow</name>
     <message>
-        <location filename="../frontend/flow.ui" line="20"/>
-        <source>NaxiStudio Flow</source>
-        <translation>NaxiStudio Flow</translation>
-    </message>
-    <message>
-        <location filename="../frontend/flow.ui" line="363"/>
-        <location filename="../frontend/flow.ui" line="382"/>
-        <location filename="../frontend/flow.ui" line="401"/>
-        <location filename="../frontend/flow.ui" line="1369"/>
-        <source>00:00:00</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../frontend/flow.ui" line="765"/>
         <source>Catálogo</source>
         <translation>Catalog</translation>
@@ -57,19 +44,9 @@
         <translation>Panel: ToDo</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1272"/>
-        <source>Topo</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../frontend/flow.ui" line="1362"/>
         <source>Selecione um perfil</source>
         <translation>Select a profile</translation>
-    </message>
-    <message>
-        <location filename="../frontend/flow.ui" line="1388"/>
-        <source>segunda-feita, 01 de janeiro de 2025</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../frontend/flow.ui" line="1483"/>
@@ -92,7 +69,7 @@
     <message>
         <location filename="../frontend/widgets/editor/mixeditor.ui" line="41"/>
         <source>&lt;Nome do arquivo&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;File Name&gt;</translation>
     </message>
     <message>
         <location filename="../frontend/widgets/editor/mixeditor.ui" line="84"/>

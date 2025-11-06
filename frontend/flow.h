@@ -31,6 +31,9 @@ private slots:
     void on_SearchLine_returnPressed();
 
     void on_btnPlay_clicked();
+    void on_btnPause_clicked();
+
+    void on_btnStop_clicked();
 
 private:
     Ui::Flow *ui;

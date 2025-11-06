@@ -26,22 +26,28 @@ public:
     PlayerPlaylistItem *Player = new PlayerPlaylistItem(this);
 
     QString title, path;
+    qint16 index;
     qint8 mediaType = 0;
     bool isPlaying = false;
     bool wasPlayed = false;
 
     qint64 mixStart = 0;
-    qint64 mixEnd;
+    qint64 mixEnd = 0;
 
     void setInfo(QString title, QString path, qint8 mediaType);
+    void setFade(float startPoint, float endPoint, float preRampUpLevel, float postRampDownLevel, qint64 fadeInEndPoint, qint64 rampUpStartPoint, qint64 rampUpEndPoint, qint64 rampDownStartPoint, qint64 rampDownEndPoint, qint64 fadeOutStartPoint);
     void play();
     void pause();
     void stop();
 
+signals:
+    void beingDeleted(PlaylistItem *me);
+
 private:
     Ui::PlaylistItem *ui;
 
-    qint64 duration, progress;
+    qint64 startPoint = -1;
+    qint64 endPoint, duration, position;
     qreal progressPorcent = 0.0;
     qreal openingPorcent = 0.0;
 
@@ -56,10 +62,8 @@ private:
 
 private slots:
     void updateDuration(qint64 duration);
-    void updateProgress(qint64 progress);
+    void updatePosition(qint64 position);
     void updatePlaying(qint64 playing);
-
-    void handleMediaStatusChanged(QMediaPlayer::MediaStatus status);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -89,14 +93,13 @@ protected:
             }
             break;
         case Qt::MiddleButton:
-            // this->deleteLater();
-            // qInfo() << "Deletado";
-            this->Player->MediaPlayer->setPosition(this->Player->MediaPlayer->position() + 5000);
+            if(!this->isPlaying){
+                emit this->beingDeleted(this);
+            }
             break;
         case Qt::RightButton:
-            this->stop();
-
-            qInfo() << "Reiniciado";
+            // this->stop();
+            this->Player->MediaPlayer->setPosition(this->Player->MediaPlayer->position() + 5000);
             break;
         default:
             break;

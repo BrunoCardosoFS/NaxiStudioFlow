@@ -11,7 +11,9 @@ public:
     explicit PlaylistContoller(QObject *parent = nullptr);
 
     void onPositionChanged(qint64 position);
-    void play(int index);
+    void play();
+    void pause();
+    void stop();
     void toNext();
 
     QList<PlaylistItem*> playlist;

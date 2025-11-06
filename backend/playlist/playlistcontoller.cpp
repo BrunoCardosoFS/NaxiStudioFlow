@@ -34,8 +34,38 @@ void PlaylistContoller::onPositionChanged(qint64 position){
     }
 }
 
-void PlaylistContoller::play(int index){
-    this->playlist[index]->play();
+void PlaylistContoller::play(){
+    if(this->currentIndex < 0){
+        this->toNext();
+    }
+
+    if(this->currentIndex >= 0){
+        this->playlist[this->currentIndex]->play();
+    }
+}
+
+void PlaylistContoller::pause(){
+    if(this->currentIndex == -1){
+        return;
+    }
+
+    this->playlist[this->currentIndex]->pause();
+    if(this->playlist.count() > this->currentIndex+1){
+        this->playlist[this->currentIndex + 1]->pause();
+    }
+    if(this->playlist.count() > this->currentIndex+2){
+        this->playlist[this->currentIndex + 2]->pause();
+    }
+}
+
+void PlaylistContoller::stop(){
+    this->pause();
+
+    if(this->currentIndex > -1){
+        int current = this->currentIndex;
+        this->toNext();
+        this->playlist[current]->stop();
+    }
 }
 
 void PlaylistContoller::toNext(){
@@ -43,8 +73,10 @@ void PlaylistContoller::toNext(){
         disconnect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistContoller::onPositionChanged);
     }
 
-    this->currentIndex++;
+    if(this->playlist.count() > this->currentIndex+1){
+        this->currentIndex++;
 
-    qInfo() << "Current: " << this->playlist[this->currentIndex]->title;
-    connect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistContoller::onPositionChanged);
+        qInfo() << "Current: " << this->playlist[this->currentIndex]->title;
+        connect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistContoller::onPositionChanged);
+    }
 }

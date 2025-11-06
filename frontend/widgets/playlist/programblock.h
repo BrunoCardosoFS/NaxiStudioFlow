@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
+#include "playlistitem.h"
 #include "../../../backend/playlist/playlistcontoller.h"
 
 namespace Ui {
@@ -35,6 +36,9 @@ private:
     Ui::ProgramBlock *ui;
 
     QVBoxLayout *blockContentLayout;
+
+private slots:
+    void removePlaylistItem(PlaylistItem *item);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;

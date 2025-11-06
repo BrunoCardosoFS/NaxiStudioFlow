@@ -68,7 +68,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string notr="true"/>
         </property>
        </widget>
       </item>
@@ -81,7 +81,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string notr="true"/>
         </property>
        </widget>
       </item>
@@ -107,7 +107,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string notr="true"/>
         </property>
        </widget>
       </item>
