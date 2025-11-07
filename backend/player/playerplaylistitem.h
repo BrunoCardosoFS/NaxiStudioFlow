@@ -24,26 +24,27 @@ public:
 
     void updateCoefficients();
 
-    qint64 startPoint;
-    qint64 endPoint;
+    qint64 startPoint = 0;
+    qint64 endPoint = -1;
 
     qint64 fadeInEndPoint = 0;
     qint64 rampUpStartPoint = 0;
     qint64 rampUpEndPoint = 500;
-    qint64 rampDownStartPoint;
-    qint64 rampDownEndPoint;
-    qint64 fadeOutStartPoint;
 
-    qreal fadeInCoefficientA;
+    qint64 rampDownStartPoint = -1;
+    qint64 rampDownEndPoint = -1;
+    qint64 fadeOutStartPoint = -1;
 
-    qreal rampUpCoefficientA;
-    qreal rampUpCoefficientB;
+    qreal fadeInCoefficientA = 0;
 
-    qreal rampDownCoefficientA;
-    qreal rampDownCoefficientB;
+    qreal rampUpCoefficientA = 0;
+    qreal rampUpCoefficientB = 0;
 
-    qreal fadeOutCoefficientA;
-    qreal fadeOutCoefficientB;
+    qreal rampDownCoefficientA = 0;
+    qreal rampDownCoefficientB = 0;
+
+    qreal fadeOutCoefficientA = 0;
+    qreal fadeOutCoefficientB = 0;
 
 private:
     QAudioOutput *AudioOutput = new QAudioOutput(this->MediaPlayer);

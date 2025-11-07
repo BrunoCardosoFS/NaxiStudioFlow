@@ -8,8 +8,7 @@ PlayerPlaylistItem::PlayerPlaylistItem(QObject *parent):QObject{parent}{
 
     connect(this->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlayerPlaylistItem::volumeControl);
     connect(this->MediaPlayer, &QMediaPlayer::durationChanged, this, [this](qint64 durationChanged){
-        if(!this->endPoint){
-            this->startPoint = 0;
+        if(this->endPoint == -1){
             this->endPoint = this->rampDownEndPoint = this->fadeOutStartPoint = durationChanged;
             this->rampDownStartPoint = durationChanged - 500;
 
@@ -58,11 +57,15 @@ void PlayerPlaylistItem::setFade(float startPoint, float endPoint, float preRamp
     this->rampDownEndPoint = rampDownEndPoint;
     this->fadeOutStartPoint = fadeOutStartPoint;
 
+    if(this->MediaPlayer->mediaStatus() == QMediaPlayer::LoadedMedia){
+        this->MediaPlayer->setPosition(startPoint);
+    }
+
     this->updateCoefficients();
 }
 
 void PlayerPlaylistItem::volumeControl(qint64 position){
-    if(position >= this->endPoint){
+    if(this->endPoint && (position >= this->endPoint)){
         emit this->isFinished();
         return;
     }
