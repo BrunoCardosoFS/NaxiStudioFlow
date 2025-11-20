@@ -34,6 +34,8 @@ public:
     qint64 mixStart = 0;
     qint64 mixEnd = 0;
 
+    qint64 introPoint = 0;
+
     void setInfo(QString title, QString path, qint8 mediaType);
     void setFade(float startPoint, float endPoint, float preRampUpLevel, float postRampDownLevel, qint64 fadeInEndPoint, qint64 rampUpStartPoint, qint64 rampUpEndPoint, qint64 rampDownStartPoint, qint64 rampDownEndPoint, qint64 fadeOutStartPoint);
     void play();

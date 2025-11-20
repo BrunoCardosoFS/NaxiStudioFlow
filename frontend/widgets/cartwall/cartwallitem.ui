@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>CartWallItem</class>
  <widget class="QWidget" name="CartWallItem">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -22,8 +25,16 @@
     <height>115</height>
    </size>
   </property>
+  <property name="cursor">
+   <cursorShape>PointingHandCursor</cursorShape>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QLabel{
+color: #000;
+}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -42,14 +53,14 @@
     <number>5</number>
    </property>
    <item>
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Título&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <widget class="QLabel" name="label">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
      <property name="text">
-      <string>Título</string>
-     </property>
-     <property name="placeholderText">
       <string>Título</string>
      </property>
     </widget>
@@ -116,12 +127,15 @@
        </widget>
       </item>
       <item>
-       <widget class="QKeySequenceEdit" name="keySequenceEdit">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Selecionar um atalho de teclado&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <widget class="QLabel" name="label_3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="maximumSequenceLength">
-         <longLong>2</longLong>
+        <property name="text">
+         <string>Ctrl+3</string>
         </property>
        </widget>
       </item>
@@ -161,27 +175,18 @@
     </widget>
    </item>
    <item>
-    <widget class="QComboBox" name="comboBox">
+    <widget class="QLabel" name="label_4">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+      <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Selecionar dispositivo de saída de áudio&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-     </property>
-     <property name="currentText">
-      <string/>
-     </property>
-     <property name="sizeAdjustPolicy">
-      <enum>QComboBox::SizeAdjustPolicy::AdjustToContentsOnFirstShow</enum>
-     </property>
-     <property name="placeholderText">
-      <string>Dispositivo de saída</string>
-     </property>
-     <property name="frame">
-      <bool>true</bool>
+     <property name="text">
+      <string>WaveForm</string>
      </property>
     </widget>
    </item>

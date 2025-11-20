@@ -5,7 +5,7 @@
 
 #include "./widgets/filewidget.h"
 
-#include "./widgets/cartwall/cartwallitem.h"
+#include "./widgets/cartwall/cartwallarea.h"
 
 #include <QGridLayout>
 
@@ -70,16 +70,8 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->PlaylistContent->layout()->addItem(spacer);
 
 
-    CartWallItem *cartItem1 = new CartWallItem(this);
-    CartWallItem *cartItem2 = new CartWallItem(this);
-
-    QSpacerItem *spacerCart = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-
-    QGridLayout *gridLayout = qobject_cast<QGridLayout*>(this->ui->DocCartWallScrollWidget->layout());
-
-    gridLayout->addWidget(cartItem1, 0, 0);
-    gridLayout->addWidget(cartItem2, 0, 1);
-    gridLayout->addItem(spacerCart, 1, 0, 1, 2);
+    CartWallArea *cartWallArea = new CartWallArea(this);
+    this->ui->DocCartWallScroll->setWidget(cartWallArea);
 
     restoreLayout();
 }
