@@ -16,7 +16,6 @@ ProgramBlock::ProgramBlock(QWidget *parent):QWidget(parent), ui(new Ui::ProgramB
 
 
 
-
     /////// Test
     PlaylistItem *item1 = new PlaylistItem(this->ui->BlockContent);
     item1->setInfo("Prefixo 1.mp3", "D:/MEDIA/VINHETAS/Jacobina FM/Entrada de Hora/Prefixo 1.mp3", 0);
@@ -37,7 +36,7 @@ ProgramBlock::ProgramBlock(QWidget *parent):QWidget(parent), ui(new Ui::ProgramB
     connect(item2, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
     PlaylistItem *item3 = new PlaylistItem(this->ui->BlockContent);
-    item3->setInfo("The Weeknd - Blinding Lights.mp3", "D:/MEDIA/MÚSICAS/Dance/The Weeknd - Blinding Lights.mp3", 0);
+    item3->setInfo("The Weeknd - Blinding Lights.mp3", "D:/MEDIA/MÚSICAS/Pop/The Weeknd - Blinding Lights.mp3", 0);
     item3->mixStart = 6300;
     item3->mixEnd = 194800;
     item3->setFade(5000, 201600, 0.01, 0.3, 8000, 10500, 11300, 194800, 201600, 201600);
@@ -114,7 +113,7 @@ ProgramBlock::ProgramBlock(QWidget *parent):QWidget(parent), ui(new Ui::ProgramB
     connect(item10, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
     PlaylistItem *item11 = new PlaylistItem(this->ui->BlockContent);
-    item11->setInfo("Dua Lipa - Levitating.mp3", "D:/MEDIA/MÚSICAS/Dance/Dua Lipa - Levitating.mp3", 0);
+    item11->setInfo("Dua Lipa - Levitating.mp3", "D:/MEDIA/MÚSICAS/Pop/Dua Lipa - Levitating.mp3", 0);
     item11->mixStart = 4200;
     item11->mixEnd = 201200;
     item11->setFade(0, 202300, 0.05, 0.0, 1000, 3200, 4200, 201800, 202200, 202300);

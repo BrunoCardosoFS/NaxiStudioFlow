@@ -4,18 +4,13 @@
 #include <QPainter>
 #include <QPainterPath>
 
-CartWallItem::CartWallItem(QWidget *parent)
-    : QWidget(parent)
-    , ui(new Ui::CartWallItem)
-{
+CartWallItem::CartWallItem(QWidget *parent):QWidget(parent), ui(new Ui::CartWallItem){
     ui->setupUi(this);
 }
 
-CartWallItem::~CartWallItem()
-{
+CartWallItem::~CartWallItem(){
     delete ui;
 }
-
 
 void CartWallItem::paintEvent(QPaintEvent *event){
     Q_UNUSED(event);
@@ -28,8 +23,8 @@ void CartWallItem::paintEvent(QPaintEvent *event){
     painter.setClipPath(clipPath);
 
     QLinearGradient gradientBackground(0, 0, 0, height());
-    gradientBackground.setColorAt(0.0, "#ffffff");
-    gradientBackground.setColorAt(1.0, "#b3b3b3");
+    gradientBackground.setColorAt(0.0, QColor(0xFFFFFFFF));
+    gradientBackground.setColorAt(1.0, QColor(0xFFB3B3B3));
 
     QRectF backgroundRect(0, 0, width(), height());
     painter.setBrush(gradientBackground);

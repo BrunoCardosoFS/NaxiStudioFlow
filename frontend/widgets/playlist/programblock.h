@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 
 #include "playlistitem.h"
-#include "../../../backend/playlist/playlistcontoller.h"
+#include "../../../backend/playlist/playlistcontroller.h"
 
 namespace Ui {
 class ProgramBlock;
@@ -27,7 +27,7 @@ public:
 
     qint8 blockType = 0;
 
-    PlaylistContoller *controller = new PlaylistContoller(this);
+    PlaylistController *controller = new PlaylistController(this);
 
     void setHour(QString hour);
     void setTitle(QString title);

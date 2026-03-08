@@ -4,6 +4,8 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QStyleFactory>
+#include <QDirIterator>
+#include <QFontDatabase>
 
 #include <QSettings>
 
@@ -11,7 +13,14 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     a.setWindowIcon(QIcon(":/images/icons/logo.ico"));
-    // a.setStyle(QStyleFactory::create("Fusion"));
+
+    QFontDatabase::addApplicationFont(":/fonts/fonts/Roboto-VariableFont_wdth,wght.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf");
+
+    QFont globalFont("Roboto", 10);
+    globalFont.setFeature("tnum", 1);
+    a.setFont(globalFont);
+
 
     QSettings settings("NaxiStudio", "NaxiStudio Flow");
 

@@ -70,8 +70,9 @@ Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     this->ui->PlaylistContent->layout()->addItem(spacer);
 
 
-    CartWallArea *cartWallArea = new CartWallArea(this);
-    this->ui->DocCartWallScroll->setWidget(cartWallArea);
+    CartWallArea *cartWallArea = new CartWallArea(this); //Consumindo muita memória >90MB
+    this->ui->DocCartWallScrollWidget->layout()->addWidget(cartWallArea);
+    // this->ui->DocCartWallScroll->setWidget(cartWallArea);
 
     restoreLayout();
 }

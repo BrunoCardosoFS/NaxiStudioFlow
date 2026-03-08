@@ -53,14 +53,14 @@ private:
     qreal progressPorcent = 0.0;
     qreal openingPorcent = 0.0;
 
-    QColor bgColor1 = QColor(QStringLiteral("#418DB4"));
-    QColor bgColor2 = QColor(QStringLiteral("#0066A5"));
+    QColor bgColor1 = QColor(0xFF418DB4);
+    QColor bgColor2 = QColor(0xFF0066A5);
 
-    QColor opColor1 = QColor(QStringLiteral("#6CB03D"));
-    QColor opColor2 = QColor(QStringLiteral("#3A8606"));
+    QColor opColor1 = QColor(0xFF6CB03D);
+    QColor opColor2 = QColor(0xFF3A8606);
 
-    QColor pgColor1 = QColor(QStringLiteral("#CF3B6B"));
-    QColor pgColor2 = QColor(QStringLiteral("#AC073C"));
+    QColor pgColor1 = QColor(0xFFCF3B6B);
+    QColor pgColor2 = QColor(0xFFAC073C);
 
 private slots:
     void updateDuration(qint64 duration);

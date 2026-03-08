@@ -19,6 +19,10 @@
   <property name="windowTitle">
    <string notr="true">NaxiStudio Flow</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="resources/flow.qrc">
+    <normaloff>:/images/icons/logo-naxistudio.svg</normaloff>:/images/icons/logo-naxistudio.svg</iconset>
+  </property>
   <property name="styleSheet">
    <string notr="true">#Flow{
 	background-color: #191D24;
@@ -1254,6 +1258,23 @@ ProgramBlock #BlockContent{
           <height>595</height>
          </rect>
         </property>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+        </layout>
        </widget>
       </widget>
      </item>
@@ -1437,7 +1458,7 @@ ProgramBlock #BlockContent{
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources/flow.qrc">:/images/icons/icon.png</pixmap>
+        <pixmap resource="resources/flow.qrc">:/images/icons/logo-flow.svg</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>

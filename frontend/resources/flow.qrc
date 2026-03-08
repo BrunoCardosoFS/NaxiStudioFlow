@@ -18,13 +18,17 @@
         <file>icons/next.svg</file>
         <file>icons/close-black.svg</file>
         <file>icons/close-white.svg</file>
-        <file>icons/icon.png</file>
-        <file>icons/playicon.png</file>
         <file>icons/Stop.svg</file>
         <file>icons/arrow-down.svg</file>
         <file>catalog/commercial.svg</file>
         <file>catalog/jingle.svg</file>
         <file>catalog/music.svg</file>
         <file>catalog/other.svg</file>
+        <file>icons/logo-flow.svg</file>
+        <file>icons/logo-naxistudio.svg</file>
+    </qresource>
+    <qresource prefix="/fonts">
+        <file>fonts/Roboto-Italic-VariableFont_wdth,wght.ttf</file>
+        <file>fonts/Roboto-VariableFont_wdth,wght.ttf</file>
     </qresource>
 </RCC>

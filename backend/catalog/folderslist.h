@@ -8,12 +8,20 @@
 
 QJsonArray getFolders(QString pathDB){
     QFile catalog(pathDB + "/catalog.json");
-    catalog.open(QFile::ReadOnly | QFile::Text);
-    QTextStream dataCatalog(&catalog);
-    QString jsonString = dataCatalog.readAll();
-    catalog.close();
+    const bool isOpen = catalog.open(QFile::ReadOnly | QFile::Text);
 
-    QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonDocument jsonDocument;
+    QString jsonString;
+
+    if(isOpen){
+        QTextStream dataCatalog(&catalog);
+        jsonString = dataCatalog.readAll();
+    }else{
+        jsonString = "[{'title': '', 'path': '', 'type': 0, 'id': ''}]";
+    }
+
+    jsonDocument = QJsonDocument::fromJson(jsonString.toUtf8());
+    catalog.close();
 
     return jsonDocument.array();
 }

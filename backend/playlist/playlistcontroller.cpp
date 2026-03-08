@@ -1,11 +1,17 @@
-#include "playlistcontoller.h"
+#include "playlistcontroller.h"
 #include <QMediaPlayer>
 
-PlaylistContoller::PlaylistContoller(QObject *parent):QObject{parent}{
+PlaylistController* PlaylistController::getInstance(QObject *parent){
+    static PlaylistController* _instance = new PlaylistController(parent);
+
+    return _instance;
+}
+
+PlaylistController::PlaylistController(QObject *parent):QObject{parent}{
 
 }
 
-void PlaylistContoller::onPositionChanged(qint64 position){
+void PlaylistController::onPositionChanged(qint64 position){
     int countItems = this->playlist.count() - this->currentIndex;
 
     if(countItems > 1){
@@ -34,7 +40,7 @@ void PlaylistContoller::onPositionChanged(qint64 position){
     }
 }
 
-void PlaylistContoller::play(){
+void PlaylistController::play(){
     if(this->currentIndex < 0){
         this->toNext();
     }
@@ -44,7 +50,7 @@ void PlaylistContoller::play(){
     }
 }
 
-void PlaylistContoller::pause(){
+void PlaylistController::pause(){
     if(this->currentIndex == -1){
         return;
     }
@@ -58,7 +64,7 @@ void PlaylistContoller::pause(){
     }
 }
 
-void PlaylistContoller::stop(){
+void PlaylistController::stop(){
     this->pause();
 
     if(this->currentIndex > -1){
@@ -68,15 +74,15 @@ void PlaylistContoller::stop(){
     }
 }
 
-void PlaylistContoller::toNext(){
+void PlaylistController::toNext(){
     if(this->currentIndex > -1){
-        disconnect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistContoller::onPositionChanged);
+        disconnect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistController::onPositionChanged);
     }
 
     if(this->playlist.count() > this->currentIndex+1){
         this->currentIndex++;
 
         qInfo() << "Current: " << this->playlist[this->currentIndex]->title;
-        connect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistContoller::onPositionChanged);
+        connect(this->playlist[this->currentIndex]->Player->MediaPlayer, &QMediaPlayer::positionChanged, this, &PlaylistController::onPositionChanged);
     }
 }

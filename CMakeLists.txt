@@ -40,22 +40,13 @@ set(PROJECT_SOURCES
         backend/functions/timeFunctions.h
         frontend/widgets/editor/mixeditor.h frontend/widgets/editor/mixeditor.cpp frontend/widgets/editor/mixeditor.ui
         backend/player/playerplaylistitem.h backend/player/playerplaylistitem.cpp
-        backend/playlist/playlistcontoller.h backend/playlist/playlistcontoller.cpp
+        backend/playlist/playlistcontroller.h backend/playlist/playlistcontroller.cpp
         backend/catalog/fileslist.h backend/catalog/fileslist.cpp
         backend/catalog/folderslist.h
 )
 
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/frontend/resources/NaxiStudioFlow.rc")
 
-qt_add_lupdate(
-    SOURCE_TARGETS NaxiStudioFlow
-    TS_FILES ${TS_FILES}
-)
-
-qt_add_lrelease(
-    TS_FILES ${TS_FILES}
-    QM_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lang
-)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(NaxiStudioFlow
@@ -63,8 +54,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         ${TS_FILES}
         ${PROJECT_QRC_FILES}
-        frontend/widgets/cartwall/cartwallitem.h frontend/widgets/cartwall/cartwallitem.cpp frontend/widgets/cartwall/cartwallitem.ui
+
         frontend/widgets/cartwall/cartwallarea.h frontend/widgets/cartwall/cartwallarea.cpp frontend/widgets/cartwall/cartwallarea.ui
+        frontend/widgets/cartwall/cartwallitem.h frontend/widgets/cartwall/cartwallitem.cpp frontend/widgets/cartwall/cartwallitem.ui
+        backend/playlist/mastercontroller.h backend/playlist/mastercontroller.cpp
+
 
     )
 
