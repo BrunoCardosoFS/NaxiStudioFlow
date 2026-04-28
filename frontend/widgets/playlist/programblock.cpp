@@ -17,13 +17,13 @@ ProgramBlock::ProgramBlock(QWidget *parent):QWidget(parent), ui(new Ui::ProgramB
 
 
     /////// Test
-    PlaylistItem *item1 = new PlaylistItem(this->ui->BlockContent);
-    item1->setInfo("Prefixo 1.mp3", "D:/MEDIA/VINHETAS/Jacobina FM/Entrada de Hora/Prefixo 1.mp3", 0);
-    item1->mixStart = 500;
-    item1->mixEnd = 27100;
-    this->blockContentLayout->addWidget(item1);
-    this->controller->playlist.append(item1);
-    connect(item1, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
+    // PlaylistItem *item1 = new PlaylistItem(this->ui->BlockContent);
+    // item1->setInfo("Prefixo 1.mp3", "D:/MEDIA/VINHETAS/Jacobina FM/Entrada de Hora/Prefixo 1.mp3", 0);
+    // item1->mixStart = 500;
+    // item1->mixEnd = 27100;
+    // this->blockContentLayout->addWidget(item1);
+    // this->controller->playlist.append(item1);
+    // connect(item1, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
     PlaylistItem *item2 = new PlaylistItem(this->ui->BlockContent);
     item2->setInfo("Vht - Entrada de Bloco  Comercial - Jacobina Fm - 2.mp3", "D:/MEDIA/PLASTICA 30 ANOS ANIVERSARIO/Plastica Jacobina Parte 001/Verso¦âes Principais - Jacobina Fm/Vht - Entrada de Bloco  Comercial - Jacobina Fm - 2.mp3", 0);
@@ -35,22 +35,22 @@ ProgramBlock::ProgramBlock(QWidget *parent):QWidget(parent), ui(new Ui::ProgramB
     this->controller->playlist.append(item2);
     connect(item2, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
-    PlaylistItem *item3 = new PlaylistItem(this->ui->BlockContent);
-    item3->setInfo("The Weeknd - Blinding Lights.mp3", "D:/MEDIA/MÚSICAS/Pop/The Weeknd - Blinding Lights.mp3", 0);
-    item3->mixStart = 6300;
-    item3->mixEnd = 194800;
-    item3->setFade(5000, 201600, 0.01, 0.3, 8000, 10500, 11300, 194800, 201600, 201600);
-    this->blockContentLayout->addWidget(item3);
-    this->controller->playlist.append(item3);
-    connect(item3, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
+    // PlaylistItem *item3 = new PlaylistItem(this->ui->BlockContent);
+    // item3->setInfo("The Weeknd - Blinding Lights.mp3", "D:/MEDIA/MÚSICAS/Pop/The Weeknd - Blinding Lights.mp3", 0);
+    // item3->mixStart = 6300;
+    // item3->mixEnd = 194800;
+    // item3->setFade(5000, 201600, 0.01, 0.3, 8000, 10500, 11300, 194800, 201600, 201600);
+    // this->blockContentLayout->addWidget(item3);
+    // this->controller->playlist.append(item3);
+    // connect(item3, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
-    PlaylistItem *item4 = new PlaylistItem(this->ui->BlockContent);
-    item4->setInfo("O sucesso na dose certa 1.mp3", "D:/MEDIA/VINHETAS/Jacobina FM/Passagem/O sucesso na dose certa 1.mp3", 0);
-    item4->mixStart = 300;
-    item4->mixEnd = 9500;
-    this->blockContentLayout->addWidget(item4);
-    this->controller->playlist.append(item4);
-    connect(item4, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
+    // PlaylistItem *item4 = new PlaylistItem(this->ui->BlockContent);
+    // item4->setInfo("O sucesso na dose certa 1.mp3", "D:/MEDIA/VINHETAS/Jacobina FM/Passagem/O sucesso na dose certa 1.mp3", 0);
+    // item4->mixStart = 300;
+    // item4->mixEnd = 9500;
+    // this->blockContentLayout->addWidget(item4);
+    // this->controller->playlist.append(item4);
+    // connect(item4, &PlaylistItem::beingDeleted, this, &ProgramBlock::removePlaylistItem);
 
     PlaylistItem *item5 = new PlaylistItem(this->ui->BlockContent);
     item5->setInfo("Lady Gaga - 911.mp3", "D:/MEDIA/MÚSICAS/Internacionais/Lady Gaga - 911.mp3", 0);
