@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(NaxiStudioFlow VERSION 0.0.1 LANGUAGES CXX)
+if(NOT DEFINED CLEAN_APP_VERSION OR CLEAN_APP_VERSION STREQUAL "")
+    set(CLEAN_APP_VERSION "0.0.1")
+endif()
+
+if(NOT DEFINED APP_VERSION OR APP_VERSION STREQUAL "")
+    set(APP_VERSION "v0.0.1")
+endif()
+
+add_compile_definitions(APP_VERSION="${APP_VERSION}")
+
+project(Flow VERSION ${CLEAN_APP_VERSION} LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -18,15 +28,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 
 set(QT_MEDIA_BACKEND ffmpeg)
 
-set(TS_FILES
-    lang/pt_BR.ts
-    lang/en_US.ts
-)
-
-set(PROJECT_QRC_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/lang/translations.qrc
-)
-
 set(PROJECT_SOURCES
         main.cpp
         frontend/flow.cpp
@@ -43,45 +44,54 @@ set(PROJECT_SOURCES
         backend/playlist/playlistcontroller.h backend/playlist/playlistcontroller.cpp
         backend/catalog/fileslist.h backend/catalog/fileslist.cpp
         backend/catalog/folderslist.h
-)
-
-set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/frontend/resources/NaxiStudioFlow.rc")
-
-
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(NaxiStudioFlow
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        ${TS_FILES}
-        ${PROJECT_QRC_FILES}
 
         frontend/widgets/cartwall/cartwallarea.h frontend/widgets/cartwall/cartwallarea.cpp frontend/widgets/cartwall/cartwallarea.ui
         frontend/widgets/cartwall/cartwallitem.h frontend/widgets/cartwall/cartwallitem.cpp frontend/widgets/cartwall/cartwallitem.ui
         backend/playlist/mastercontroller.h backend/playlist/mastercontroller.cpp
+)
 
+qt_add_executable(Flow
+    MANUAL_FINALIZATION
+    ${PROJECT_SOURCES}
+)
 
+set(TS_FILES
+    lang/pt_BR.ts
+    lang/en_US.ts
+)
+
+qt_add_translations(Flow
+    TS_FILES ${TS_FILES}
+    QM_FILES_OUTPUT_VARIABLE QM_FILES
+)
+
+foreach(qm_file ${QM_FILES})
+    get_filename_component(qm_name ${qm_file} NAME)
+
+    set_source_files_properties(${qm_file} PROPERTIES
+        QT_RESOURCE_ALIAS ${qm_name}
     )
+endforeach()
 
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-else()
-    add_executable(NaxiStudioFlow
-        ${PROJECT_SOURCES}
-    )
+qt_add_resources(Flow "translations"
+    PREFIX "/i18n"
+    FILES ${QM_FILES}
+)
 
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-endif()
 
-target_sources(NaxiStudioFlow PRIVATE ${app_icon_resource_windows})
-target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Multimedia Qt6::Core)
-target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Core)
-target_link_libraries(NaxiStudioFlow PRIVATE Qt6::Core)
-target_link_libraries(NaxiStudioFlow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/frontend/resources/Flow.rc")
+target_sources(Flow PRIVATE ${app_icon_resource_windows})
+
+target_link_libraries(Flow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(Flow PRIVATE Qt6::Multimedia Qt6::Core)
+target_link_libraries(Flow PRIVATE Qt6::Core)
+target_link_libraries(Flow PRIVATE Qt6::Core)
+target_link_libraries(Flow PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER org.NaxiStudio.NaxiStudioFlow)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.NaxStudio.Flow)
 endif()
-set_target_properties(NaxiStudioFlow PROPERTIES
+set_target_properties(Flow PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -90,12 +100,12 @@ set_target_properties(NaxiStudioFlow PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS NaxiStudioFlow
+install(TARGETS Flow
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(NaxiStudioFlow)
+    qt_finalize_executable(Flow)
 endif()

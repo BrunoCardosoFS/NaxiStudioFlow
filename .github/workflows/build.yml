@@ -1,0 +1,95 @@
+name: Build and Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+          os: [windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        id: setup_environment
+        shell: pwsh
+        run: |
+          $ProgramName = "NaxStudio Flow"
+          $Version = "${{ github.ref_name }}"
+
+          $IsPreRelease = if ($Version -like "*-*") { "true" } else { "false" }
+          "IS_PRERELEASE=$IsPreRelease" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $Match = [regex]::Match($Version, "\d+\.\d+\.\d+")
+          if ($Match.Success) {
+              $CleanVersion = $Match.Value
+          } else {
+              $CleanVersion = "0.0.1"
+          }
+          
+          "PROGRAM_NAME=$ProgramName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION=$Version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CLEAN_VERSION=$CleanVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          Write-Host "Program Version: $CleanVersion"
+          Write-Host "Is Pre-Release: $IsPreRelease"
+
+        
+          $DistDir = "out"
+          if (Test-Path $DistDir) { Remove-Item -Recurse -Force $DistDir }
+          New-Item -ItemType Directory -Path $DistDir
+          New-Item -ItemType Directory -Path $DistDir\dist_files
+          New-Item -ItemType Directory -Path $DistDir\windows
+          New-Item -ItemType Directory -Path $DistDir\ubuntu
+
+          "DIST_DIR=$DistDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_FILES_DIR=$DistDir/dist_files" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_WINDOWS_DIR=$DistDir/windows" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_UBUNTU_DIR=$DistDir/ubuntu" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $ChangesFilePath = "dist/changes-v${CleanVersion}.md"
+          if(Test-Path $ChangesFilePath){
+            "BODY_PATH=$ChangesFilePath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }else{
+            if(!(Test-Path "dist/release.md")){New-Item -ItemType File -Path "dist/release.md" -Value ""}
+            "BODY_PATH=dist/release.md" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Install Qt (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtmultimedia'
+
+      # --- BUILD WINDOWS ---
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./.github/scripts/BuildWindows.ps1
+
+      # --- CREATING RELEASE ---
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: "${{ env.PROGRAM_NAME }} ${{ github.ref_name }}"
+          files: |
+            out/dist_files/*
+          body_path: ${{ env.BODY_PATH }}
+          prerelease: ${{ env.IS_PRERELEASE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

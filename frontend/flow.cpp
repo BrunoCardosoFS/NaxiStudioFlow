@@ -20,6 +20,10 @@
 
 Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
     ui->setupUi(this);
+    QString version = QStringLiteral(APP_VERSION);
+    this->setWindowTitle("NaxStudio Flow " + version);
+
+
     this->setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition::North);
     this->ui->DockTop->setTitleBarWidget(new QWidget());
     // this->ui->DockTop->setTitleBarWidget(nullptr);
