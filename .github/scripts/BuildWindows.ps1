@@ -9,7 +9,7 @@ $AbsDistFilesDir = Resolve-Path -Path $env:DIST_FILES_DIR
 $AbsDistWindowsDir = Resolve-Path -Path $env:DIST_WINDOWS_DIR
 
 Write-Host "--- Starting CMake Configuration ---" -ForegroundColor Green
-cmake -B $BuildDir -S . -DCMAKE_BUILD_TYPE=$Config -DAPP_VERSION="$env:VERSION" -DVERSION_MAJOR="$env:VERSION_MAJOR  -DVERSION_MINOR="$env:VERSION_MINOR  -DVERSION_PATCH="$env:VERSION_PATCH"
+cmake -B $BuildDir -S . -DCMAKE_BUILD_TYPE=$Config -DAPP_VERSION="$env:VERSION" -DVERSION_MAJOR="$env:VERSION_MAJOR"  -DVERSION_MINOR="$env:VERSION_MINOR"  -DVERSION_PATCH="$env:VERSION_PATCH"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 
