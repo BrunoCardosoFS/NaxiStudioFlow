@@ -76,6 +76,7 @@ CMakeLists.txt.user*
 
 # Directories with generated files
 .qtcreator/
+.vscode/
 .moc/
 .obj/
 .pch/

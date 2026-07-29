@@ -1,7 +1,7 @@
 #include "flow.h"
 #include "./ui_flow.h"
 
-#include "../backend/catalog/folderslist.h"
+#include "../core/catalog/folderslist.h"
 
 #include "./widgets/filewidget.h"
 
@@ -193,7 +193,7 @@ void Flow::changeEvent(QEvent *event) {
 
 void Flow::closeEvent(QCloseEvent *event) {
     // QMessageBox msgBox;
-    // msgBox.setWindowTitle("Fechar o NaxiStudio Flow");
+    // msgBox.setWindowTitle("Fechar o NaxStudio Flow");
     // msgBox.setText("Tem certeza que deseja fechar?");
     // msgBox.setIcon(QMessageBox::Question);
     // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);

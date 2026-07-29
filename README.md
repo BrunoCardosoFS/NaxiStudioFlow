@@ -1,4 +1,4 @@
-# NaxiStudio Flow
+# NaxStudio Flow
 - **Ideal for**: Radio stations looking for practicality and automation in broadcasting.
 - **Key features**:
   - Automated playlists and continuous programming.

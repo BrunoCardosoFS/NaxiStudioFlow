@@ -7,7 +7,7 @@
 #include <QLocale>
 #include <QList>
 
-#include "../backend/catalog/fileslist.h"
+#include "../core/catalog/fileslist.h"
 #include "./widgets/playlist/programblock.h"
 
 QT_BEGIN_NAMESPACE
@@ -38,7 +38,7 @@ private slots:
 private:
     Ui::Flow *ui;
 
-    QSettings *settings = new QSettings("NaxiStudio", "NaxiStudio Flow");
+    QSettings *settings = new QSettings("NaxStudio", "Flow");
 
     FilesList *filesList = new FilesList(this);
 
