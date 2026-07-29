@@ -1,4 +1,4 @@
-#include "frontend/flow.h"
+#include "../ui/flow.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     }
 
     QTranslator translator;
-    if(translator.load(":/i18n/" + locale + ".qm")){
+    if(translator.load(":/lang/" + locale + ".qm")){
         a.installTranslator(&translator);
     }
 

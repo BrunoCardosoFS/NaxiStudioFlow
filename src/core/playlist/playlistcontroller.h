@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QList>
-#include "../../frontend/widgets/playlist/playlistitem.h"
+#include "../../ui/widgets/playlist/playlistitem.h"
 
 class PlaylistController : public QObject{
     Q_OBJECT

@@ -1,7 +1,7 @@
 #include "flow.h"
 #include "./ui_flow.h"
 
-#include "../backend/catalog/folderslist.h"
+#include "../core/catalog/folderslist.h"
 
 #include "./widgets/filewidget.h"
 

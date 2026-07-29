@@ -7,7 +7,7 @@
 #include <QLocale>
 #include <QList>
 
-#include "../backend/catalog/fileslist.h"
+#include "../core/catalog/fileslist.h"
 #include "./widgets/playlist/programblock.h"
 
 QT_BEGIN_NAMESPACE

@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 
 #include "playlistitem.h"
-#include "../../../backend/playlist/playlistcontroller.h"
+#include "../../../core/playlist/playlistcontroller.h"
 
 namespace Ui {
 class ProgramBlock;

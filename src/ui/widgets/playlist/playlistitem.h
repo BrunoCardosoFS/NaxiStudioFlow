@@ -9,7 +9,7 @@
 
 #include <QDebug>
 
-#include "../../../backend/player/playerplaylistitem.h"
+#include "../../../core/player/playerplaylistitem.h"
 
 namespace Ui {
 class PlaylistItem;
