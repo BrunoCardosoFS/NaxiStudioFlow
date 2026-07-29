@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     a.setFont(globalFont);
 
 
-    QSettings settings("NaxiStudio", "NaxiStudio Flow");
+    QSettings settings("NaxStudio", "Flow");
 
     QString locale;
 

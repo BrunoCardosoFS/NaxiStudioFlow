@@ -31,18 +31,15 @@ jobs:
           $IsPreRelease = if ($Version -like "*-*") { "true" } else { "false" }
           "IS_PRERELEASE=$IsPreRelease" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          $Match = [regex]::Match($Version, "\d+\.\d+\.\d+")
-          if ($Match.Success) {
-              $CleanVersion = $Match.Value
-          } else {
-              $CleanVersion = "0.0.1"
-          }
+          $CleanVersion = $Version -replace '^v', '' -replace '-.*$', ''
+          $VersionMajor, $VersionMinor, $VersionPatch = $CleanVersion.Split('.')
           
           "PROGRAM_NAME=$ProgramName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VERSION=$Version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "CLEAN_VERSION=$CleanVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_MAJOR=$VersionMajor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_MINOR=$VersionMinor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_PATCH=$VersionPatch" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          Write-Host "Program Version: $CleanVersion"
           Write-Host "Is Pre-Release: $IsPreRelease"
 
         

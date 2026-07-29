@@ -20,19 +20,11 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 
 set(QT_MEDIA_BACKEND ffmpeg)
 
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-# set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
-
 add_subdirectory(src/app)
 add_subdirectory(src/core)
 add_subdirectory(src/lang)
 add_subdirectory(src/resources)
 add_subdirectory(src/ui)
-
-
 
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/app.rc")
 target_sources(${EXECUTABLE_NAME} PRIVATE ${app_icon_resource_windows})
