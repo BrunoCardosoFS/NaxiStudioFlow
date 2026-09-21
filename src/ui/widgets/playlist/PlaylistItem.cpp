@@ -1,7 +1,7 @@
-#include "playlistitem.h"
-#include "ui_playlistitem.h"
+#include "PlaylistItem.h"
+#include "ui_PlaylistItem.h"
 
-#include "../../../core/functions/timeFunctions.h"
+#include "core/utils/TimeUtils.h"
 
 #include <QPainter>
 #include <QPainterPath>

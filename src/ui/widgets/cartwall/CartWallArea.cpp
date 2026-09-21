@@ -1,8 +1,8 @@
-#include "cartwallarea.h"
-#include "ui_cartwallarea.h"
+#include "CartWallArea.h"
+#include "ui_CartWallArea.h"
 
 #include <QPushButton>
-#include "./cartwallitem.h"
+#include "CartWallItem.h"
 
 CartWallArea::CartWallArea(QWidget *parent):QWidget(parent), ui(new Ui::CartWallArea){
     ui->setupUi(this);

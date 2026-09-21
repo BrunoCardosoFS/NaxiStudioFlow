@@ -2,59 +2,93 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>CartWallArea</name>
+    <message>
+        <location filename="../../ui/widgets/cartwall/CartWallArea.ui" line="23"/>
+        <source>Form</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CartWallItem</name>
+    <message>
+        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="35"/>
+        <source>Form</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="62"/>
+        <source>Título</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="157"/>
+        <source>Waveform</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Flow</name>
     <message>
-        <location filename="../frontend/flow.ui" line="765"/>
+        <location filename="../../ui/Flow.ui" line="712"/>
         <source>Catálogo</source>
         <translation>Catalog</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="826"/>
+        <location filename="../../ui/Flow.ui" line="773"/>
         <source>Buscar</source>
         <translation>Search</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1043"/>
+        <location filename="../../ui/Flow.ui" line="990"/>
         <source>Vinhetas</source>
         <translation>Jingles</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1074"/>
+        <location filename="../../ui/Flow.ui" line="1021"/>
         <source>Músicas</source>
         <translation>Musics</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1105"/>
+        <location filename="../../ui/Flow.ui" line="1052"/>
         <source>Outros</source>
         <translation>Others</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1136"/>
+        <location filename="../../ui/Flow.ui" line="1083"/>
         <source>Comerciais</source>
         <translation>Commercials</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1226"/>
+        <location filename="../../ui/Flow.ui" line="1173"/>
+        <source>Cartucheira</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../ui/Flow.ui" line="1234"/>
+        <source>ToDo: Cartucheira</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Botoneira</source>
-        <translation>Panel</translation>
+        <translation type="vanished">Panel</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1236"/>
         <source>Botoneira: ToDo</source>
-        <translation>Panel: ToDo</translation>
+        <translation type="vanished">Panel: ToDo</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1362"/>
+        <location filename="../../ui/Flow.ui" line="1400"/>
         <source>Selecione um perfil</source>
         <translation>Select a profile</translation>
     </message>
     <message>
-        <location filename="../frontend/flow.ui" line="1483"/>
+        <location filename="../../ui/Flow.ui" line="1521"/>
         <source>F11</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/flow.cpp" line="49"/>
+        <location filename="../../ui/Flow.cpp" line="57"/>
         <source>Musical</source>
         <translation>Musical</translation>
     </message>
@@ -62,100 +96,100 @@
 <context>
     <name>MixEditor</name>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="20"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="20"/>
         <source>NaxiStudio Editor - Editor de Mixagem</source>
         <translation>NaxiStudio Editor - Mix Editor</translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="41"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="41"/>
         <source>&lt;Nome do arquivo&gt;</source>
         <translation>&lt;File Name&gt;</translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="84"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="84"/>
         <source>Play</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="91"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="91"/>
         <source>Pause</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="98"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="98"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="118"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="118"/>
         <source>Salvar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="200"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="200"/>
         <source>Ponto de mixagem inicial</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="217"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="256"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="507"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="546"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="585"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="618"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="651"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="684"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="217"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="256"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="507"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="546"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="585"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="618"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="651"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="684"/>
         <source>mm:ss:zzz</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="246"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="246"/>
         <source>Ponto de mixagem final</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="285"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="285"/>
         <source>Volume do início</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="359"/>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="444"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="359"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="444"/>
         <source>0%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="394"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="394"/>
         <source>Volume do final</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="497"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="497"/>
         <source>Ponto do fim do Fade In</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="536"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="536"/>
         <source>Ponto do início do aumento do volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="575"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="575"/>
         <source>Ponto do fim do aumento do volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="608"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="608"/>
         <source>Ponto do início da diminuição do volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="641"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="641"/>
         <source>Ponto do fim da diminuição do volume</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frontend/widgets/editor/mixeditor.ui" line="674"/>
+        <location filename="../../ui/widgets/editor/MixEditor.ui" line="674"/>
         <source>Ponto do início do Fade Out</source>
         <translation type="unfinished"></translation>
     </message>
@@ -163,31 +197,15 @@
 <context>
     <name>PlaylistItem</name>
     <message>
-        <location filename="../frontend/widgets/playlist/playlistitem.ui" line="32"/>
+        <location filename="../../ui/widgets/playlist/PlaylistItem.ui" line="32"/>
         <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frontend/widgets/playlist/playlistitem.ui" line="132"/>
-        <source>Title</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frontend/widgets/playlist/playlistitem.ui" line="166"/>
-        <source>00:00:00</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frontend/widgets/playlist/playlistitem.ui" line="221"/>
-        <location filename="../frontend/widgets/playlist/playlistitem.ui" line="239"/>
-        <source>00:00:000</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>ProgramBlock</name>
     <message>
-        <location filename="../frontend/widgets/playlist/programblock.ui" line="20"/>
+        <location filename="../../ui/widgets/playlist/ProgramBlock.ui" line="20"/>
         <source>Form</source>
         <translation type="unfinished"></translation>
     </message>

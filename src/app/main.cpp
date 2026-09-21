@@ -1,4 +1,4 @@
-#include "../ui/flow.h"
+#include "ui/Flow.h"
 
 #include <QApplication>
 #include <QLocale>

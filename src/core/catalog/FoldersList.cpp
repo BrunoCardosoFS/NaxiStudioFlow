@@ -1,22 +1,21 @@
-#ifndef FOLDERSLIST_H
-#define FOLDERSLIST_H
+#include "FoldersList.h"
 
-#include <QDir>
+#include <QFile>
+#include <QTextStream>
 #include <QJsonDocument>
-#include <QJsonArray>
 #include <QJsonObject>
 
-QJsonArray getFolders(QString pathDB){
+QJsonArray getFolders(const QString &pathDB) {
     QFile catalog(pathDB + "/catalog.json");
     const bool isOpen = catalog.open(QFile::ReadOnly | QFile::Text);
 
     QJsonDocument jsonDocument;
     QString jsonString;
 
-    if(isOpen){
+    if (isOpen) {
         QTextStream dataCatalog(&catalog);
         jsonString = dataCatalog.readAll();
-    }else{
+    } else {
         jsonString = "[{'title': '', 'path': '', 'type': 0, 'id': ''}]";
     }
 
@@ -25,5 +24,3 @@ QJsonArray getFolders(QString pathDB){
 
     return jsonDocument.array();
 }
-
-#endif // FOLDERSLIST_H

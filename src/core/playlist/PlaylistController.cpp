@@ -1,4 +1,4 @@
-#include "playlistcontroller.h"
+#include "PlaylistController.h"
 #include <QMediaPlayer>
 
 PlaylistController* PlaylistController::getInstance(QObject *parent){

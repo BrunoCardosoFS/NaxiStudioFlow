@@ -1,4 +1,4 @@
-#include "filewidget.h"
+#include "FileWidget.h"
 
 #include <QHBoxLayout>
 #include <QMouseEvent>

@@ -1,5 +1,5 @@
-#include "cartwallitem.h"
-#include "ui_cartwallitem.h"
+#include "CartWallItem.h"
+#include "ui_CartWallItem.h"
 
 #include <QPainter>
 #include <QPainterPath>

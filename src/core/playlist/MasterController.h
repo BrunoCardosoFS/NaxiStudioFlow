@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QTimer>
 
-#include "../player/playerplaylistitem.h"
+#include "core/player/PlayerPlaylistItem.h"
 
 class MasterController : public QObject
 {

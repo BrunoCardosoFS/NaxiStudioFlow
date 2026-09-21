@@ -7,8 +7,8 @@
 #include <QLocale>
 #include <QList>
 
-#include "../core/catalog/fileslist.h"
-#include "./widgets/playlist/programblock.h"
+#include "core/catalog/FilesList.h"
+#include "ui/widgets/playlist/ProgramBlock.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {

@@ -2,8 +2,7 @@
 #define PLAYLISTCONTROLLER_H
 
 #include <QObject>
-#include <QList>
-#include "../../ui/widgets/playlist/playlistitem.h"
+#include "ui/widgets/playlist/PlaylistItem.h"
 
 class PlaylistController : public QObject{
     Q_OBJECT

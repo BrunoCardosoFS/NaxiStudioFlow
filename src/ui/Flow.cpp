@@ -1,11 +1,11 @@
-#include "flow.h"
-#include "./ui_flow.h"
+#include "Flow.h"
+#include "ui_Flow.h"
 
-#include "../core/catalog/folderslist.h"
+#include "core/catalog/FoldersList.h"
 
-#include "./widgets/filewidget.h"
+#include "ui/widgets/catalog/FileWidget.h"
 
-#include "./widgets/cartwall/cartwallarea.h"
+#include "ui/widgets/cartwall/CartWallArea.h"
 
 #include <QGridLayout>
 

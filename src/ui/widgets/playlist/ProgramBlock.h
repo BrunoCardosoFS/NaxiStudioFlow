@@ -10,8 +10,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-#include "playlistitem.h"
-#include "../../../core/playlist/playlistcontroller.h"
+#include "PlaylistItem.h"
+#include "core/playlist/PlaylistController.h"
 
 namespace Ui {
 class ProgramBlock;

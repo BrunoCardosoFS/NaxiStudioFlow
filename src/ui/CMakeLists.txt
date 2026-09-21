@@ -1,7 +1,7 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
-    flow.cpp
-    flow.h
-    flow.ui
+    Flow.cpp
+    Flow.h
+    Flow.ui
 )
 
 add_subdirectory(widgets)

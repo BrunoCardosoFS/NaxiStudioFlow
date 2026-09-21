@@ -1,4 +1,4 @@
-#include "fileslist.h"
+#include "FilesList.h"
 
 #include <QDir>
 

@@ -1,4 +1,4 @@
-#include "playerplaylistitem.h"
+#include "PlayerPlaylistItem.h"
 
 #include <QDebug>
 

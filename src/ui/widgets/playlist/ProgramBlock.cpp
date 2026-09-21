@@ -1,5 +1,5 @@
-#include "programblock.h"
-#include "ui_programblock.h"
+#include "ProgramBlock.h"
+#include "ui_ProgramBlock.h"
 
 #include <QDebug>
 
