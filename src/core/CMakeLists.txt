@@ -1,19 +1,18 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
+    models.h
+    
     catalog/FilesList.cpp
     catalog/FilesList.h
     catalog/FoldersList.cpp
     catalog/FoldersList.h
 
+    playlist/PlaylistManager.cpp
+    playlist/PlaylistManager.h
+    playlist/player/PlayerManager.cpp
+    playlist/player/PlayerManager.h
+
     utils/TimeUtils.cpp
     utils/TimeUtils.h
-
-    player/PlayerPlaylistItem.cpp
-    player/PlayerPlaylistItem.h
-
-    playlist/MasterController.cpp
-    playlist/MasterController.h
-    playlist/PlaylistController.cpp
-    playlist/PlaylistController.h
 )
 
 target_include_directories(${EXECUTABLE_NAME}
