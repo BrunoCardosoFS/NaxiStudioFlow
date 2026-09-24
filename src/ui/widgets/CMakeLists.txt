@@ -1,6 +1,9 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
-    catalog/FileWidget.cpp
-    catalog/FileWidget.h
+    catalog/CatalogItemDelegate.cpp
+    catalog/CatalogItemDelegate.h
+
+    playlist/PlaylistItemDelegate.h
+    playlist/PlaylistItemDelegate.cpp
 
     cartwall/CartWallArea.cpp
     cartwall/CartWallArea.h

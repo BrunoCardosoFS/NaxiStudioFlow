@@ -208,18 +208,22 @@ QDockWidget, #DocCatalogWidget, #DocCartWallWidget{
 	border-radius: 10px;
 }
 
+#FilesListView{
+	background-color: #1F232C;
+	border: none;
+	border-radius: 10px;
+	padding: 4px;
+	outline: none;
+}
+
+#FilesListView::item{
+	border: none;
+	padding: 0px;
+}
+
 #DocCatalog QLabel{
 	font-weight: bold;
 	color: #fff;
-}
-
-FileWidget{
-	background-color: #2D3340;
-	border-radius: 7px;
-}
-
-FileWidget:hover{
-	background-color: #292e38;
 }
 
 
@@ -829,6 +833,9 @@ ProgramBlock #BlockContent{
           <property name="cursor">
            <cursorShape>PointingHandCursor</cursorShape>
           </property>
+          <property name="toolTip">
+           <string>Busca Local (pasta atual)</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -860,6 +867,9 @@ ProgramBlock #BlockContent{
           </property>
           <property name="cursor">
            <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="toolTip">
+           <string>Busca Global (todas as pastas)</string>
           </property>
           <property name="text">
            <string/>
@@ -1108,43 +1118,22 @@ ProgramBlock #BlockContent{
          </widget>
         </item>
         <item>
-         <widget class="QScrollArea" name="FilesListScroll">
+         <widget class="QListView" name="FilesListView">
           <property name="verticalScrollBarPolicy">
            <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
           </property>
-          <property name="widgetResizable">
+          <property name="horizontalScrollBarPolicy">
+           <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+          </property>
+          <property name="dragEnabled">
            <bool>true</bool>
           </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignCenter</set>
+          <property name="dragDropMode">
+           <enum>QAbstractItemView::DragDropMode::DragOnly</enum>
           </property>
-          <widget class="QWidget" name="FilesListContent">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>189</width>
-             <height>594</height>
-            </rect>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_9">
-            <property name="spacing">
-             <number>5</number>
-            </property>
-            <property name="leftMargin">
-             <number>7</number>
-            </property>
-            <property name="topMargin">
-             <number>7</number>
-            </property>
-            <property name="rightMargin">
-             <number>7</number>
-            </property>
-            <property name="bottomMargin">
-             <number>7</number>
-            </property>
-           </layout>
-          </widget>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
          </widget>
         </item>
        </layout>

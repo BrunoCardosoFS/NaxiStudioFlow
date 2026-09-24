@@ -3,7 +3,8 @@
 
 #include "core/catalog/FoldersList.h"
 
-#include "ui/widgets/catalog/FileWidget.h"
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include "ui/widgets/cartwall/CartWallArea.h"
 
@@ -32,9 +33,13 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
                              QCoreApplication::applicationDirPath() + "/../db");
   }
 
-  connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
+  this->catalogModel = new CatalogListModel(this);
+  this->catalogDelegate = new CatalogItemDelegate(this);
+  this->ui->FilesListView->setModel(this->catalogModel);
+  this->ui->FilesListView->setItemDelegate(this->catalogDelegate);
+  this->ui->FilesListView->setUniformItemSizes(true);
 
-  connect(this, &Flow::getFiles, this->filesList, &FilesList::init);
+  connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
 
   this->loadFolders();
 
@@ -72,6 +77,7 @@ void Flow::loadFolders() {
     QJsonObject jsonObject = jsonValue.toObject();
 
     QString title = jsonObject.value("title").toString();
+    QString folderPath = jsonObject.value("path").toString();
     int type = jsonObject.value("type").toInt();
 
     QPushButton *item = new QPushButton(this->ui->FoldersListContent);
@@ -83,8 +89,10 @@ void Flow::loadFolders() {
     item->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     item->setCursor(Qt::PointingHandCursor);
 
-    connect(item, &QPushButton::clicked, this, [this, jsonObject]() {
-      emit this->getFiles(jsonObject.value("path").toString(), "");
+    connect(item, &QPushButton::clicked, this, [this, folderPath, type]() {
+      this->openFolder = folderPath;
+      this->openFolderType = type;
+      this->filesList->scanLocal(this->openFolder, this->ui->SearchLine->text(), this->openFolderType);
     });
 
     if (type == 0) {
@@ -107,26 +115,27 @@ void Flow::loadFolders() {
   }
 }
 
-void Flow::loadFiles(QJsonArray list, QString pathFolder) {
-  this->openFolder = pathFolder;
-
-  // Deleting all widgets from the file list
-  QLayoutItem *item;
-  while ((item = this->ui->FilesListContent->layout()->takeAt(0)) != nullptr) {
-    delete item->widget();
+void Flow::loadFiles(const QVector<CatalogItem> &list, const QString &pathFolder, bool isGlobal) {
+  if (!isGlobal) {
+    this->openFolder = pathFolder;
   }
+  this->catalogModel->setItems(list);
+}
 
-  foreach (QJsonValue item, list) {
-    QJsonArray itemArray = item.toArray();
-    FileWidget *itemList = new FileWidget(this->ui->FilesListContent);
-    itemList->setInfo(itemArray[0].toString(), itemArray[1].toString());
-
-    this->ui->FilesListContent->layout()->addWidget(itemList);
+QList<CatalogFolderTarget> Flow::getFolderTargets() const {
+  QList<CatalogFolderTarget> targets;
+  QJsonArray folders = getFolders(this->settings->value("db").toString());
+  for (const QJsonValue &jsonValue : folders) {
+    QJsonObject jsonObject = jsonValue.toObject();
+    CatalogFolderTarget target;
+    target.title = jsonObject.value("title").toString();
+    target.path = jsonObject.value("path").toString();
+    target.type = jsonObject.value("type").toInt();
+    if (!target.path.isEmpty()) {
+      targets.append(target);
+    }
   }
-
-  QSpacerItem *spacer =
-      new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-  this->ui->FilesListContent->layout()->addItem(spacer);
+  return targets;
 }
 
 void Flow::saveLayout() { this->settings->setValue("layout", saveState()); }
@@ -183,17 +192,32 @@ void Flow::closeEvent(QCloseEvent *event) {
 }
 
 void Flow::on_SearchLocal_clicked() {
-  this->filesList->init(this->openFolder, this->ui->SearchLine->text());
-}
-
-void Flow::on_SearchClean_clicked() {
-  this->ui->SearchLine->setText("");
-  if (this->openFolder != "") {
-    this->filesList->init(this->openFolder, "");
+  if (!this->openFolder.isEmpty()) {
+    this->filesList->scanLocal(this->openFolder, this->ui->SearchLine->text(), this->openFolderType);
   }
 }
 
-void Flow::on_SearchLine_returnPressed() { this->on_SearchLocal_clicked(); }
+void Flow::on_SearchGlobal_clicked() {
+  QList<CatalogFolderTarget> targets = this->getFolderTargets();
+  this->filesList->scanGlobal(targets, this->ui->SearchLine->text());
+}
+
+void Flow::on_SearchClean_clicked() {
+  this->ui->SearchLine->clear();
+  if (!this->openFolder.isEmpty()) {
+    this->filesList->scanLocal(this->openFolder, "", this->openFolderType);
+  } else {
+    this->catalogModel->clear();
+  }
+}
+
+void Flow::on_SearchLine_returnPressed() {
+  if (!this->openFolder.isEmpty()) {
+    this->on_SearchLocal_clicked();
+  } else {
+    this->on_SearchGlobal_clicked();
+  }
+}
 
 void Flow::on_btnPlay_clicked() {}
 
