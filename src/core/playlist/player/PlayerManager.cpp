@@ -28,8 +28,8 @@ PlayerManager::PlayerManager(QObject *parent) : QObject{parent} {
 }
 
 void PlayerManager::play() {
-  this->mediaPlayer->setActiveAudioTrack(-1);
   this->volumeControl(this->mediaPlayer->position());
+  this->mediaPlayer->setActiveAudioTrack(-1);
   this->mediaPlayer->play();
   this->mediaPlayer->setActiveAudioTrack(0);
   this->setStatus(PlayerStatus::Playing);
@@ -98,9 +98,6 @@ void PlayerManager::applyVolume(float volume) {
     return;
   }
 
-  // Always apply exact boundaries (silence or full target volume).
-  // In between, filter sub-perceptual variations (< 0.002f) to avoid saturating
-  // audio backend.
   const bool isEndpoint = (clamped == 0.0f || clamped == this->m_targetVolume);
   if (!isEndpoint && std::abs(clamped - this->m_currentVolume) < 0.002f) {
     return;

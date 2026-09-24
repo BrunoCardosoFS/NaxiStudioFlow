@@ -1,6 +1,9 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
     models.h
     
+    catalog/CatalogItem.h
+    catalog/CatalogListModel.cpp
+    catalog/CatalogListModel.h
     catalog/FilesList.cpp
     catalog/FilesList.h
     catalog/FoldersList.cpp
@@ -8,6 +11,8 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
 
     playlist/PlaylistManager.cpp
     playlist/PlaylistManager.h
+    playlist/PlaylistListModel.cpp
+    playlist/PlaylistListModel.h
     playlist/player/PlayerManager.cpp
     playlist/player/PlayerManager.h
 

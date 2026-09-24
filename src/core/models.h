@@ -38,8 +38,7 @@ enum PlaylistItemStatus {
 };
 
 enum PlaylistItemRoles {
-  ToolTipRole = Qt::ToolTipRole,
-  UuidRole,
+  UuidRole = Qt::UserRole + 1,
   StatusRole,
 
   TitleRole,

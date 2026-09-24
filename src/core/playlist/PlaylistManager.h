@@ -6,6 +6,7 @@
 #include <QVector>
 
 #include "core/models.h"
+#include "core/playlist/PlaylistListModel.h"
 #include "core/playlist/player/PlayerManager.h"
 
 class PlaylistManager : public QObject {
@@ -18,13 +19,14 @@ public:
   void next();
   void stop();
 
-  QVector<PlaylistItem> items;
-  QHash<QUuid, int> uuidRowMap;
+  PlaylistListModel *model() const { return m_model; }
 
 signals:
   void removeFirstItem();
 
 private:
+  PlaylistListModel *m_model = nullptr;
+
   PlaylistStatus status = PlaylistStatus::Stopped;
   int activePlayer = -1;
 
