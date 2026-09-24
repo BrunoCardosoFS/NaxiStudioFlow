@@ -12,13 +12,6 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     editor/MixEditor.cpp
     editor/MixEditor.h
     editor/MixEditor.ui
-
-    playlist/PlaylistItem.cpp
-    playlist/PlaylistItem.h
-    playlist/PlaylistItem.ui
-    playlist/ProgramBlock.cpp
-    playlist/ProgramBlock.h
-    playlist/ProgramBlock.ui
 )
 
 target_include_directories(${EXECUTABLE_NAME}

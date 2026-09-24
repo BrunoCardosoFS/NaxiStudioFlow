@@ -1,44 +1,44 @@
 #include "ui/Flow.h"
 
 #include <QApplication>
-#include <QLocale>
-#include <QTranslator>
-#include <QStyleFactory>
 #include <QDirIterator>
 #include <QFontDatabase>
+#include <QLocale>
+#include <QStyleFactory>
+#include <QTranslator>
 
 #include <QSettings>
 
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    a.setWindowIcon(QIcon(":/images/icons/logo.ico"));
+int main(int argc, char *argv[]) {
+  QApplication a(argc, argv);
+  a.setWindowIcon(QIcon(":/images/icons/logo.ico"));
 
-    QFontDatabase::addApplicationFont(":/fonts/fonts/Roboto-VariableFont_wdth,wght.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf");
+  QFontDatabase::addApplicationFont(
+      ":/fonts/fonts/Roboto-VariableFont_wdth,wght.ttf");
+  QFontDatabase::addApplicationFont(
+      ":/fonts/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf");
 
-    QFont globalFont("Roboto", 10);
-    globalFont.setFeature("tnum", 1);
-    a.setFont(globalFont);
+  QFont globalFont("Roboto", 10);
+  globalFont.setFeature("tnum", 1);
+  a.setFont(globalFont);
 
+  QSettings settings("NaxStudio", "Flow");
 
-    QSettings settings("NaxStudio", "Flow");
+  QString locale;
 
-    QString locale;
+  if (settings.contains("lang")) {
+    locale = settings.value("lang").toString();
+  } else {
+    locale = QLocale::system().name();
+  }
 
-    if(settings.contains("lang")){
-        locale = settings.value("lang").toString();
-    }else{
-        locale = QLocale::system().name();
-    }
+  QTranslator translator;
+  if (translator.load(":/lang/" + locale + ".qm")) {
+    a.installTranslator(&translator);
+  }
 
-    QTranslator translator;
-    if(translator.load(":/lang/" + locale + ".qm")){
-        a.installTranslator(&translator);
-    }
+  Flow w;
+  w.showMaximized();
 
-    Flow w;
-    w.showMaximized();
-
-    return a.exec();
+  return a.exec();
 }

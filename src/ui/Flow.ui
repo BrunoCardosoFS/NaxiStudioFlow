@@ -20,7 +20,7 @@
    <string notr="true">NaxiStudio Flow</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources/flow.qrc">
+   <iconset resource="../resources/app.qrc">
     <normaloff>:/images/icons/logo-naxistudio.svg</normaloff>:/images/icons/logo-naxistudio.svg</iconset>
   </property>
   <property name="styleSheet">
@@ -494,7 +494,7 @@ ProgramBlock #BlockContent{
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="resources/flow.qrc">
+             <iconset resource="../resources/app.qrc">
               <normaloff>:/images/icons/next.svg</normaloff>:/images/icons/next.svg</iconset>
             </property>
             <property name="iconSize">
@@ -532,7 +532,7 @@ ProgramBlock #BlockContent{
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="resources/flow.qrc">
+             <iconset resource="../resources/app.qrc">
               <normaloff>:/images/icons/play.svg</normaloff>:/images/icons/play.svg</iconset>
             </property>
             <property name="iconSize">
@@ -570,7 +570,7 @@ ProgramBlock #BlockContent{
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="resources/flow.qrc">
+             <iconset resource="../resources/app.qrc">
               <normaloff>:/images/icons/pause.svg</normaloff>:/images/icons/pause.svg</iconset>
             </property>
             <property name="iconSize">
@@ -608,7 +608,7 @@ ProgramBlock #BlockContent{
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="resources/flow.qrc">
+             <iconset resource="../resources/app.qrc">
               <normaloff>:/images/icons/Stop.svg</normaloff>:/images/icons/Stop.svg</iconset>
             </property>
             <property name="iconSize">
@@ -801,7 +801,7 @@ ProgramBlock #BlockContent{
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="resources/flow.qrc">
+           <iconset resource="../resources/app.qrc">
             <normaloff>:/images/icons/close-white.svg</normaloff>:/images/icons/close-white.svg</iconset>
           </property>
          </widget>
@@ -833,7 +833,7 @@ ProgramBlock #BlockContent{
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="resources/flow.qrc">
+           <iconset resource="../resources/app.qrc">
             <normaloff>:/images/icons/search.svg</normaloff>:/images/icons/search.svg</iconset>
           </property>
          </widget>
@@ -865,7 +865,7 @@ ProgramBlock #BlockContent{
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="resources/flow.qrc">
+           <iconset resource="../resources/app.qrc">
             <normaloff>:/images/icons/search.svg</normaloff>:/images/icons/search.svg</iconset>
           </property>
          </widget>
@@ -929,7 +929,7 @@ ProgramBlock #BlockContent{
              <x>5</x>
              <y>0</y>
              <width>130</width>
-             <height>596</height>
+             <height>594</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -1124,7 +1124,7 @@ ProgramBlock #BlockContent{
              <x>0</x>
              <y>0</y>
              <width>189</width>
-             <height>596</height>
+             <height>594</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -1255,7 +1255,7 @@ ProgramBlock #BlockContent{
           <x>0</x>
           <y>0</y>
           <width>228</width>
-          <height>595</height>
+          <height>597</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -1356,7 +1356,7 @@ ProgramBlock #BlockContent{
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="resources/flow.qrc">
+        <iconset resource="../resources/app.qrc">
          <normaloff>:/images/icons/config.svg</normaloff>:/images/icons/config.svg</iconset>
        </property>
        <property name="iconSize">
@@ -1458,7 +1458,7 @@ ProgramBlock #BlockContent{
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources/flow.qrc">:/images/icons/logo-flow.svg</pixmap>
+        <pixmap resource="../resources/app.qrc">:/images/icons/logo-flow.svg</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -1508,7 +1508,7 @@ ProgramBlock #BlockContent{
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="resources/flow.qrc">
+        <iconset resource="../resources/app.qrc">
          <normaloff>:/images/icons/full-screen.svg</normaloff>:/images/icons/full-screen.svg</iconset>
        </property>
        <property name="iconSize">
@@ -1527,6 +1527,7 @@ ProgramBlock #BlockContent{
   </widget>
  </widget>
  <resources>
+  <include location="../resources/app.qrc"/>
   <include location="resources/flow.qrc"/>
  </resources>
  <connections/>
