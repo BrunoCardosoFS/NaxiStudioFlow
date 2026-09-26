@@ -4,10 +4,13 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     catalog/CatalogItem.h
     catalog/CatalogListModel.cpp
     catalog/CatalogListModel.h
-    catalog/FilesList.cpp
-    catalog/FilesList.h
-    catalog/FoldersList.cpp
-    catalog/FoldersList.h
+    catalog/CatalogRepository.cpp
+    catalog/CatalogRepository.h
+    catalog/CatalogScanner.cpp
+    catalog/CatalogScanner.h
+    catalog/FolderItem.h
+    catalog/FolderListModel.cpp
+    catalog/FolderListModel.h
 
     playlist/PlaylistManager.cpp
     playlist/PlaylistManager.h

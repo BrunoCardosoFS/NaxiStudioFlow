@@ -19,10 +19,11 @@ enum class ItemType {
   EndMarker,
 };
 
-enum class MediaType {
-  Music,
-  Commercial,
-  Jingle,
+enum class MediaType : qint8 {
+  Jingle = 0,
+  Music = 1,
+  Commercial = 2,
+  Other = 3,
 };
 
 enum class BlockType {

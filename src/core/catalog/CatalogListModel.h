@@ -20,8 +20,10 @@ public:
   QMimeData *mimeData(const QModelIndexList &indexes) const override;
 
   void setItems(const QVector<CatalogItem> &items);
+  void showLoading(const QString &message = "Carregando...");
   void clear();
 
+  bool isLoading() const;
   const QVector<CatalogItem> &items() const { return m_items; }
   const CatalogItem *itemAt(int row) const;
 

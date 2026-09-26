@@ -29,7 +29,7 @@ QVariant CatalogListModel::data(const QModelIndex &index, int role) const {
   case CatalogPathRole:
     return item.path;
   case CatalogMediaTypeRole:
-    return item.mediaType;
+    return static_cast<int>(item.mediaType);
   case CatalogDurationRole:
     return item.durationMs;
   case CatalogFolderNameRole:
@@ -45,8 +45,8 @@ Qt::ItemFlags CatalogListModel::flags(const QModelIndex &index) const {
   }
 
   const CatalogItem &item = m_items.at(index.row());
-  if (item.isHeader()) {
-    // Cabeçalho de pasta: visível mas não selecionável e não arrastável
+  if (item.isHeader() || item.isLoading()) {
+    // Cabeçalho de pasta ou estado carregando: visível mas não selecionável e não arrastável
     return Qt::ItemIsEnabled;
   }
 
@@ -54,7 +54,7 @@ Qt::ItemFlags CatalogListModel::flags(const QModelIndex &index) const {
 }
 
 QStringList CatalogListModel::mimeTypes() const {
-  return {"application/x-catalog-item"};
+  return {"application/x-catalog-item", "text/uri-list"};
 }
 
 QMimeData *CatalogListModel::mimeData(const QModelIndexList &indexes) const {
@@ -64,13 +64,13 @@ QMimeData *CatalogListModel::mimeData(const QModelIndexList &indexes) const {
       continue;
     }
     const CatalogItem &item = m_items.at(idx.row());
-    if (item.isHeader()) {
+    if (item.isHeader() || item.isLoading()) {
       continue;
     }
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
-    stream << item.title << item.path << item.mediaType;
+    stream << item.title << item.path << item.rawMediaType();
     mime->setData("application/x-catalog-item", data);
     break; // Arrasto de item único
   }
@@ -83,10 +83,24 @@ void CatalogListModel::setItems(const QVector<CatalogItem> &items) {
   endResetModel();
 }
 
+void CatalogListModel::showLoading(const QString &message) {
+  beginResetModel();
+  m_items.clear();
+  CatalogItem item;
+  item.itemType = CatalogItemType::Loading;
+  item.title = message.isEmpty() ? "Carregando..." : message;
+  m_items.append(std::move(item));
+  endResetModel();
+}
+
 void CatalogListModel::clear() {
   beginResetModel();
   m_items.clear();
   endResetModel();
+}
+
+bool CatalogListModel::isLoading() const {
+  return m_items.size() == 1 && m_items.first().isLoading();
 }
 
 const CatalogItem *CatalogListModel::itemAt(int row) const {
