@@ -15,7 +15,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Multimedia LinguistTools)
 
-
 set(QT_MEDIA_BACKEND ffmpeg)
 
 add_subdirectory(src/app)
@@ -26,7 +25,6 @@ add_subdirectory(src/ui)
 
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/app.rc")
 target_sources(${EXECUTABLE_NAME} PRIVATE ${app_icon_resource_windows})
-
 
 
 set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.NaxStudio.${EXECUTABLE_NAME})

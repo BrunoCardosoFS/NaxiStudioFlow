@@ -1,14 +1,14 @@
-#ifndef CATALOGITEMDELEGATE_H
-#define CATALOGITEMDELEGATE_H
+#ifndef FOLDERITEMDELEGATE_H
+#define FOLDERITEMDELEGATE_H
 
 #include <QPainter>
 #include <QStyledItemDelegate>
 
-class CatalogItemDelegate : public QStyledItemDelegate {
+class FolderItemDelegate : public QStyledItemDelegate {
   Q_OBJECT
 public:
-  explicit CatalogItemDelegate(QObject *parent = nullptr);
-  ~CatalogItemDelegate() override = default;
+  explicit FolderItemDelegate(QObject *parent = nullptr);
+  ~FolderItemDelegate() override = default;
 
   QSize sizeHint(const QStyleOptionViewItem &option,
                  const QModelIndex &index) const override;
@@ -16,16 +16,12 @@ public:
              const QModelIndex &index) const override;
 
 private:
-  QIcon m_iconFolderOpen;
   QIcon m_iconJingle;
   QIcon m_iconMusic;
   QIcon m_iconCommercial;
   QIcon m_iconOther;
 
-  int m_spinnerAngle = 0;
-  QWidget *m_viewport = nullptr;
-
-  const QIcon &iconForType(int mediaType) const;
+  const QIcon &iconForType(int type) const;
 };
 
-#endif // CATALOGITEMDELEGATE_H
+#endif // FOLDERITEMDELEGATE_H

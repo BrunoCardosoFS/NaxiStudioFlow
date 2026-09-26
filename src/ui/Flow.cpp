@@ -1,8 +1,6 @@
 #include "Flow.h"
 #include "ui_Flow.h"
 
-#include "core/catalog/FoldersList.h"
-
 #include <QJsonArray>
 #include <QJsonObject>
 
@@ -12,6 +10,7 @@
 
 #include <QDateTime>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QTimer>
 #include <QTranslator>
 
@@ -33,15 +32,9 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
                              QCoreApplication::applicationDirPath() + "/../db");
   }
 
-  this->catalogModel = new CatalogListModel(this);
-  this->catalogDelegate = new CatalogItemDelegate(this);
-  this->ui->FilesListView->setModel(this->catalogModel);
-  this->ui->FilesListView->setItemDelegate(this->catalogDelegate);
-  this->ui->FilesListView->setUniformItemSizes(true);
-
-  connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
-
-  this->loadFolders();
+  this->catalogWidget = new CatalogWidget(this);
+  this->catalogWidget->setDatabasePath(this->settings->value("db").toString());
+  this->ui->DocCatalogWidget->layout()->addWidget(this->catalogWidget);
 
   // this->showFullScreen();
   // this->showMaximized();
@@ -68,74 +61,6 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
 Flow::~Flow() {
   saveLayout();
   delete ui;
-}
-
-void Flow::loadFolders() {
-  QJsonArray folders = getFolders(this->settings->value("db").toString());
-
-  foreach (QJsonValue jsonValue, folders) {
-    QJsonObject jsonObject = jsonValue.toObject();
-
-    QString title = jsonObject.value("title").toString();
-    QString folderPath = jsonObject.value("path").toString();
-    int type = jsonObject.value("type").toInt();
-
-    QPushButton *item = new QPushButton(this->ui->FoldersListContent);
-    item->setText(title);
-    item->setToolTip(title);
-    item->setProperty("id", jsonObject.value("id").toString());
-
-    item->setIconSize(QSize(20, 20));
-    item->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    item->setCursor(Qt::PointingHandCursor);
-
-    connect(item, &QPushButton::clicked, this, [this, folderPath, type]() {
-      this->openFolder = folderPath;
-      this->openFolderType = type;
-      this->filesList->scanLocal(this->openFolder, this->ui->SearchLine->text(), this->openFolderType);
-    });
-
-    if (type == 0) {
-      item->setProperty("type", "jingle");
-      item->setIcon(QIcon(":/images/catalog/jingle.svg"));
-      this->ui->JinglesFolders->layout()->addWidget(item);
-    } else if (type == 1) {
-      item->setProperty("type", "music");
-      item->setIcon(QIcon(":/images/catalog/music.svg"));
-      this->ui->MusicFolders->layout()->addWidget(item);
-    } else if (type == 2) {
-      item->setProperty("type", "commercial");
-      item->setIcon(QIcon(":/images/catalog/commercial.svg"));
-      this->ui->CommercialFolders->layout()->addWidget(item);
-    } else {
-      item->setProperty("type", "other");
-      item->setIcon(QIcon(":/images/catalog/other.svg"));
-      this->ui->OtherFolders->layout()->addWidget(item);
-    }
-  }
-}
-
-void Flow::loadFiles(const QVector<CatalogItem> &list, const QString &pathFolder, bool isGlobal) {
-  if (!isGlobal) {
-    this->openFolder = pathFolder;
-  }
-  this->catalogModel->setItems(list);
-}
-
-QList<CatalogFolderTarget> Flow::getFolderTargets() const {
-  QList<CatalogFolderTarget> targets;
-  QJsonArray folders = getFolders(this->settings->value("db").toString());
-  for (const QJsonValue &jsonValue : folders) {
-    QJsonObject jsonObject = jsonValue.toObject();
-    CatalogFolderTarget target;
-    target.title = jsonObject.value("title").toString();
-    target.path = jsonObject.value("path").toString();
-    target.type = jsonObject.value("type").toInt();
-    if (!target.path.isEmpty()) {
-      targets.append(target);
-    }
-  }
-  return targets;
 }
 
 void Flow::saveLayout() { this->settings->setValue("layout", saveState()); }
@@ -191,36 +116,12 @@ void Flow::closeEvent(QCloseEvent *event) {
   // }
 }
 
-void Flow::on_SearchLocal_clicked() {
-  if (!this->openFolder.isEmpty()) {
-    this->filesList->scanLocal(this->openFolder, this->ui->SearchLine->text(), this->openFolderType);
-  }
-}
-
-void Flow::on_SearchGlobal_clicked() {
-  QList<CatalogFolderTarget> targets = this->getFolderTargets();
-  this->filesList->scanGlobal(targets, this->ui->SearchLine->text());
-}
-
-void Flow::on_SearchClean_clicked() {
-  this->ui->SearchLine->clear();
-  if (!this->openFolder.isEmpty()) {
-    this->filesList->scanLocal(this->openFolder, "", this->openFolderType);
-  } else {
-    this->catalogModel->clear();
-  }
-}
-
-void Flow::on_SearchLine_returnPressed() {
-  if (!this->openFolder.isEmpty()) {
-    this->on_SearchLocal_clicked();
-  } else {
-    this->on_SearchGlobal_clicked();
-  }
-}
-
 void Flow::on_btnPlay_clicked() {}
 
 void Flow::on_btnPause_clicked() {}
 
 void Flow::on_btnStop_clicked() {}
+
+bool Flow::eventFilter(QObject *watched, QEvent *event) {
+  return QMainWindow::eventFilter(watched, event);
+}
