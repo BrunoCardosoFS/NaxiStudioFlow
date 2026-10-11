@@ -31,9 +31,9 @@ enum class BlockType {
   Commercial,
 };
 
-enum PlaylistItemStatus {
+enum class PlaylistItemStatus {
   Default,
-  Loaded,
+  Next,
   Playing,
   Finished,
 };
@@ -43,6 +43,7 @@ enum PlaylistItemRoles {
   StatusRole,
 
   TitleRole,
+  BlockTitleRole,
   PathRole,
 
   DurationRole,
@@ -53,7 +54,12 @@ enum PlaylistItemRoles {
 
   BlockTypeRole,
   TypeRole,
-  MediaTypeRole
+  MediaTypeRole,
+
+  EstimatedTimeRole,
+  TotalDurationRole,
+  ItemsCountRole,
+  MarkerTextRole
 };
 
 struct PlaylistItem {
@@ -62,17 +68,23 @@ struct PlaylistItem {
   int playerId = -1;
 
   QString title;
+  QString blockTitle;
   QString path;
 
-  qint64 durationMs;
+  qint64 durationMs = 0;
   qint64 positionMs = 0;
 
-  qint64 mixStart;
-  qint64 mixEnd;
+  qint64 mixStart = 0;
+  qint64 mixEnd = 0;
 
-  BlockType blockType;
+  BlockType blockType = BlockType::Music;
   ItemType type = ItemType::Media;
   MediaType mediaType = MediaType::Music;
+
+  QString estimatedTime;
+  qint64 totalDurationMs = 0;
+  int itemsCount = 0;
+  QString markerText;
 };
 
 #endif // MODELS_H
