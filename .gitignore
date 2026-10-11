@@ -84,5 +84,6 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+/data*/
 
 .clangd
