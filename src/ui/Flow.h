@@ -15,6 +15,9 @@ class Flow;
 }
 QT_END_NAMESPACE
 
+class PlaylistManager;
+class PlaylistItemDelegate;
+
 class Flow : public QMainWindow {
   Q_OBJECT
 
@@ -33,6 +36,8 @@ private:
 
   QSettings *settings = new QSettings("NaxStudio", "Flow");
   CatalogWidget *catalogWidget = nullptr;
+  PlaylistManager *playlistManager = nullptr;
+  PlaylistItemDelegate *playlistDelegate = nullptr;
 
   void saveLayout();
   void restoreLayout();

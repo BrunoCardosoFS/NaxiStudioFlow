@@ -4,7 +4,9 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include "core/playlist/PlaylistManager.h"
 #include "ui/widgets/cartwall/CartWallArea.h"
+#include "ui/widgets/playlist/PlaylistItemDelegate.h"
 
 #include <QGridLayout>
 
@@ -46,9 +48,10 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
 
   this->ui->selectProfile->hide();
 
-  QSpacerItem *spacer =
-      new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-  this->ui->PlaylistContent->layout()->addItem(spacer);
+  this->playlistManager = new PlaylistManager(this);
+  this->playlistDelegate = new PlaylistItemDelegate(this);
+  this->ui->playlistView->setModel(this->playlistManager->model());
+  this->ui->playlistView->setItemDelegate(this->playlistDelegate);
 
   CartWallArea *cartWallArea =
       new CartWallArea(this); // Consumindo muita memória >90MB

@@ -248,13 +248,36 @@ QDockWidget, #DocCatalogWidget, #DocCartWallWidget{
 	border-radius: 27px;
 }
 
-#PlayerControl QPushButton:hover{
-	background-color: #0c101a;
+#playlistView {
+	background-color: #2D3340;
+	border: none;
+	outline: none;
 }
 
-#PlaylistScroll, #PlaylistScroll #PlaylistContent{
-	background: transparent;
+#playlistView::item {
 	border: none;
+	outline: none;
+}
+
+#playlistView QScrollBar:vertical {
+	background-color: #12151c;
+	width: 8px;
+	margin: 0px;
+	border-radius: 4px;
+}
+
+#playlistView QScrollBar::handle:vertical {
+	background-color: #2b3345;
+	min-height: 25px;
+	border-radius: 4px;
+}
+
+#playlistView QScrollBar::handle:vertical:hover {
+	background-color: #3b4760;
+}
+
+#playlistView QScrollBar::add-line:vertical, #playlistView QScrollBar::sub-line:vertical {
+	height: 0px;
 }
 
 ProgramBlock{
@@ -323,102 +346,6 @@ ProgramBlock #BlockContent{
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item>
-        <widget class="QWidget" name="PlayerInfo" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>50</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>50</height>
-          </size>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>10</number>
-          </property>
-          <property name="topMargin">
-           <number>10</number>
-          </property>
-          <property name="rightMargin">
-           <number>10</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="label_7">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string notr="true">TODO: Time</string>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_8">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string notr="true">TODO: Time</string>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string notr="true">TODO: VU</string>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignmentFlag::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
        <item>
         <widget class="QWidget" name="PlayerControl" native="true">
          <property name="sizePolicy">
@@ -646,49 +573,37 @@ ProgramBlock #BlockContent{
      </widget>
     </item>
     <item>
-     <widget class="QScrollArea" name="PlaylistScroll">
+     <widget class="PlaylistView" name="playlistView">
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
       <property name="verticalScrollBarPolicy">
        <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
       </property>
       <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
       </property>
-      <property name="sizeAdjustPolicy">
-       <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
-      </property>
-      <property name="widgetResizable">
+      <property name="showDropIndicator" stdset="0">
        <bool>true</bool>
       </property>
-      <property name="alignment">
-       <set>Qt::AlignmentFlag::AlignHCenter|Qt::AlignmentFlag::AlignTop</set>
+      <property name="dragEnabled">
+       <bool>true</bool>
       </property>
-      <widget class="QWidget" name="PlaylistContent">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>680</width>
-         <height>554</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_7">
-        <property name="spacing">
-         <number>10</number>
-        </property>
-        <property name="leftMargin">
-         <number>20</number>
-        </property>
-        <property name="topMargin">
-         <number>20</number>
-        </property>
-        <property name="rightMargin">
-         <number>20</number>
-        </property>
-        <property name="bottomMargin">
-         <number>20</number>
-        </property>
-       </layout>
-      </widget>
+      <property name="dragDropMode">
+       <enum>QAbstractItemView::DragDropMode::InternalMove</enum>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+      </property>
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="uniformItemSizes">
+       <bool>false</bool>
+      </property>
      </widget>
     </item>
    </layout>
@@ -1111,9 +1026,16 @@ ProgramBlock #BlockContent{
    </widget>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PlaylistView</class>
+   <extends>QListView</extends>
+   <header>ui/widgets/playlist/PlaylistView.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../resources/app.qrc"/>
-  <include location="resources/flow.qrc"/>
+  <include location="../resources/app.qrc"/>
  </resources>
  <connections/>
 </ui>
