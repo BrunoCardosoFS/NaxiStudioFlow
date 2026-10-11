@@ -9,6 +9,8 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
 
     playlist/PlaylistItemDelegate.h
     playlist/PlaylistItemDelegate.cpp
+    playlist/PlaylistView.h
+    playlist/PlaylistView.cpp
 
     cartwall/CartWallArea.cpp
     cartwall/CartWallArea.h
