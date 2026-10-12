@@ -12,12 +12,10 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     playlist/PlaylistView.h
     playlist/PlaylistView.cpp
 
-    cartwall/CartWallArea.cpp
-    cartwall/CartWallArea.h
-    cartwall/CartWallArea.ui
-    cartwall/CartWallItem.cpp
-    cartwall/CartWallItem.h
-    cartwall/CartWallItem.ui
+    cartwall/CartWallView.cpp
+    cartwall/CartWallView.h
+    cartwall/CartWallItemDelegate.cpp
+    cartwall/CartWallItemDelegate.h
 
     editor/MixEditor.cpp
     editor/MixEditor.h
