@@ -117,6 +117,20 @@ void CartWallView::mousePressEvent(QMouseEvent *event) {
   QTableView::mousePressEvent(event);
 }
 
+void CartWallView::mouseMoveEvent(QMouseEvent *event) {
+  QTableView::mouseMoveEvent(event);
+
+  // Pointer cursor only while hovering an actual item (not empty cells).
+  const QModelIndex idx = indexAt(event->position().toPoint());
+  const bool overItem = idx.isValid() && (idx.flags() & Qt::ItemIsEnabled);
+  viewport()->setCursor(overItem ? Qt::PointingHandCursor : Qt::ArrowCursor);
+}
+
+void CartWallView::leaveEvent(QEvent *event) {
+  viewport()->unsetCursor();
+  QTableView::leaveEvent(event);
+}
+
 void CartWallView::mouseReleaseEvent(QMouseEvent *event) {
   QTableView::mouseReleaseEvent(event);
 

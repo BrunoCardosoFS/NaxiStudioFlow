@@ -183,11 +183,11 @@ void CartWallItemDelegate::paint(QPainter *p,
   }
 
   // Selection outline
-  if (selected) {
-    p->setBrush(Qt::NoBrush);
-    p->setPen(QPen(kColWhite, 2.0));
-    p->drawRoundedRect(card.adjusted(1, 1, -1, -1), kRadius, kRadius);
-  }
+  // if (selected) {
+  //   p->setBrush(Qt::NoBrush);
+  //   p->setPen(QPen(kColWhite, 2.0));
+  //   p->drawRoundedRect(card.adjusted(1, 1, -1, -1), kRadius, kRadius);
+  // }
 
   p->restore();
 }

@@ -186,7 +186,7 @@ void CartWallTableModel::loadMockData() {
 
   // Simulate one slot playing, to validate the progress bar.
   list[1].status = CartItemStatus::Playing;
-  list[1].positionMs = list[4].durationMs / 3;
+  list[1].positionMs = list[1].durationMs / 3;
 
   beginResetModel();
   m_items = list;
