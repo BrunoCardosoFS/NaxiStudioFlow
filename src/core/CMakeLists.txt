@@ -12,6 +12,10 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     catalog/FolderListModel.cpp
     catalog/FolderListModel.h
 
+    cartwall/CartItem.h
+    cartwall/CartWallTableModel.cpp
+    cartwall/CartWallTableModel.h
+
     playlist/PlaylistManager.cpp
     playlist/PlaylistManager.h
     playlist/PlaylistListModel.cpp
