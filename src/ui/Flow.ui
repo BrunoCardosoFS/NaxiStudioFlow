@@ -32,7 +32,52 @@ QLabel{
 	color: #ffffff;
 }
 
-QLineEdit{
+QSpinBox{
+ 	background-color: #2D3340;
+ 	border: none;
+ 	border-radius: 7px;
+ 	padding-left: 5px;
+ 	color: #ffffff;
+ }
+ 
+ QSpinBox:hover{
+ 	background-color: #292e38;
+ }
+ 
+ QSpinBox::up-button, QSpinBox::down-button{
+ 	subcontrol-origin: border;
+ 	width: 22px;
+ 	border: none;
+ 	background-color: transparent;
+ }
+ 
+ QSpinBox::up-button{
+ 	subcontrol-position: top right;
+ 	border-top-right-radius: 7px;
+ }
+ 
+ QSpinBox::down-button{
+ 	subcontrol-position: bottom right;
+ 	border-bottom-right-radius: 7px;
+ }
+ 
+ QSpinBox::up-button:hover, QSpinBox::down-button:hover{
+ 	background-color: #1F232C;
+ }
+ 
+ QSpinBox::up-arrow{
+ 	image: url(&quot;:/images/icons/arrow-up.svg&quot;);
+ 	width: 8px;
+ 	height: 8px;
+ }
+ 
+ QSpinBox::down-arrow{
+ 	image: url(&quot;:/images/icons/arrow-down.svg&quot;);
+ 	width: 8px;
+ 	height: 8px;
+ }
+ 
+ QLineEdit{
 	background-color: #2D3340;
 	border: none;
 	border-radius: 7px;
@@ -740,7 +785,7 @@ ProgramBlock #BlockContent{
          <number>5</number>
         </property>
         <item>
-         <widget class="QLabel" name="cartWallColumnsLabel"><property name="text"><string>Colunas</string></property></widget></item><item><widget class="QSpinBox" name="cartWallColumns"><property name="minimum"><number>1</number></property><property name="maximum"><number>8</number></property><property name="value"><number>3</number></property></widget></item><item><spacer name="cartWallHeaderSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer>
+         <widget class="QLabel" name="cartWallColumnsLabel"><property name="text"><string>Colunas</string></property></widget></item><item><widget class="QSpinBox" name="cartWallColumns"><property name="minimumSize"><size><width>60</width><height>32</height></size></property><property name="maximumSize"><size><width>60</width><height>32</height></size></property><property name="minimum"><number>1</number></property><property name="maximum"><number>8</number></property><property name="value"><number>3</number></property></widget></item><item><spacer name="cartWallHeaderSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer>
         </item>
        </layout>
       </widget>
