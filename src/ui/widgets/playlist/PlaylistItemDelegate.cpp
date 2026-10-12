@@ -68,16 +68,16 @@ PlaylistItemDelegate::PlaylistItemDelegate(QObject *parent)
       m_iconJingle(":/images/catalog/jingle.svg"),
       m_iconCommercial(":/images/catalog/commercial.svg"),
       m_iconOther(":/images/catalog/other.svg"),
-      m_brushMusic(
-          makeVerticalBrush(QColor::fromRgb(0x418DB4), QColor::fromRgb(0x0066A5))),
-      m_brushJingle(
-          makeVerticalBrush(QColor::fromRgb(0x68B127), QColor::fromRgb(0x3C8808))),
-      m_brushCommercial(
-          makeVerticalBrush(QColor::fromRgb(0xD97706), QColor::fromRgb(0xB45309))),
-      m_brushOther(
-          makeVerticalBrush(QColor::fromRgb(0x475569), QColor::fromRgb(0x334155))),
-      m_brushProgress(
-          makeVerticalBrush(QColor::fromRgb(0xCF3B6B), QColor::fromRgb(0xAC073C))) {}
+      m_brushMusic(makeVerticalBrush(QColor::fromRgb(0x418DB4),
+                                     QColor::fromRgb(0x0066A5))),
+      m_brushJingle(makeVerticalBrush(QColor::fromRgb(0x68B127),
+                                      QColor::fromRgb(0x3C8808))),
+      m_brushCommercial(makeVerticalBrush(QColor::fromRgb(0xD97706),
+                                          QColor::fromRgb(0xB45309))),
+      m_brushOther(makeVerticalBrush(QColor::fromRgb(0x475569),
+                                     QColor::fromRgb(0x334155))),
+      m_brushProgress(makeVerticalBrush(QColor::fromRgb(0xCF3B6B),
+                                        QColor::fromRgb(0xAC073C))) {}
 
 PlaylistItemDelegate::~PlaylistItemDelegate() = default;
 
@@ -358,11 +358,10 @@ void PlaylistItemDelegate::paintEndMarker(QPainter *p,
   const QString durFormatted = (totalDurationMs >= 3600000)
                                    ? formatDuration(totalDurationMs, true)
                                    : msec2string(totalDurationMs);
-  const QString summary =
-      QString::number(itemsCount) +
-      (itemsCount == 1 ? QStringLiteral(" item - ")
-                       : QStringLiteral(" itens - ")) +
-      durFormatted;
+  const QString summary = QString::number(itemsCount) +
+                          (itemsCount == 1 ? QStringLiteral(" item - ")
+                                           : QStringLiteral(" itens - ")) +
+                          durFormatted;
 
   const int sumW = f.marker.fm.horizontalAdvance(summary);
   p->setPen(kColMuted);
@@ -395,10 +394,16 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
   const bool isSelected = opt.state & QStyle::State_Selected;
 
   if (status == PlaylistItemStatus::Finished) {
-    const int iconLeft = r.left() + 14;
+    const int iconLeft = r.left() + 22;
 
-    if (isSelected)
-      p->fillRect(r.adjusted(14, 0, -14, 0), kColFinishedSel);
+    if (isSelected) {
+      p->save();
+      p->setRenderHint(QPainter::Antialiasing, true);
+      p->setPen(Qt::NoPen);
+      p->setBrush(kColFinishedSel);
+      p->drawRoundedRect(QRectF(r.adjusted(14, 0, -14, 0)), 7, 7);
+      p->restore();
+    }
 
     const QRect iconRect(iconLeft, r.top() + (r.height() - 20) / 2, 20, 20);
     drawTypeIcon(p, iconRect, mType);
@@ -408,17 +413,18 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
     if (textWidth > 20) {
       p->setFont(f.mediaFinished.font);
       p->setPen(kColWhite);
-      p->drawText(QRect(textLeft, r.top(), textWidth, r.height()),
-                  Qt::AlignVCenter | Qt::AlignLeft,
-                  f.mediaFinished.fm.elidedText(title, Qt::ElideRight,
-                                                textWidth));
+      p->drawText(
+          QRect(textLeft, r.top(), textWidth, r.height()),
+          Qt::AlignVCenter | Qt::AlignLeft,
+          f.mediaFinished.fm.elidedText(title, Qt::ElideRight, textWidth));
     }
     return;
   }
 
   const QString estTime = index.data(EstimatedTimeRole).toString();
   const qint64 durationMs = index.data(DurationRole).toLongLong();
-  const qint64 positionMs = isPlaying ? index.data(PositionRole).toLongLong() : 0;
+  const qint64 positionMs =
+      isPlaying ? index.data(PositionRole).toLongLong() : 0;
 
   const QRect cardRect = r.adjusted(14, 1, -14, -1);
 
@@ -436,9 +442,9 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
       // Clip the progress fill to the rounded card shape.
       p->save();
       p->setClipPath(cardPath);
-      p->fillRect(QRect(cardRect.left(), cardRect.top(), progWidth,
-                        cardRect.height()),
-                  m_brushProgress);
+      p->fillRect(
+          QRect(cardRect.left(), cardRect.top(), progWidth, cardRect.height()),
+          m_brushProgress);
       p->restore();
     }
   }
