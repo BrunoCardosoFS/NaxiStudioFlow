@@ -197,15 +197,26 @@ QDockWidget, #DocCatalogWidget, #DocCartWallWidget{
 	background-color: #191D24;
 }
 
-#DocCatalog QScrollArea, #DocCartWallWidget QScrollArea{
+#DocCatalog QScrollArea{
 	background-color: #1F232C;
 	border: none;
 	border-radius: 10px;
 }
 
-#FilesListContent, #FoldersListContent, #DocCartWallScrollWidget{
+#FilesListContent, #FoldersListContent{
 	background-color: #1F232C;
 	border-radius: 10px;
+}
+
+#cartWallView{
+	background-color: #1F232C;
+	border: none;
+	border-radius: 10px;
+	padding: 2px;
+}
+
+#cartWallColumnsLabel{
+	color: #8E9EB5;
 }
 
 #FilesListView, #FoldersListView{
@@ -729,55 +740,12 @@ ProgramBlock #BlockContent{
          <number>5</number>
         </property>
         <item>
-         <widget class="QPushButton" name="pushButton_2">
-          <property name="text">
-           <string>ToDo: Cartucheira</string>
-          </property>
-         </widget>
+         <widget class="QLabel" name="cartWallColumnsLabel"><property name="text"><string>Colunas</string></property></widget></item><item><widget class="QSpinBox" name="cartWallColumns"><property name="minimum"><number>1</number></property><property name="maximum"><number>8</number></property><property name="value"><number>3</number></property></widget></item><item><spacer name="cartWallHeaderSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer>
         </item>
        </layout>
       </widget>
      </item>
-     <item>
-      <widget class="QScrollArea" name="DocCartWallScroll">
-       <property name="horizontalScrollBarPolicy">
-        <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
-       </property>
-       <property name="sizeAdjustPolicy">
-        <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
-       </property>
-       <property name="widgetResizable">
-        <bool>true</bool>
-       </property>
-       <widget class="QWidget" name="DocCartWallScrollWidget">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>228</width>
-          <height>597</height>
-         </rect>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_5">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-        </layout>
-       </widget>
-      </widget>
-     </item>
+     
     </layout>
    </widget>
   </widget>

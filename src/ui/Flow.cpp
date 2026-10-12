@@ -5,7 +5,9 @@
 #include <QJsonObject>
 
 #include "core/playlist/PlaylistManager.h"
-#include "ui/widgets/cartwall/CartWallArea.h"
+#include "core/cartwall/CartWallTableModel.h"
+#include "ui/widgets/cartwall/CartWallItemDelegate.h"
+#include "ui/widgets/cartwall/CartWallView.h"
 #include "ui/widgets/playlist/PlaylistItemDelegate.h"
 
 #include <QGridLayout>
@@ -53,10 +55,20 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
   this->ui->playlistView->setModel(this->playlistManager->model());
   this->ui->playlistView->setItemDelegate(this->playlistDelegate);
 
-  CartWallArea *cartWallArea =
-      new CartWallArea(this); // Consumindo muita memória >90MB
-  this->ui->DocCartWallScrollWidget->layout()->addWidget(cartWallArea);
-  // this->ui->DocCartWallScroll->setWidget(cartWallArea);
+  auto *cartWallModel = new CartWallTableModel(this);
+  cartWallModel->setColumnCount(this->ui->cartWallColumns->value());
+  cartWallModel->loadMockData();
+
+  auto *cartWallView = new CartWallView(this->ui->DocCartWallWidget);
+  cartWallView->setObjectName("cartWallView");
+  cartWallView->setModel(cartWallModel);
+  cartWallView->setItemDelegate(new CartWallItemDelegate(cartWallView));
+  this->ui->DocCartWallWidget->layout()->addWidget(cartWallView);
+
+  connect(this->ui->cartWallColumns, &QSpinBox::valueChanged, cartWallView,
+          &CartWallView::setColumnCount);
+  connect(cartWallView, &CartWallView::slotTriggered, this,
+          [](int index) { qInfo() << "Cart slot triggered:" << index; });
 
   restoreLayout();
 }
