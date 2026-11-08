@@ -1,6 +1,6 @@
 <div align="center">
 
-# NaxStudio Flow
+# <img src="src/resources/icons/logo-naxstudio.svg" alt="NaxStudio Logo" width="40" height="40" style="vertical-align: middle;" valign="middle"> NaxStudio Flow
 
 **Modern Radio Playout & Broadcast Automation Software**
 
