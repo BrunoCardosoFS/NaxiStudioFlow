@@ -26,7 +26,7 @@
         <file>catalog/music.svg</file>
         <file>catalog/other.svg</file>
         <file>icons/logo-flow.svg</file>
-        <file>icons/logo-naxistudio.svg</file>
+        <file>icons/logo-naxstudio.svg</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>fonts/Roboto-Italic-VariableFont_wdth,wght.ttf</file>

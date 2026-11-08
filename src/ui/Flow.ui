@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="../resources/app.qrc">
-    <normaloff>:/images/icons/logo-naxistudio.svg</normaloff>:/images/icons/logo-naxistudio.svg</iconset>
+    <normaloff>:/images/icons/logo-naxstudio.svg</normaloff>:/images/icons/logo-naxstudio.svg</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">#Flow{
