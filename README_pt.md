@@ -5,11 +5,16 @@
 **Software Moderno de Automação e Playout para Emissoras de Rádio**
 
 [![Licença: GPL v3](https://img.shields.io/badge/Licen%C3%A7a-GPLv3-blue.svg)](COPYING)
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg)](docs/ROADMAP.md)
 [![Releases](https://img.shields.io/badge/Releases-latest-blue?logo=github)](https://github.com/BrunoCardosoFS/NaxiStudioFlow/releases)
 
 [English](README.md) • [Português](README_pt.md)
 
 </div>
+
+---
+
+> ⚠️ **Estado Atual do Desenvolvimento: Alpha (`0.x.y`)** — O NaxStudio Flow encontra-se atualmente na fase **Alpha**. A arquitetura e os formatos de arquivos/configurações ainda estão evoluindo e podem sofrer quebras de compatibilidade até o lançamento da versão estável `1.0.0`. Consulte o [Roadmap](docs/ROADMAP.md) e a [Documentação Técnica](docs/README.md) para acompanhar o progresso.
 
 ---
 

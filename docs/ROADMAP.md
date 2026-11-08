@@ -1,5 +1,7 @@
 # Roadmap de Desenvolvimento - NaxStudio Flow
 
+> **Fase Atual do Projeto: `Alpha (0.x.y)`** — Arquitetura em evolução ativa; formatos de arquivos e configurações ainda podem sofrer alterações até a entrada na fase Beta (`1.0.0-beta.1`). Consulte as regras completas de versionamento em [`conventions/git-and-workflow.md`](conventions/git-and-workflow.md#-sistema-de-versionamento-versioncmake).
+
 Abaixo estão listados os marcos de desenvolvimento do **NaxStudio Flow**, os checklists de entrega para as versões `1.0.0-beta.1` e `1.0.0-rc.1`, e a previsão para a versão `2.0.0`.
 
 **Legenda de Status:**
