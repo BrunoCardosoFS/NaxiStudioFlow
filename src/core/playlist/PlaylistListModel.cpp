@@ -47,6 +47,14 @@ QVariant PlaylistListModel::data(const QModelIndex &index, int role) const {
     return item.mixStart;
   case MixEndRole:
     return item.mixEnd;
+  case StartPointRole:
+    return item.startPoint;
+  case EndPointRole:
+    return item.endPoint;
+  case FadeInEndPointRole:
+    return item.fadeInEndPoint;
+  case FadeOutStartPointRole:
+    return item.fadeOutStartPoint;
   case BlockTypeRole:
     return static_cast<int>(item.blockType);
   case TypeRole:
@@ -222,7 +230,8 @@ void PlaylistListModel::recalculateBlockMetadata() {
   m_playingRow = -1;
   for (int i = 0; i < m_items.size(); ++i) {
     const PlaylistItem &it = m_items.at(i);
-    if (it.type == ItemType::Media && it.status == PlaylistItemStatus::Playing) {
+    if (it.type == ItemType::Media &&
+        it.status == PlaylistItemStatus::Playing) {
       m_playingRow = i;
       break;
     }
@@ -387,6 +396,14 @@ void PlaylistListModel::loadMockData() {
     item.status = status;
     item.playerId = playerId;
     item.positionMs = positionMs;
+
+    if (durationMs > 0) {
+      item.startPoint = 0;
+      item.endPoint = durationMs;
+      item.fadeInEndPoint = qMin<qint64>(1500, durationMs);
+      item.fadeOutStartPoint = qMax<qint64>(0, durationMs - 1500);
+    }
+
     return item;
   };
 

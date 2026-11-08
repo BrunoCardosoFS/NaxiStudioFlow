@@ -52,6 +52,12 @@ enum PlaylistItemRoles {
   MixStartRole,
   MixEndRole,
 
+  StartPointRole,
+  EndPointRole,
+
+  FadeInEndPointRole,
+  FadeOutStartPointRole,
+
   BlockTypeRole,
   TypeRole,
   MediaTypeRole,
@@ -76,6 +82,12 @@ struct PlaylistItem {
 
   qint64 mixStart = 0;
   qint64 mixEnd = 0;
+
+  qint64 startPoint = 0;
+  qint64 endPoint = 0;
+
+  qint64 fadeInEndPoint = 0;
+  qint64 fadeOutStartPoint = 0;
 
   BlockType blockType = BlockType::Music;
   ItemType type = ItemType::Media;
