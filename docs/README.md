@@ -1,0 +1,73 @@
+# Documentação Técnica - NaxStudio Flow
+
+Bem-vindo à documentação técnica do **NaxStudio Flow**. Abaixo está o sumário completo de todos os documentos disponíveis.
+
+---
+
+## 📑 Sumário
+
+- **[Guia de Contribuição](../CONTRIBUTING.md)**
+- **[Roadmap de Desenvolvimento](ROADMAP.md)**
+  - [Marcos de Desenvolvimento](ROADMAP.md#-marcos-de-desenvolvimento)
+  - [Checklist Geral - Primeiro Beta (`v1.0.0-beta.1`)](ROADMAP.md#-checklist-geral--primeiro-beta-v100-beta1)
+  - [Checklist Geral - Release Candidate da Versão Estável (`v1.0.0-rc.1` / `1.0.0`)](ROADMAP.md#-checklist-geral--release-candidate-da-versão-estável-v100-rc1--100)
+  - [Previsão para a Versão `2.0.0`](ROADMAP.md#-previsão-para-a-versão-200)
+- **Arquitetura**
+  - [Visão Geral da Arquitetura](architecture/overview.md)
+    - [Diagrama de Camadas](architecture/overview.md#-diagrama-de-camadas)
+    - [Responsabilidades de Cada Diretório em `src/`](architecture/overview.md#-responsabilidades-de-cada-diretório-em-src)
+    - [Estrutura de Instalação e Diretório `data/`](architecture/overview.md#-estrutura-de-instalação-e-diretório-data)
+  - [Sincronização com NaxServer e Armazenamento Local](architecture/server-sync-and-storage.md)
+    - [Dinâmica Servidor vs. Operação Local (`data/`)](architecture/server-sync-and-storage.md#-dinâmica-servidor-vs-operação-local-data)
+    - [Resolução de Arquivos de Mídia em Cascata (Rede e Espelho Local)](architecture/server-sync-and-storage.md#-resolução-de-arquivos-de-mídia-em-cascata-rede-e-espelho-local)
+    - [Hierarquia de Metadados de Mixagem (`musica.mp3.json` vs. Inserção)](architecture/server-sync-and-storage.md#-hierarquia-de-metadados-de-mixagem-musicamp3json-vs-inserção)
+    - [Escopo de Armazenamento dos Perfis e Cartucheira](architecture/server-sync-and-storage.md#-escopo-de-armazenamento-dos-perfis-e-cartucheira)
+    - [Sincronização Acumulada de Logs de Programação (Padrão *Outbox*)](architecture/server-sync-and-storage.md#-sincronização-acumulada-de-logs-de-programação-padrão-outbox)
+  - [Motor de Áudio e Roteamento](architecture/audio-engine.md)
+    - [Sincronismo dos Pontos de Mixagem](architecture/audio-engine.md#-sincronismo-dos-pontos-de-mixagem-mixend--mixstart)
+    - [Rodízio de Players na Playlist](architecture/audio-engine.md#-rodízio-de-players-na-playlist-playlistmanager)
+    - [Automação de Volume e Curva *Equal-Power*](architecture/audio-engine.md#-automação-de-volume-e-curva-equal-power-playermanager)
+    - [Motor de Áudio da Cartucheira](architecture/audio-engine.md#-motor-de-áudio-da-cartucheira-cartwall)
+    - [Roteamento para Múltiplas Placas de Som](architecture/audio-engine.md#-roteamento-para-múltiplas-placas-de-som)
+- **Módulos do Sistema**
+  - [Módulo de Playlist e Automação de Blocos](modules/playlist.md)
+    - [Anatomia de um Bloco na Playlist](modules/playlist.md#-anatomia-de-um-bloco-na-playlist)
+    - [Cálculo Automático de Metadados](modules/playlist.md#-cálculo-automático-de-metadados-recalculateblockmetadata)
+    - [Regras de Segurança e Drag-and-Drop](modules/playlist.md#-regras-de-segurança-e-drag-and-drop)
+  - [Módulo de Catálogo de Mídia](modules/catalog.md)
+    - [Organização de Pastas e `catalog.json`](modules/catalog.md#-organização-de-pastas-e-catalogjson)
+    - [Escaneamento Multithread e Cancelamento Lock-Free](modules/catalog.md#-escaneamento-multithread-e-cancelamento-lock-free-catalogscanner)
+    - [Protocolo de Drag-and-Drop](modules/catalog.md#-protocolo-de-drag-and-drop-applicationx-catalog-item)
+  - [Módulo da Cartucheira (Cartwall)](modules/cartwall.md)
+    - [Mapeamento Linear para Grade Dinâmica (`CartWallTableModel`)](modules/cartwall.md#-mapeamento-linear-para-grade-dinâmica-cartwalltablemodel)
+    - [Interação, Disparo e Drag-and-Drop (`CartWallView`)](modules/cartwall.md#-interação-disparo-e-drag-and-drop-cartwallview)
+    - [Recursos de Reprodução: Independente, Loop e Encadeamento (`Ctrl + Clique`)](modules/cartwall.md#-recursos-de-reprodução-independente-loop-e-encadeamento-ctrl--clique)
+  - [Módulo do Editor de Mixagem](modules/mix-editor.md)
+    - [Como o Editor é Acionado](modules/mix-editor.md#-como-o-editor-é-acionado)
+    - [Visualização de Forma de Onda (*Waveform*) e Pontos de Marcação](modules/mix-editor.md#-visualização-de-forma-de-onda-waveform-e-pontos-de-marcação)
+    - [Modalidades de Salvamento (Global vs. Local)](modules/mix-editor.md#-modalidades-de-salvamento-global-vs-inserção-local)
+  - [Perfis, Configurações, Logs e Integrações Externas](modules/profiles-and-integrations.md)
+    - [Sistema de Perfis](modules/profiles-and-integrations.md#-sistema-de-perfis-dataprofiles)
+    - [Janela de Configurações](modules/profiles-and-integrations.md#-janela-de-configurações-btnsettings)
+    - [Hora Certa](modules/profiles-and-integrations.md#-hora-certa)
+    - [Sistema de Logs](modules/profiles-and-integrations.md#-sistema-de-logs-datalogs)
+    - [Integrações Externas: RDS, Streaming e OBS Studio](modules/profiles-and-integrations.md#-integrações-externas-rds-streaming-txt-e-obs-studio)
+- **Convenções de Desenvolvimento**
+  - [Convenções de Código C++ e Qt](conventions/coding-style.md)
+    - [Nomenclatura](conventions/coding-style.md#-nomenclatura)
+    - [Organização de Arquivos e Includes](conventions/coding-style.md#-organização-de-arquivos-e-includes)
+    - [Gerência de Memória e Padrões Qt](conventions/coding-style.md#-gerência-de-memória-e-padrões-qt)
+    - [Boas Práticas em `QStyledItemDelegate`](conventions/coding-style.md#-boas-práticas-em-qstyleditemdelegate)
+  - [Convenções de Git, Commits e Versionamento](conventions/git-and-workflow.md)
+    - [Padrão de Mensagens de Commit (Conventional Commits)](conventions/git-and-workflow.md#-padrão-de-mensagens-de-commit-conventional-commits)
+    - [Estratégia de Branches](conventions/git-and-workflow.md#-estratégia-de-branches)
+    - [Sistema de Versionamento](conventions/git-and-workflow.md#-sistema-de-versionamento-versioncmake)
+  - [Design System de UI e Internacionalização](conventions/ui-and-i18n.md)
+    - [Paleta de Cores Oficial](conventions/ui-and-i18n.md#-paleta-de-cores-oficial)
+    - [Tipografia e Formatação de Tempo](conventions/ui-and-i18n.md#-tipografia-e-formatação-de-tempo)
+    - [Internacionalização (i18n)](conventions/ui-and-i18n.md#-internacionalização-i18n)
+- **Decisões de Arquitetura (ADRs)**
+  - [ADR 001: Migração para Arquitetura Model/View/Delegate do Qt](decisions/001-qt-model-view-delegate.md)
+  - [ADR 002: Curva de Fade Equal-Power, Sincronismo de Mixagem e Pool de 3 Players](decisions/002-equal-power-fade-and-player-pool.md)
+  - [ADR 003: Arquitetura Offline-First, Merge Local de Blocos e Sidecar JSON](decisions/003-offline-first-and-sidecar-metadata.md)
+  - [ADR 004: Scanner de Catálogo Lock-Free em Thread Dedicada](decisions/004-lock-free-catalog-scanner.md)
