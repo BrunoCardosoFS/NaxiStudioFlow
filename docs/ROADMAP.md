@@ -21,20 +21,21 @@ Abaixo estão listados os marcos de desenvolvimento do **NaxStudio Flow**, os ch
 | **M5** | Orquestração do `PlaylistManager` com rodízio circular de 3 players, sincronismo antecipado de mixagem ($\text{mixEnd}_{\text{atual}} \leftrightarrow \text{mixStart}_{\text{próximo}}$), pré-carregamento estendido dinâmico, transição de blocos e conexão dos botões de transporte (`Play`, `Pause`, `Stop`, `Next`). | 🟡 |
 | **M6** | Editor de Mixagem (`MixEditor`) com abertura via menu de contexto (Catálogo e Playlist), visualização da forma de onda (*waveform*), ajuste de pontos de corte/mixagem/fade/envelope de volume e salvamento dual. | 🟡 |
 | **M7** | Drag-and-Drop de arquivos do Catálogo diretamente para dentro dos blocos da Playlist, leitura da duração real da mídia e remoção de itens futuros. | 🔴 |
-| **M8** | Suporte a itens do tipo **Comando** no Catálogo e na Playlist. | 🔴 |
-| **M9** | Padronização da estrutura de diretórios locais (`Flow/bin/` e `Flow/data/`) e suporte a caminhos espelho locais (*mirror paths*) no catálogo. | 🔴 |
-| **M10** | Leitura e gravação de metadados globais de mixagem em arquivos JSON irmãos (`musica.mp3.json`) e resolução de prioridade entre metadados da inserção e metadados globais. | 🔴 |
-| **M11** | Motor de reprodução de áudio da Cartucheira com players independentes por slot (disparo simultâneo), modo Loop individual e fila de reprodução encadeada respeitando os pontos de mixagem. | 🔴 |
-| **M12** | Roteamento de áudio para múltiplas placas de som independentes e implementação do player de Pré-escuta integrado ao Catálogo. | 🔴 |
-| **M13** | Sistema de Perfis com controle de permissões e vínculo dos slots da Cartucheira por perfil. | 🔴 |
-| **M14** | Janela de Configurações para seleção das placas de áudio, mapeamento de caminhos do catálogo, configuração do servidor, seleção de idioma e preferências gerais. | 🔴 |
-| **M15** | Log de Sistema e Diagnóstico em arquivos `.txt` registrando carregamento de módulos, status de conexão com servidor e erros internos. | 🔴 |
-| **M16** | Log de Programação e Execução em SQLite (`.db`) com sincronização acumulada para o servidor. | 🔴 |
-| **M17** | Integração com o **NaxServer** via API REST mantendo operação *Offline-First*, busca de mídia em cascata, merge não-destrutivo de alterações locais nos blocos e função de *Restaurar Bloco*. | 🔴 |
-| **M18** | Módulo de anúncio automático e manual de Hora Certa e suporte a atalhos de teclado globais para controle da Playlist e disparo rápido da Cartucheira. | 🔴 |
-| **M19** | Exportação automática dos metadados da faixa no ar em arquivo `.txt` para integração com geradores de RDS e transmissores de Streaming Online. | 🔴 |
-| **M20** | Integração com o OBS Studio via protocolo WebSocket (`obs-websocket`) para troca automatizada de cenas, controle de fontes e execução de comandos da playlist. | 🔴 |
-| **M21** | Desenvolvimento de engine de áudio própria utilizando diretamente as bibliotecas do FFmpeg para substituir o `Qt6::Multimedia` (planejado para a versão 2.0.0). | 🔴 |
+| **M8** | Carregamento dinâmico da Playlist (janela deslizante padrão de 4 blocos futuros e histórico de 10 inserções finalizadas considerando apenas mídias e comandos, ajustáveis nas configurações) e botão de *Abrir Programação* por data e horário. | 🔴 |
+| **M9** | Suporte a itens do tipo **Comando** no Catálogo e na Playlist. | 🔴 |
+| **M10** | Padronização da estrutura de diretórios locais (`Flow/bin/` e `Flow/data/`) e suporte a caminhos espelho locais (*mirror paths*) no catálogo. | 🔴 |
+| **M11** | Leitura e gravação de metadados globais de mixagem em arquivos JSON irmãos (`musica.mp3.json`) e resolução de prioridade entre metadados da inserção e metadados globais. | 🔴 |
+| **M12** | Motor de reprodução de áudio da Cartucheira com players independentes por slot (disparo simultâneo), modo Loop individual e fila de reprodução encadeada respeitando os pontos de mixagem. | 🔴 |
+| **M13** | Roteamento de áudio para múltiplas placas de som independentes e implementação do player de Pré-escuta integrado ao Catálogo. | 🔴 |
+| **M14** | Sistema de Perfis com controle de permissões e vínculo dos slots da Cartucheira por perfil. | 🔴 |
+| **M15** | Janela de Configurações para seleção das placas de áudio, mapeamento de caminhos do catálogo, limites de blocos/histórico da playlist, configuração do servidor, seleção de idioma e preferências gerais. | 🔴 |
+| **M16** | Log de Sistema e Diagnóstico em arquivos `.txt` registrando carregamento de módulos, status de conexão com servidor e erros internos. | 🔴 |
+| **M17** | Log de Programação e Execução em SQLite (`.db`) com sincronização acumulada para o servidor. | 🔴 |
+| **M18** | Integração com o **NaxServer** via API REST mantendo operação *Offline-First*, busca de mídia em cascata, merge não-destrutivo de alterações locais nos blocos e função de *Restaurar Bloco*. | 🔴 |
+| **M19** | Módulo de anúncio automático e manual de Hora Certa e suporte a atalhos de teclado globais para controle da Playlist e disparo rápido da Cartucheira. | 🔴 |
+| **M20** | Exportação automática dos metadados da faixa no ar em arquivo `.txt` para integração com geradores de RDS e transmissores de Streaming Online. | 🔴 |
+| **M21** | Integração com o OBS Studio via protocolo WebSocket (`obs-websocket`) para troca automatizada de cenas, controle de fontes e execução de comandos da playlist. | 🔴 |
+| **M22** | Desenvolvimento de engine de áudio própria utilizando diretamente as bibliotecas do FFmpeg para substituir o `Qt6::Multimedia` (planejado para a versão 2.0.0). | 🔴 |
 
 ---
 
@@ -44,6 +45,7 @@ O objetivo do **Primeiro Beta** é entregar toda a operação local de estúdio 
 
 - [ ] Estrutura de diretórios `Flow/bin/` e `Flow/data/` ativa por padrão.
 - [ ] Reprodução contínua da Playlist no `PlaylistManager` com rodízio dos 3 players, sincronismo antecipado ($\text{mixEnd} \leftrightarrow \text{mixStart}$) e pré-carregamento dinâmico.
+- [ ] Carregamento dinâmico da Playlist e botão de *Abrir Programação* por data/hora.
 - [ ] Controles de transporte (`Play`, `Pause`, `Stop`, `Next`) e atualização da barra de progresso em tempo real na Playlist.
 - [ ] Adição de mídias do Catálogo para a Playlist via Drag-and-Drop (lendo a duração real do áudio) e remoção de itens futuros.
 - [ ] Suporte aos itens de **Comando** essenciais na Playlist (como o comando de *Pausa* e *Hora Certa*).

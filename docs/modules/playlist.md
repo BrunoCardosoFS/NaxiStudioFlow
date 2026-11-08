@@ -66,3 +66,19 @@ Para impedir acidentes durante a transmissão ao vivo:
 - **Recepção de Mídias do Catálogo**:
   - Além de reordenar itens internos (`Qt::MoveAction`), a playlist aceita o drop de arquivos vindos do `CatalogWidget` (`application/x-catalog-item`), inserindo-os na posição exata indicada pela linha amarela (`#eab308`) do `PlaylistView`.
 
+---
+
+## 🔄 Carregamento Dinâmico de Blocos, "Abrir Programação" e Retenção de Histórico
+
+Para manter a visualização limpa e o consumo de memória enxuto durante transmissões 24/7, a Playlist opera como uma **janela deslizante dinâmica**:
+
+1. **Botão "Abrir Programação"**:
+   - Permite ao operador escolher uma data e horário específicos (por exemplo, `07/11 às 21h55`).
+   - O sistema localiza e carrega a programação a partir do **próximo bloco mais próximo desse horário**, no caso do exemplo acima, o bloco das 22h.
+2. **Janela Deslizante de Blocos Futuros (Padrão: 4 Blocos)**:
+   - A Playlist mantém carregados simultaneamente **4 blocos** por padrão (quantidade ajustável na Janela de Configurações).
+   - Assim que um bloco termina de ser executado, o próximo bloco subsequente da programação é carregado automaticamente no final da lista.
+3. **Retenção de Histórico de Inserções Finalizadas (Padrão: 10 Inserções)**:
+   - No topo da lista, são mantidas as últimas **10 inserções já finalizadas (`Finished`)** por padrão (valor também configurável nas configurações).
+   - Essa contagem de *"10 inserções"* **não deve contabilizar os marcadores**. Quando todas as inserções de um bloco antigo deixam o histórico, seus respectivos marcadores também são removidos automaticamente.
+

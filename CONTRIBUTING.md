@@ -1,8 +1,8 @@
 # Guia de Contribuição - NaxStudio Flow
 
-Boas-vindas ao **NaxStudio Flow**! Ficamos muito felizes com o seu interesse em contribuir para o desenvolvimento do NaxStudio Flow.
+Boas-vindas ao **NaxStudio Flow**! Ficamos muito felizes com o seu interesse em contribuir para o desenvolvimento do nosso projeto.
 
-Este documento reúne todas as instruções essenciais para configurar seu ambiente de desenvolvimento, entender a organização do projeto e enviar suas contribuições. Para detalhes profundos sobre a arquitetura e os módulos internos, consulte a documentação completa em [`docs/README.md`](docs/README.md).
+Este documento reúne todas as instruções essenciais para configurar seu ambiente de desenvolvimento, entender a organização do projeto e enviar suas contribuições. Para mais detalhes sobre a arquitetura e os módulos internos, consulte a documentação completa em [`docs/README.md`](docs/README.md).
 
 ---
 
