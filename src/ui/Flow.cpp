@@ -4,8 +4,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
-#include "core/playlist/PlaylistManager.h"
 #include "core/cartwall/CartWallTableModel.h"
+#include "core/playlist/PlaylistManager.h"
 #include "ui/widgets/cartwall/CartWallItemDelegate.h"
 #include "ui/widgets/cartwall/CartWallView.h"
 #include "ui/widgets/playlist/PlaylistItemDelegate.h"

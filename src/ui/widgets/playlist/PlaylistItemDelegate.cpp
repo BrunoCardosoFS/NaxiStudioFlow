@@ -307,6 +307,7 @@ void PlaylistItemDelegate::paintStartMarker(QPainter *p,
 
   p->setPen(kColListBg);
   p->drawLine(r.left(), r.top(), r.right(), r.top());
+  p->drawLine(r.left(), r.top() + 1, r.right(), r.top() + 1);
 
   if (bType == BlockType::Commercial) {
     const int lineX = r.left() + 7;
