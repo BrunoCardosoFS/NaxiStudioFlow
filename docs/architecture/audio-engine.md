@@ -30,7 +30,7 @@ $$\text{Posição de Disparo em } i = \text{mixEnd}_i - (\text{mixStart}_{i+1} -
 
 ## 🔄 Rodízio de Players na Playlist (`PlaylistManager`)
 
-Como a próxima faixa antecipa sua entrada para alinhar seu `mixStart` ao `mixEnd` da atual (enquanto a atual ainda cumprirá seu `fadeOut` até `endPoint`), e frequentemente existem vinhetas curtas entre duas músicas, ocorrem momentos em que **três faixas se sobrepõem simultaneamente**.
+Como a próxima faixa antecipa sua entrada para alinhar seu `mixStart` ao `mixEnd` da atual (enquanto a atual ainda cumprirá seu `fadeOut` até `endPoint`), e frequentemente existem vinhetas curtas entre duas músicas — ou casos em que o intervalo $(\text{mixStart}_{i+2} - \text{startPoint}_{i+2})$ da Música 2 exige que ela comece antes que a vinheta intermediária e a cauda da Música 1 terminem — ocorrem momentos em que **três faixas se sobrepõem simultaneamente**. Apenas 2 players não seriam suficientes sem cortar o final da faixa anterior.
 
 Por esse motivo, o [`PlaylistManager`](../../src/core/playlist/PlaylistManager.h) mantém um pool de **3 instâncias de `PlayerManager`** (`player0`, `player1`, `player2`) operando em rodízio circular (*round-robin*):
 
@@ -75,11 +75,11 @@ Volume
 
 ### Fórmula da Curva *Equal-Power*
 
-Fades lineares comuns causam uma queda perceptível de energia sonora no centro de um *crossfade*. Para evitar isso, o `PlayerManager` aplica uma curva sinusoidal de potência constante (*equal-power*):
+Fades lineares comuns ($v_{\text{out}}(t) = 1 - t$ e $v_{\text{in}}(t) = t$) fazem a soma da potência acústica no meio da transição ($t = 0.5$) cair para $0.5^2 + 0.5^2 = 0.5$ ($-3\text{ dB}$), gerando um "buraco" perceptível de energia sonora no centro de um *crossfade*. Para evitar isso, o `PlayerManager` aplica uma curva sinusoidal de potência constante (*equal-power*):
 
 $$\text{fator}(t) = \sin\left(t \cdot \frac{\pi}{2}\right), \quad t \in [0, 1]$$
 
-Onde $t$ é o progresso normalizado dentro da janela de *Fade In* ou *Fade Out*.
+Onde $t$ é o progresso normalizado dentro da janela de *Fade In* ou *Fade Out*. Como $\sin^2(\theta) + \cos^2(\theta) = 1$, a potência acústica combinada durante um *crossfade* mantém-se constante em $100\%$ ($0\text{ dB}$).
 
 ### Otimizações Críticas de Performance em `volumeControl()`
 

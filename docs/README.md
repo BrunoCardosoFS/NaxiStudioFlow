@@ -16,6 +16,7 @@ Bem-vindo à documentação técnica do **NaxStudio Flow**. Abaixo está o sumá
   - [Visão Geral da Arquitetura](architecture/overview.md)
     - [Diagrama de Camadas](architecture/overview.md#-diagrama-de-camadas)
     - [Responsabilidades de Cada Diretório em `src/`](architecture/overview.md#-responsabilidades-de-cada-diretório-em-src)
+    - [Arquitetura Model/View/Delegate na Interface](architecture/overview.md#-arquitetura-modelviewdelegate-na-interface)
     - [Estrutura de Instalação e Diretório `data/`](architecture/overview.md#-estrutura-de-instalação-e-diretório-data)
   - [Sincronização com NaxServer e Armazenamento Local](architecture/server-sync-and-storage.md)
     - [Dinâmica Servidor vs. Operação Local (`data/`)](architecture/server-sync-and-storage.md#-dinâmica-servidor-vs-operação-local-data)
@@ -71,8 +72,3 @@ Bem-vindo à documentação técnica do **NaxStudio Flow**. Abaixo está o sumá
     - [Paleta de Cores Oficial](conventions/ui-and-i18n.md#-paleta-de-cores-oficial)
     - [Tipografia e Formatação de Tempo](conventions/ui-and-i18n.md#-tipografia-e-formatação-de-tempo)
     - [Internacionalização (i18n)](conventions/ui-and-i18n.md#-internacionalização-i18n)
-- **Decisões de Arquitetura (ADRs)**
-  - [ADR 001: Migração para Arquitetura Model/View/Delegate do Qt](decisions/001-qt-model-view-delegate.md)
-  - [ADR 002: Curva de Fade Equal-Power, Sincronismo de Mixagem e Pool de 3 Players](decisions/002-equal-power-fade-and-player-pool.md)
-  - [ADR 003: Arquitetura Offline-First, Merge Local de Blocos e Sidecar JSON](decisions/003-offline-first-and-sidecar-metadata.md)
-  - [ADR 004: Scanner de Catálogo Lock-Free em Thread Dedicada](decisions/004-lock-free-catalog-scanner.md)

@@ -90,6 +90,7 @@ Os pontos de mixagem e automação de volume (`startPoint`, `endPoint`, `mixStar
   - Arquivo de áudio: `musica.mp3`
   - Arquivo de metadados irmão: `musica.mp3.json`
 - Quando o operador escolhe **"Salvar globalmente"** no `MixEditor`, o Flow atualiza (ou cria) o arquivo `musica.mp3.json` ao lado do arquivo de áudio, tornando aquela mixagem o padrão para todas as futuras execuções daquela faixa.
+- **Portabilidade**: Ao copiar uma pasta de músicas juntamente com seus arquivos `.mp3.json` para outro computador ou backup, toda a mixagem acompanha os arquivos sem depender de banco de dados externo, funcionando tanto conectado quanto em modo 100% offline.
 
 ---
 

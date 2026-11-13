@@ -64,6 +64,14 @@ sequenceDiagram
     Scanner-->>UI: finish(result, path, false)
 ```
 
+### Mecanismo de Cancelamento Lock-Free e Proteção contra *Race Conditions*
+
+Quando o operador alterna rapidamente entre pastas (ex.: clica na Pasta A e, 50 ms depois, na Pasta B) ou digita rápido na busca global, a varredura anterior precisa ser abortada imediatamente sem bloquear a GUI e sem risco de resultados atrasados da Pasta A sobrescreverem a Pasta B na tela:
+
+1. **ID de Requisição Monotônico (`m_currentRequestId`)**: A cada chamada de `scanLocal()` ou `scanGlobal()`, o `CatalogScanner` cancela a requisição anterior e incrementa atomicamente `m_currentRequestId`.
+2. **Cancelamento Imediato Lock-Free (`m_cancelledRequestId`)**: O sinal `requestCancel(current)` é conectado ao slot `CatalogScannerWorker::cancel()` via `Qt::DirectConnection`, gravando o ID cancelado em um `QAtomicInt` com semântica `storeRelease()` instantaneamente, sem `QMutex` ou bloqueios de thread. A cada arquivo iterado no `QDirIterator`, o worker verifica `m_cancelledRequestId.loadAcquire() >= requestId` e retorna imediatamente se a busca tiver sido substituída.
+3. **Descarte Seguro na Recepção (`onScanFinished`)**: Quando `scanFinished` retorna à thread principal via `Qt::QueuedConnection`, `onScanFinished` compara `requestId == m_currentRequestId.loadAcquire()`, descartando qualquer resultado obsoleto.
+
 ### Modos de Busca
 1. **Busca Local (`scanLocal`)**:
    - Escaneia apenas a pasta atualmente selecionada (`m_openFolder`), filtrando pelo texto digitado em `SearchLine` (ou listando tudo se a busca estiver vazia) e ordenando alfabeticamente (`Qt::CaseInsensitive`).
