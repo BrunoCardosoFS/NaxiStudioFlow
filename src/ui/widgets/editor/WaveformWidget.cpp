@@ -1,5 +1,6 @@
 #include "ui/widgets/editor/WaveformWidget.h"
 
+#include <QLine>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -71,8 +72,8 @@ QString formatRulerTime(qint64 ms, qint64 stepMs) {
 } // namespace
 
 WaveformWidget::WaveformWidget(QWidget *parent)
-    : QWidget(parent), m_envelopePen(kColEnvelope, 2.0),
-      m_playheadPen(kColPlayhead, 1.5) {
+    : QWidget(parent), m_rulerFm(font()), m_pillFm(font()),
+      m_envelopePen(kColEnvelope, 2.0), m_playheadPen(kColPlayhead, 1.5) {
   setMinimumHeight(210);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   setMouseTracking(true);
@@ -81,10 +82,12 @@ WaveformWidget::WaveformWidget(QWidget *parent)
   m_rulerFont = font();
   m_rulerFont.setPointSize(8);
   m_rulerFont.setFeature("tnum", 1);
+  m_rulerFm = QFontMetrics(m_rulerFont);
 
   m_pillFont = font();
   m_pillFont.setPointSize(7);
   m_pillFont.setBold(true);
+  m_pillFm = QFontMetrics(m_pillFont);
 
   m_statusFont = font();
   m_statusFont.setPointSize(10);
@@ -101,18 +104,45 @@ void WaveformWidget::setWaveformData(const QVector<WaveformSample> &samples,
     m_durationMs = static_cast<qint64>(m_samples.size()) * m_bucketDurationMs;
   }
   m_statusMessage.clear();
+  m_staticCacheDirty = true;
+  m_envelopeDirty = true;
   updateZoomAndOffset(m_zoomFactor, m_scrollOffsetMs);
   update();
+}
+
+void WaveformWidget::appendWaveformSamples(const QVector<WaveformSample> &delta,
+                                           qint64 durationMs,
+                                           qint64 bucketDurationMs) {
+  m_bucketDurationMs = qMax<qint64>(1, bucketDurationMs);
+  if (!delta.isEmpty()) {
+    m_samples.append(delta);
+  }
+  const qint64 prevDur = m_durationMs;
+  if (durationMs > 0) {
+    m_durationMs = durationMs;
+  } else if (m_durationMs <= 0 && !m_samples.isEmpty()) {
+    m_durationMs = static_cast<qint64>(m_samples.size()) * m_bucketDurationMs;
+  }
+  m_statusMessage.clear();
+  m_staticCacheDirty = true;
+  if (m_durationMs != prevDur) {
+    m_envelopeDirty = true;
+    updateZoomAndOffset(m_zoomFactor, m_scrollOffsetMs);
+  } else {
+    update();
+  }
 }
 
 void WaveformWidget::clearWaveform(const QString &statusMessage) {
   m_samples.clear();
   m_statusMessage = statusMessage;
+  m_staticCacheDirty = true;
   update();
 }
 
 void WaveformWidget::setStatusMessage(const QString &message) {
   m_statusMessage = message;
+  m_staticCacheDirty = true;
   update();
 }
 
@@ -124,6 +154,8 @@ void WaveformWidget::setDurationMs(qint64 durationMs) {
     return;
   }
   m_durationMs = durationMs;
+  m_staticCacheDirty = true;
+  m_envelopeDirty = true;
   updateZoomAndOffset(m_zoomFactor, m_scrollOffsetMs);
   update();
 }
@@ -132,19 +164,27 @@ void WaveformWidget::setMetadata(const PlayerMetadata &metadata) {
   m_metadata = metadata;
   if (m_metadata.duration > 0 && m_durationMs <= 0) {
     m_durationMs = m_metadata.duration;
+    m_staticCacheDirty = true;
   }
+  m_envelopeDirty = true;
   update();
 }
 
 void WaveformWidget::setPlayheadMs(qint64 positionMs) {
   const qint64 dur = totalDurationMs();
-  const qint64 clamped =
-      (dur > 0) ? qBound<qint64>(0, positionMs, dur) : qMax<qint64>(0, positionMs);
+  const qint64 clamped = (dur > 0) ? qBound<qint64>(0, positionMs, dur)
+                                   : qMax<qint64>(0, positionMs);
   if (m_playheadMs == clamped) {
     return;
   }
+  const int oldX = xForTime(m_playheadMs);
   m_playheadMs = clamped;
-  update();
+  const int newX = xForTime(m_playheadMs);
+  if (oldX != newX) {
+    const QRect oldRect(oldX - 8, 0, 17, height());
+    const QRect newRect(newX - 8, 0, 17, height());
+    update(oldRect.united(newRect));
+  }
 }
 
 qint64 WaveformWidget::totalDurationMs() const {
@@ -165,9 +205,8 @@ qint64 WaveformWidget::visibleDurationMs() const {
   if (total <= 0) {
     return 0;
   }
-  return qMax<qint64>(
-      100, static_cast<qint64>(std::llround(static_cast<double>(total) /
-                                            m_zoomFactor)));
+  return qMax<qint64>(100, static_cast<qint64>(std::llround(
+                               static_cast<double>(total) / m_zoomFactor)));
 }
 
 void WaveformWidget::setZoomFactor(double factor) {
@@ -184,8 +223,8 @@ void WaveformWidget::setZoomFactor(double factor) {
   const qint64 oldVis = visibleDurationMs();
   const qint64 centerMs = m_scrollOffsetMs + oldVis / 2;
   const qint64 newVis = qMax<qint64>(
-      100, static_cast<qint64>(std::llround(static_cast<double>(total) /
-                                            clamped)));
+      100,
+      static_cast<qint64>(std::llround(static_cast<double>(total) / clamped)));
   const qint64 newOffset = centerMs - newVis / 2;
   updateZoomAndOffset(clamped, newOffset);
 }
@@ -207,6 +246,8 @@ void WaveformWidget::updateZoomAndOffset(double newFactor, qint64 newOffsetMs) {
   const qint64 maxOff = qMax<qint64>(0, total - vis);
   m_scrollOffsetMs = (total > 0) ? qBound<qint64>(0, newOffsetMs, maxOff) : 0;
 
+  m_staticCacheDirty = true;
+  m_envelopeDirty = true;
   emit zoomChanged(m_zoomFactor, m_scrollOffsetMs, vis, total);
   update();
 }
@@ -231,7 +272,8 @@ int WaveformWidget::xForTime(qint64 ms) const {
   }
   const double ratio =
       static_cast<double>(ms - m_scrollOffsetMs) / static_cast<double>(vis);
-  return static_cast<int>(std::llround(ratio * static_cast<double>(width() - 1)));
+  return static_cast<int>(
+      std::llround(ratio * static_cast<double>(width() - 1)));
 }
 
 qint64 WaveformWidget::timeForX(int x) const {
@@ -242,16 +284,17 @@ qint64 WaveformWidget::timeForX(int x) const {
   }
   const double ratio =
       static_cast<double>(x) / static_cast<double>(width() - 1);
-  const qint64 raw = m_scrollOffsetMs +
-                     static_cast<qint64>(std::llround(ratio * static_cast<double>(vis)));
+  const qint64 raw =
+      m_scrollOffsetMs +
+      static_cast<qint64>(std::llround(ratio * static_cast<double>(vis)));
   return qBound<qint64>(0, raw, total);
 }
 
 int WaveformWidget::yForVolume(float vol) const {
   const QRect er = envelopeRect();
   const float clamped = std::clamp(vol, 0.0f, 1.0f);
-  return er.bottom() -
-         static_cast<int>(std::llround(clamped * static_cast<float>(er.height())));
+  return er.bottom() - static_cast<int>(std::llround(
+                           clamped * static_cast<float>(er.height())));
 }
 
 float WaveformWidget::volumeForY(int y) const {
@@ -278,10 +321,24 @@ bool WaveformWidget::hasOutroEnvelope() const {
           m_metadata.volumeDownEndPoint < m_metadata.fadeOutStartPoint);
 }
 
-void WaveformWidget::paintEvent(QPaintEvent *event) {
-  Q_UNUSED(event);
+void WaveformWidget::resizeEvent(QResizeEvent *event) {
+  m_staticCacheDirty = true;
+  m_envelopeDirty = true;
+  QWidget::resizeEvent(event);
+}
 
-  QPainter p(this);
+void WaveformWidget::rebuildStaticCache() const {
+  const qreal dpr = devicePixelRatioF();
+  const int pw = qMax(1, static_cast<int>(std::ceil(width() * dpr)));
+  const int ph = qMax(1, static_cast<int>(std::ceil(height() * dpr)));
+
+  if (m_staticCache.size() != QSize(pw, ph) ||
+      !qFuzzyCompare(m_staticCache.devicePixelRatio(), dpr)) {
+    m_staticCache = QPixmap(pw, ph);
+    m_staticCache.setDevicePixelRatio(dpr);
+  }
+
+  QPainter p(&m_staticCache);
   const QRect rRect = rulerRect();
   const QRect wRect = waveRect();
 
@@ -293,6 +350,79 @@ void WaveformWidget::paintEvent(QPaintEvent *event) {
 
   drawRuler(&p, rRect);
   drawWaveformBars(&p, wRect);
+
+  m_staticCacheDirty = false;
+}
+
+void WaveformWidget::rebuildEnvelopeCache() const {
+  m_envelopeCurvePath = QPainterPath();
+  m_envelopeFillPath = QPainterPath();
+  m_envelopeDirty = false;
+
+  const qint64 total = totalDurationMs();
+  if (total <= 0 || width() <= 1) {
+    return;
+  }
+
+  const qint64 effectiveEnd =
+      (m_metadata.endPoint > 0) ? m_metadata.endPoint : total;
+  const int startPx = qBound(0, xForTime(m_metadata.startPoint), width() - 1);
+  const int endPx = qBound(startPx, xForTime(effectiveEnd), width() - 1);
+  if (endPx <= startPx) {
+    return;
+  }
+
+  PlayerMetadata evalMeta = m_metadata;
+  if (evalMeta.endPoint <= 0) {
+    evalMeta.endPoint = effectiveEnd;
+  }
+
+  constexpr int step = 2;
+  bool started = false;
+  for (int px = startPx; px <= endPx; px += step) {
+    const qint64 t =
+        (px == endPx) ? qMax<qint64>(0, effectiveEnd - 1) : timeForX(px);
+    const float factor = PlayerManager::computeVolumeFactor(
+        evalMeta, qBound(evalMeta.startPoint, t, evalMeta.endPoint - 1));
+    const int y = yForVolume(factor);
+    if (!started) {
+      m_envelopeCurvePath.moveTo(px, y);
+      started = true;
+    } else {
+      m_envelopeCurvePath.lineTo(px, y);
+    }
+  }
+  if ((endPx - startPx) % step != 0) {
+    const float factor = PlayerManager::computeVolumeFactor(
+        evalMeta, qMax(evalMeta.startPoint, evalMeta.endPoint - 1));
+    m_envelopeCurvePath.lineTo(endPx, yForVolume(factor));
+  }
+
+  m_envelopeFillPath = m_envelopeCurvePath;
+  const int baselineY = envelopeRect().bottom();
+  m_envelopeFillPath.lineTo(endPx, baselineY);
+  m_envelopeFillPath.lineTo(startPx, baselineY);
+  m_envelopeFillPath.closeSubpath();
+}
+
+void WaveformWidget::paintEvent(QPaintEvent *event) {
+  Q_UNUSED(event);
+
+  const qreal dpr = devicePixelRatioF();
+  const int expectedW = qMax(1, static_cast<int>(std::ceil(width() * dpr)));
+  const int expectedH = qMax(1, static_cast<int>(std::ceil(height() * dpr)));
+  if (m_staticCacheDirty ||
+      m_staticCache.size() != QSize(expectedW, expectedH) ||
+      !qFuzzyCompare(m_staticCache.devicePixelRatio(), dpr)) {
+    rebuildStaticCache();
+  }
+
+  QPainter p(this);
+  p.drawPixmap(0, 0, m_staticCache);
+
+  const QRect rRect = rulerRect();
+  const QRect wRect = waveRect();
+
   drawTrimShading(&p, wRect);
   drawVolumeEnvelope(&p, wRect);
   drawMarkers(&p, wRect);
@@ -310,11 +440,12 @@ void WaveformWidget::drawRuler(QPainter *p, const QRect &rect) const {
     return;
   }
 
-  static constexpr qint64 kSteps[] = {
-      100,   250,   500,    1000,   2000,   5000,   10000,
-      15000, 30000, 60000, 120000, 300000, 600000, 1200000};
+  static constexpr qint64 kSteps[] = {100,    250,    500,    1000,   2000,
+                                      5000,   10000,  15000,  30000,  60000,
+                                      120000, 300000, 600000, 1200000};
   qint64 stepMs = 600000;
-  const double pxPerMs = static_cast<double>(width()) / static_cast<double>(vis);
+  const double pxPerMs =
+      static_cast<double>(width()) / static_cast<double>(vis);
   for (qint64 candidate : kSteps) {
     if (static_cast<double>(candidate) * pxPerMs >= 75.0) {
       stepMs = candidate;
@@ -327,7 +458,6 @@ void WaveformWidget::drawRuler(QPainter *p, const QRect &rect) const {
   const qint64 total = totalDurationMs();
 
   p->setFont(m_rulerFont);
-  const QFontMetrics fm(m_rulerFont);
 
   for (qint64 t = startTick; t <= endTick && t <= total; t += stepMs) {
     const int x = xForTime(t);
@@ -338,7 +468,7 @@ void WaveformWidget::drawRuler(QPainter *p, const QRect &rect) const {
     p->drawLine(x, rect.bottom() - 6, x, rect.bottom());
 
     const QString label = formatRulerTime(t, stepMs);
-    const int textW = fm.horizontalAdvance(label);
+    const int textW = m_rulerFm.horizontalAdvance(label);
     const int labelX = qBound(4, x + 4, qMax(4, width() - textW - 4));
     p->setPen(kColTextMuted);
     p->drawText(QRect(labelX, rect.top(), textW + 4, rect.height() - 4),
@@ -364,36 +494,52 @@ void WaveformWidget::drawWaveformBars(QPainter *p, const QRect &rect) const {
     const int w = inner.width();
     const qint64 bucketMs = m_bucketDurationMs;
     const int numSamples = m_samples.size();
+    const double msPerPx = static_cast<double>(vis) / static_cast<double>(w);
+
+    QVector<QLine> peakLines;
+    QVector<QLine> rmsLines;
+    peakLines.reserve(w);
+    rmsLines.reserve(w);
 
     for (int px = 0; px < w; ++px) {
       const qint64 t0 = m_scrollOffsetMs +
-                        static_cast<qint64>((static_cast<double>(px) / w) *
-                                            static_cast<double>(vis));
-      const qint64 t1 = m_scrollOffsetMs +
-                        static_cast<qint64>((static_cast<double>(px + 1) / w) *
-                                            static_cast<double>(vis));
+                        static_cast<qint64>(static_cast<double>(px) * msPerPx);
+      const qint64 t1 =
+          m_scrollOffsetMs +
+          static_cast<qint64>(static_cast<double>(px + 1) * msPerPx);
 
-      const int i0 =
-          qBound(0, static_cast<int>(t0 / bucketMs), numSamples - 1);
-      const int i1 = qBound(i0, static_cast<int>(t1 / bucketMs), numSamples - 1);
+      const int i0 = qBound(0, static_cast<int>(t0 / bucketMs), numSamples - 1);
+      const int i1 =
+          qBound(i0, static_cast<int>(t1 / bucketMs), numSamples - 1);
 
       float maxPeak = 0.0f;
       float maxRms = 0.0f;
       for (int i = i0; i <= i1; ++i) {
-        maxPeak = std::max(maxPeak, m_samples.at(i).peak);
-        maxRms = std::max(maxRms, m_samples.at(i).rms);
+        const WaveformSample &s = m_samples.at(i);
+        if (s.peak > maxPeak) {
+          maxPeak = s.peak;
+        }
+        if (s.rms > maxRms) {
+          maxRms = s.rms;
+        }
       }
 
       const int x = inner.left() + px;
-      const int peakH = qMax(1, static_cast<int>(std::llround(maxPeak * halfH)));
-      p->setPen(kColWavePeak);
-      p->drawLine(x, midY - peakH, x, midY + peakH);
+      const int peakH =
+          qMax(1, static_cast<int>(std::llround(maxPeak * halfH)));
+      peakLines.append(QLine(x, midY - peakH, x, midY + peakH));
 
       const int rmsH = static_cast<int>(std::llround(maxRms * halfH));
       if (rmsH > 0) {
-        p->setPen(kColWaveRms);
-        p->drawLine(x, midY - rmsH, x, midY + rmsH);
+        rmsLines.append(QLine(x, midY - rmsH, x, midY + rmsH));
       }
+    }
+
+    p->setPen(kColWavePeak);
+    p->drawLines(peakLines);
+    if (!rmsLines.isEmpty()) {
+      p->setPen(kColWaveRms);
+      p->drawLines(rmsLines);
     }
   }
 
@@ -435,58 +581,18 @@ void WaveformWidget::drawTrimShading(QPainter *p, const QRect &rect) const {
 
 void WaveformWidget::drawVolumeEnvelope(QPainter *p, const QRect &rect) const {
   Q_UNUSED(rect);
-  const qint64 total = totalDurationMs();
-  if (total <= 0 || width() <= 1) {
+  if (m_envelopeDirty) {
+    rebuildEnvelopeCache();
+  }
+  if (m_envelopeCurvePath.isEmpty()) {
     return;
-  }
-
-  const qint64 effectiveEnd =
-      (m_metadata.endPoint > 0) ? m_metadata.endPoint : total;
-  const int startPx = qBound(0, xForTime(m_metadata.startPoint), width() - 1);
-  const int endPx = qBound(startPx, xForTime(effectiveEnd), width() - 1);
-  if (endPx <= startPx) {
-    return;
-  }
-
-  PlayerMetadata evalMeta = m_metadata;
-  if (evalMeta.endPoint <= 0) {
-    evalMeta.endPoint = effectiveEnd;
-  }
-
-  QPainterPath curvePath;
-  const int step = 2;
-  bool started = false;
-  for (int px = startPx; px <= endPx; px += step) {
-    const qint64 t = (px == endPx) ? qMax<qint64>(0, effectiveEnd - 1)
-                                   : timeForX(px);
-    const float factor = PlayerManager::computeVolumeFactor(
-        evalMeta, qBound(evalMeta.startPoint, t, evalMeta.endPoint - 1));
-    const int y = yForVolume(factor);
-    if (!started) {
-      curvePath.moveTo(px, y);
-      started = true;
-    } else {
-      curvePath.lineTo(px, y);
-    }
-  }
-  if ((endPx - startPx) % step != 0) {
-    const float factor = PlayerManager::computeVolumeFactor(
-        evalMeta, qMax(evalMeta.startPoint, evalMeta.endPoint - 1));
-    curvePath.lineTo(endPx, yForVolume(factor));
   }
 
   p->save();
   p->setRenderHint(QPainter::Antialiasing, true);
-
-  QPainterPath fillPath = curvePath;
-  const int baselineY = envelopeRect().bottom();
-  fillPath.lineTo(endPx, baselineY);
-  fillPath.lineTo(startPx, baselineY);
-  fillPath.closeSubpath();
-  p->fillPath(fillPath, kColEnvelopeFill);
-
+  p->fillPath(m_envelopeFillPath, kColEnvelopeFill);
   p->setPen(m_envelopePen);
-  p->drawPath(curvePath);
+  p->drawPath(m_envelopeCurvePath);
   p->restore();
 }
 
@@ -503,9 +609,9 @@ void WaveformWidget::drawMarkers(QPainter *p, const QRect &rect) {
       (m_metadata.endPoint > 0) ? m_metadata.endPoint : total;
   const qint64 effectiveMixEnd =
       (m_metadata.mixEnd > 0) ? m_metadata.mixEnd : effectiveEnd;
-  const qint64 effectiveFadeOut =
-      (m_metadata.fadeOutStartPoint > 0) ? m_metadata.fadeOutStartPoint
-                                         : effectiveEnd;
+  const qint64 effectiveFadeOut = (m_metadata.fadeOutStartPoint > 0)
+                                      ? m_metadata.fadeOutStartPoint
+                                      : effectiveEnd;
 
   struct MarkerSpec {
     MarkerId id;
@@ -532,7 +638,6 @@ void WaveformWidget::drawMarkers(QPainter *p, const QRect &rect) {
 
   p->save();
   p->setFont(m_pillFont);
-  const QFontMetrics fm(m_pillFont);
 
   for (const auto &m : lines) {
     const int x = xForTime(m.timeMs);
@@ -549,12 +654,13 @@ void WaveformWidget::drawMarkers(QPainter *p, const QRect &rect) {
     p->setPen(linePen);
     p->drawLine(x, rect.top(), x, rect.bottom());
 
-    const int textW = fm.horizontalAdvance(m.label);
+    const int textW = m_pillFm.horizontalAdvance(m.label);
     const int pillW = textW + 10;
     const int pillH = 15;
     int pillX = x - pillW / 2;
     pillX = qBound(2, pillX, qMax(2, width() - pillW - 2));
-    const int pillY = m.topPill ? (rect.top() + 3) : (rect.bottom() - pillH - 3);
+    const int pillY =
+        m.topPill ? (rect.top() + 3) : (rect.bottom() - pillH - 3);
     const QRect pillRect(pillX, pillY, pillW, pillH);
 
     p->setRenderHint(QPainter::Antialiasing, true);
@@ -570,8 +676,10 @@ void WaveformWidget::drawMarkers(QPainter *p, const QRect &rect) {
   // Draggable volume envelope handles
   const bool introEnv = hasIntroEnvelope();
   const bool outroEnv = hasOutroEnvelope();
-  const float introLvl = introEnv ? std::clamp(m_metadata.startVolume, 0.0f, 1.0f) : 1.0f;
-  const float outroLvl = outroEnv ? std::clamp(m_metadata.endVolume, 0.0f, 1.0f) : 1.0f;
+  const float introLvl =
+      introEnv ? std::clamp(m_metadata.startVolume, 0.0f, 1.0f) : 1.0f;
+  const float outroLvl =
+      outroEnv ? std::clamp(m_metadata.endVolume, 0.0f, 1.0f) : 1.0f;
 
   auto registerHandle = [&](MarkerId id, qint64 ms, float vol,
                             const QColor &fill) {
@@ -636,7 +744,8 @@ void WaveformWidget::drawPlayhead(QPainter *p, const QRect &rRect,
   p->restore();
 }
 
-WaveformWidget::MarkerId WaveformWidget::hitTestMarker(const QPoint &pos) const {
+WaveformWidget::MarkerId
+WaveformWidget::hitTestMarker(const QPoint &pos) const {
   if (totalDurationMs() <= 0) {
     return MarkerId::None;
   }
@@ -665,9 +774,9 @@ WaveformWidget::MarkerId WaveformWidget::hitTestMarker(const QPoint &pos) const 
       (m_metadata.endPoint > 0) ? m_metadata.endPoint : totalDurationMs();
   const qint64 effectiveMixEnd =
       (m_metadata.mixEnd > 0) ? m_metadata.mixEnd : effectiveEnd;
-  const qint64 effectiveFadeOut =
-      (m_metadata.fadeOutStartPoint > 0) ? m_metadata.fadeOutStartPoint
-                                         : effectiveEnd;
+  const qint64 effectiveFadeOut = (m_metadata.fadeOutStartPoint > 0)
+                                      ? m_metadata.fadeOutStartPoint
+                                      : effectiveEnd;
 
   const QVector<QPair<MarkerId, qint64>> candidates = {
       {MarkerId::StartPoint, m_metadata.startPoint},
@@ -749,9 +858,9 @@ void WaveformWidget::mouseMoveEvent(QMouseEvent *event) {
     const float vol = volumeForY(event->pos().y());
     applyMarkerEdit(m_activeDragMarker, t, vol);
 
-    const QString tip = QStringLiteral("%1: %2")
-                            .arg(markerDisplayName(m_activeDragMarker),
-                                 msec2string(markerTime(m_activeDragMarker)));
+    const QString tip = QStringLiteral("%1: %2").arg(
+        markerDisplayName(m_activeDragMarker),
+        msec2string(markerTime(m_activeDragMarker)));
     QToolTip::showText(event->globalPosition().toPoint(), tip, this);
     event->accept();
     return;
@@ -769,9 +878,8 @@ void WaveformWidget::mouseMoveEvent(QMouseEvent *event) {
          (hover == MarkerId::FadeInEnd && hasIntroEnvelope()) ||
          (hover == MarkerId::FadeOutStart && hasOutroEnvelope()));
     setCursor(verticalCapable ? Qt::SizeAllCursor : Qt::SizeHorCursor);
-    const QString tip = QStringLiteral("%1: %2")
-                            .arg(markerDisplayName(hover),
-                                 msec2string(markerTime(hover)));
+    const QString tip = QStringLiteral("%1: %2").arg(
+        markerDisplayName(hover), msec2string(markerTime(hover)));
     setToolTip(tip);
   } else {
     setCursor(Qt::ArrowCursor);
@@ -836,20 +944,20 @@ void WaveformWidget::wheelEvent(QWheelEvent *event) {
 
   const int mouseX = static_cast<int>(event->position().x());
   const qint64 anchorTime = timeForX(mouseX);
-  const double ratioX =
-      (width() > 1)
-          ? std::clamp(static_cast<double>(mouseX) /
-                           static_cast<double>(width() - 1),
-                       0.0, 1.0)
-          : 0.5;
+  const double ratioX = (width() > 1)
+                            ? std::clamp(static_cast<double>(mouseX) /
+                                             static_cast<double>(width() - 1),
+                                         0.0, 1.0)
+                            : 0.5;
 
   const double factor = (deltaY > 0) ? 1.25 : (1.0 / 1.25);
   const double newZoom = std::clamp(m_zoomFactor * factor, kMinZoom, kMaxZoom);
   const qint64 newVis = qMax<qint64>(
-      100, static_cast<qint64>(std::llround(static_cast<double>(total) /
-                                            newZoom)));
+      100,
+      static_cast<qint64>(std::llround(static_cast<double>(total) / newZoom)));
   const qint64 newOffset =
-      anchorTime - static_cast<qint64>(std::llround(ratioX * static_cast<double>(newVis)));
+      anchorTime -
+      static_cast<qint64>(std::llround(ratioX * static_cast<double>(newVis)));
   updateZoomAndOffset(newZoom, newOffset);
   event->accept();
 }
@@ -911,7 +1019,8 @@ void WaveformWidget::applyMarkerEdit(MarkerId marker, qint64 newTimeMs,
     m.mixStart = qBound<qint64>(m.startPoint, t, m.endPoint);
     break;
   case MarkerId::FadeInEnd: {
-    const qint64 maxFi = outroEnv ? m.volumeDownStartPoint : m.fadeOutStartPoint;
+    const qint64 maxFi =
+        outroEnv ? m.volumeDownStartPoint : m.fadeOutStartPoint;
     m.fadeInEndPoint = qBound<qint64>(m.startPoint, t, qMin(maxFi, m.endPoint));
     if (introEnv) {
       m.volumeUpStartPoint = qMax(m.volumeUpStartPoint, m.fadeInEndPoint);
@@ -922,23 +1031,23 @@ void WaveformWidget::applyMarkerEdit(MarkerId marker, qint64 newTimeMs,
     break;
   }
   case MarkerId::VolUpStart: {
-    const qint64 maxUp =
-        (m.volumeUpEndPoint >= m.fadeInEndPoint) ? m.volumeUpEndPoint
-                                                 : m.fadeInEndPoint;
+    const qint64 maxUp = (m.volumeUpEndPoint >= m.fadeInEndPoint)
+                             ? m.volumeUpEndPoint
+                             : m.fadeInEndPoint;
     m.volumeUpStartPoint = qBound<qint64>(m.fadeInEndPoint, t, maxUp);
     m.startVolume = std::clamp(newVol, 0.0f, 1.0f);
     break;
   }
   case MarkerId::VolUpEnd: {
-    const qint64 maxUp = outroEnv ? m.volumeDownStartPoint : m.fadeOutStartPoint;
+    const qint64 maxUp =
+        outroEnv ? m.volumeDownStartPoint : m.fadeOutStartPoint;
     m.volumeUpEndPoint =
         qBound<qint64>(m.volumeUpStartPoint, t, qMin(maxUp, m.endPoint));
     break;
   }
   case MarkerId::VolDownStart: {
     const qint64 minDown = introEnv ? m.volumeUpEndPoint : m.fadeInEndPoint;
-    m.volumeDownStartPoint =
-        qBound<qint64>(minDown, t, m.volumeDownEndPoint);
+    m.volumeDownStartPoint = qBound<qint64>(minDown, t, m.volumeDownEndPoint);
     break;
   }
   case MarkerId::VolDownEnd: {
@@ -971,10 +1080,10 @@ void WaveformWidget::applyMarkerEdit(MarkerId marker, qint64 newTimeMs,
     m.fadeOutStartPoint =
         qBound<qint64>(m.fadeInEndPoint, m.fadeOutStartPoint, m.endPoint);
     if (introEnv) {
-      m.volumeUpEndPoint =
-          qBound<qint64>(m.fadeInEndPoint, m.volumeUpEndPoint, m.fadeOutStartPoint);
-      m.volumeUpStartPoint =
-          qBound<qint64>(m.fadeInEndPoint, m.volumeUpStartPoint, m.volumeUpEndPoint);
+      m.volumeUpEndPoint = qBound<qint64>(m.fadeInEndPoint, m.volumeUpEndPoint,
+                                          m.fadeOutStartPoint);
+      m.volumeUpStartPoint = qBound<qint64>(
+          m.fadeInEndPoint, m.volumeUpStartPoint, m.volumeUpEndPoint);
     }
     if (outroEnv) {
       const qint64 minDown = introEnv ? m.volumeUpEndPoint : m.fadeInEndPoint;
@@ -990,6 +1099,7 @@ void WaveformWidget::applyMarkerEdit(MarkerId marker, qint64 newTimeMs,
   }
 
   m_metadata = m;
+  m_envelopeDirty = true;
   update();
   emit metadataChanged(m_metadata);
 }

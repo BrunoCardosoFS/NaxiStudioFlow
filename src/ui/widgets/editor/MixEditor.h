@@ -58,14 +58,14 @@ private slots:
   void onPreviewDurationLoaded(qint64 durationMs);
   void onPlayheadTimerTimeout();
 
-  void onWaveformProgress(const QVector<WaveformSample> &samples,
-                          qint64 durationMs);
+  void onWaveformChunk(const QVector<WaveformSample> &delta, qint64 durationMs);
   void onWaveformFinished(const QVector<WaveformSample> &samples,
                           qint64 durationMs);
   void onWaveformError(const QString &errorMessage);
 
 private:
   void initConnections();
+  void updateTimeEditRanges();
   void syncControlsFromMetadata(bool updateWaveform = true);
   void applyDurationUpdate(qint64 durationMs);
   void normalizeMetadataInPlace();
@@ -94,6 +94,7 @@ private:
   bool m_fileExists = false;
   bool m_seekedWhileStopped = false;
   bool m_syncingControls = false;
+  qint64 m_lastDurationForRanges = -1;
 };
 
 #endif // MIXEDITOR_H

@@ -133,8 +133,8 @@ void MixEditor::initConnections() {
   connect(m_playheadTimer, &QTimer::timeout, this,
           &MixEditor::onPlayheadTimerTimeout);
 
-  connect(m_waveformExtractor, &WaveformExtractor::progressUpdated, this,
-          &MixEditor::onWaveformProgress);
+  connect(m_waveformExtractor, &WaveformExtractor::progressChunk, this,
+          &MixEditor::onWaveformChunk);
   connect(m_waveformExtractor, &WaveformExtractor::finished, this,
           &MixEditor::onWaveformFinished);
   connect(m_waveformExtractor, &WaveformExtractor::errorOccurred, this,
@@ -201,6 +201,7 @@ bool MixEditor::loadPlaylistItem(PlaylistListModel *model,
 
   m_playheadMs = m_metadata.startPoint;
   m_seekedWhileStopped = false;
+  m_lastDurationForRanges = -1;
 
   ui->labelFileName->setText(item->title);
   ui->labelFileName->setToolTip(item->path);
@@ -326,6 +327,7 @@ void MixEditor::onStopClicked() {
   }
   m_playheadMs = m_metadata.startPoint;
   m_seekedWhileStopped = false;
+  m_lastDurationForRanges = -1;
   m_waveformWidget->setPlayheadMs(m_playheadMs);
   updatePositionLabel();
 }
@@ -446,17 +448,20 @@ void MixEditor::onPlayheadTimerTimeout() {
     return;
   }
   const qint64 pos = m_previewPlayer->position();
+  if (pos == m_playheadMs) {
+    return;
+  }
   m_playheadMs = pos;
   m_waveformWidget->setPlayheadMs(pos);
   updatePositionLabel();
 }
 
-void MixEditor::onWaveformProgress(const QVector<WaveformSample> &samples,
-                                   qint64 durationMs) {
+void MixEditor::onWaveformChunk(const QVector<WaveformSample> &delta,
+                                qint64 durationMs) {
   const qint64 effectiveDur =
       (durationMs > 0) ? durationMs : m_metadata.duration;
-  m_waveformWidget->setWaveformData(samples, effectiveDur,
-                                    m_waveformExtractor->bucketDurationMs());
+  m_waveformWidget->appendWaveformSamples(
+      delta, effectiveDur, m_waveformExtractor->bucketDurationMs());
 }
 
 void MixEditor::onWaveformFinished(const QVector<WaveformSample> &samples,
@@ -588,21 +593,52 @@ void MixEditor::normalizeMetadataInPlace() {
   }
 }
 
-void MixEditor::syncControlsFromMetadata(bool updateWaveform) {
-  m_syncingControls = true;
-
+void MixEditor::updateTimeEditRanges() {
   const qint64 dur =
       (m_metadata.duration > 0) ? m_metadata.duration : m_metadata.endPoint;
+  if (dur == m_lastDurationForRanges) {
+    return;
+  }
+  m_lastDurationForRanges = dur;
+
   const QString fmt = (dur >= 3600000) ? QStringLiteral("hh:mm:ss:zzz")
                                        : QStringLiteral("mm:ss:zzz");
   const QTime maxTime = (dur > 0) ? msToQTime(dur) : QTime(23, 59, 59, 999);
+  const QTime minTime(0, 0, 0, 0);
 
-  auto setEdit = [&](QTimeEdit *te, qint64 valueMs) {
+  const QTimeEdit *edits[] = {ui->timeStartPoint, ui->timeMixStart,
+                              ui->timeMixEnd,     ui->timeEndPoint,
+                              ui->timeFadeIn,     ui->timeVolUpStart,
+                              ui->timeVolUpEnd,   ui->timeVolDownStart,
+                              ui->timeVolDownEnd, ui->timeFadeOut};
+  for (const QTimeEdit *cTe : edits) {
+    auto *te = const_cast<QTimeEdit *>(cTe);
     const QSignalBlocker blocker(te);
-    te->setDisplayFormat(fmt);
-    te->setMinimumTime(QTime(0, 0, 0, 0));
+    if (te->displayFormat() != fmt) {
+      te->setDisplayFormat(fmt);
+    }
+    te->setMinimumTime(minTime);
     te->setMaximumTime(maxTime);
-    te->setTime(msToQTime(qBound<qint64>(0, valueMs, qTimeToMs(maxTime))));
+  }
+
+  ui->labelDuration->setText(msec2string(dur));
+}
+
+void MixEditor::syncControlsFromMetadata(bool updateWaveform) {
+  m_syncingControls = true;
+
+  updateTimeEditRanges();
+
+  const qint64 dur =
+      (m_metadata.duration > 0) ? m_metadata.duration : m_metadata.endPoint;
+  const qint64 maxMs = (dur > 0) ? dur : 86399999;
+
+  auto setEdit = [maxMs](QTimeEdit *te, qint64 valueMs) {
+    const QTime target = msToQTime(qBound<qint64>(0, valueMs, maxMs));
+    if (te->time() != target) {
+      const QSignalBlocker blocker(te);
+      te->setTime(target);
+    }
   };
 
   setEdit(ui->timeStartPoint, m_metadata.startPoint);
@@ -620,19 +656,18 @@ void MixEditor::syncControlsFromMetadata(bool updateWaveform) {
       static_cast<int>(std::llround(m_metadata.startVolume * 100.0f));
   const int endPct =
       static_cast<int>(std::llround(m_metadata.endVolume * 100.0f));
-  {
+  if (ui->sliderVolStart->value() != startPct) {
     const QSignalBlocker b1(ui->sliderVolStart);
     ui->sliderVolStart->setValue(startPct);
+    ui->textVolStart->setText(QStringLiteral("%1%").arg(startPct));
   }
-  ui->textVolStart->setText(QStringLiteral("%1%").arg(startPct));
 
-  {
+  if (ui->sliderVolEnd->value() != endPct) {
     const QSignalBlocker b2(ui->sliderVolEnd);
     ui->sliderVolEnd->setValue(endPct);
+    ui->textVolEnd->setText(QStringLiteral("%1%").arg(endPct));
   }
-  ui->textVolEnd->setText(QStringLiteral("%1%").arg(endPct));
 
-  ui->labelDuration->setText(msec2string(dur));
   updatePositionLabel();
 
   if (updateWaveform && m_waveformWidget) {

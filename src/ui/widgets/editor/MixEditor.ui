@@ -258,6 +258,9 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::FocusPolicy::NoFocus</enum>
+        </property>
         <property name="text">
          <string>Play</string>
         </property>
@@ -268,6 +271,9 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::FocusPolicy::NoFocus</enum>
+        </property>
         <property name="text">
          <string>Pause</string>
         </property>
@@ -277,6 +283,9 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
        <widget class="QPushButton" name="btnStop">
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::FocusPolicy::NoFocus</enum>
         </property>
         <property name="text">
          <string>Stop</string>

@@ -5,8 +5,11 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QMap>
+#include <QPainterPath>
 #include <QPen>
+#include <QPixmap>
 #include <QRect>
+#include <QResizeEvent>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -40,6 +43,9 @@ public:
   void setWaveformData(const QVector<WaveformSample> &samples,
                        qint64 durationMs,
                        qint64 bucketDurationMs = WaveformExtractor::kDefaultBucketDurationMs);
+  void appendWaveformSamples(const QVector<WaveformSample> &delta,
+                             qint64 durationMs,
+                             qint64 bucketDurationMs = WaveformExtractor::kDefaultBucketDurationMs);
   void clearWaveform(const QString &statusMessage = QString());
   void setStatusMessage(const QString &message);
   void setDurationMs(qint64 durationMs);
@@ -75,6 +81,7 @@ signals:
 
 protected:
   void paintEvent(QPaintEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
   void mousePressEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
@@ -83,6 +90,8 @@ protected:
   void leaveEvent(QEvent *event) override;
 
 private:
+  void rebuildStaticCache() const;
+  void rebuildEnvelopeCache() const;
   QRect rulerRect() const;
   QRect waveRect() const;
   QRect envelopeRect() const;
@@ -128,8 +137,17 @@ private:
   QFont m_rulerFont;
   QFont m_pillFont;
   QFont m_statusFont;
+  QFontMetrics m_rulerFm;
+  QFontMetrics m_pillFm;
   QPen m_envelopePen;
   QPen m_playheadPen;
+
+  mutable QPixmap m_staticCache;
+  mutable bool m_staticCacheDirty = true;
+
+  mutable QPainterPath m_envelopeCurvePath;
+  mutable QPainterPath m_envelopeFillPath;
+  mutable bool m_envelopeDirty = true;
 };
 
 #endif // WAVEFORMWIDGET_H
