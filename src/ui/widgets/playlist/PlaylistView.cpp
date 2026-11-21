@@ -11,8 +11,11 @@
 #include <QPainter>
 
 namespace {
-constexpr const char *kCatalogMime = "application/x-catalog-item";
+const QString &catalogMime() {
+  static const QString kMime = QStringLiteral("application/x-catalog-item");
+  return kMime;
 }
+} // namespace
 
 PlaylistView::PlaylistView(QWidget *parent) : QListView(parent) {
   setSelectionMode(QAbstractItemView::SingleSelection);
@@ -108,8 +111,7 @@ void PlaylistView::dragEnterEvent(QDragEnterEvent *event) {
   if (event->source() == this) {
     event->setDropAction(Qt::MoveAction);
     event->accept();
-  } else if (event->mimeData() &&
-             event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime))) {
+  } else if (event->mimeData() && event->mimeData()->hasFormat(catalogMime())) {
     event->setDropAction(Qt::CopyAction);
     event->accept();
   } else {
@@ -128,7 +130,7 @@ void PlaylistView::dragMoveEvent(QDragMoveEvent *event) {
   const bool internal = (event->source() == this);
   const bool fromCatalog =
       !internal && event->mimeData() &&
-      event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime));
+      event->mimeData()->hasFormat(catalogMime());
 
   if (!internal && !fromCatalog) {
     setDropIndicatorRow(-1);
@@ -205,21 +207,23 @@ void PlaylistView::dropEvent(QDropEvent *event) {
     return;
   }
 
-  if (event->mimeData() &&
-      event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime))) {
+  if (event->mimeData() && event->mimeData()->hasFormat(catalogMime())) {
     if ((lockedRow >= 0 && targetRow <= lockedRow) ||
         !plistModel->isDropRowBetweenMarkers(targetRow)) {
       event->ignore();
       return;
     }
 
-    QByteArray data =
-        event->mimeData()->data(QString::fromLatin1(kCatalogMime));
+    QByteArray data = event->mimeData()->data(catalogMime());
     QDataStream stream(&data, QIODevice::ReadOnly);
     QString title;
     QString path;
     qint8 rawMediaType = 0;
+    qint64 durationMs = 0;
     stream >> title >> path >> rawMediaType;
+    if (stream.status() == QDataStream::Ok && !stream.atEnd()) {
+      stream >> durationMs;
+    }
 
     if (stream.status() != QDataStream::Ok ||
         (title.isEmpty() && path.isEmpty())) {
@@ -227,8 +231,14 @@ void PlaylistView::dropEvent(QDropEvent *event) {
       return;
     }
 
-    if (plistModel->insertCatalogItem(targetRow, title, path,
-                                      static_cast<MediaType>(rawMediaType))) {
+    const MediaType mediaType =
+        (rawMediaType >= static_cast<qint8>(MediaType::Jingle) &&
+         rawMediaType <= static_cast<qint8>(MediaType::Other))
+            ? static_cast<MediaType>(rawMediaType)
+            : MediaType::Other;
+
+    if (plistModel->insertCatalogItem(targetRow, title, path, mediaType,
+                                      qMax<qint64>(0, durationMs))) {
       setCurrentIndex(plistModel->index(targetRow, 0));
       event->setDropAction(Qt::CopyAction);
       event->accept();
@@ -260,24 +270,26 @@ QMenu *PlaylistView::createContextMenu(const QModelIndex &index,
     return nullptr;
   }
 
+  static const QString kMenuStyle = QStringLiteral(
+      "QMenu {"
+      "  background-color: #1F232C;"
+      "  color: #FFFFFF;"
+      "  border: 1px solid #2D3340;"
+      "  border-radius: 6px;"
+      "  padding: 4px;"
+      "}"
+      "QMenu::item {"
+      "  padding: 6px 14px;"
+      "  border-radius: 4px;"
+      "}"
+      "QMenu::item:selected {"
+      "  background-color: #3E4A5E;"
+      "}"
+      "QMenu::item:disabled {"
+      "  color: #8E9EB5;"
+      "}");
   auto *menu = new QMenu(parent ? parent : this);
-  menu->setStyleSheet(QStringLiteral("QMenu {"
-                                     "  background-color: #1F232C;"
-                                     "  color: #FFFFFF;"
-                                     "  border: 1px solid #2D3340;"
-                                     "  border-radius: 6px;"
-                                     "  padding: 4px;"
-                                     "}"
-                                     "QMenu::item {"
-                                     "  padding: 6px 14px;"
-                                     "  border-radius: 4px;"
-                                     "}"
-                                     "QMenu::item:selected {"
-                                     "  background-color: #3E4A5E;"
-                                     "}"
-                                     "QMenu::item:disabled {"
-                                     "  color: #8E9EB5;"
-                                     "}"));
+  menu->setStyleSheet(kMenuStyle);
 
   QAction *mixEditorAction = menu->addAction(tr("Abrir no Editor de Mixagem"));
   mixEditorAction->setEnabled(item->status != PlaylistItemStatus::Finished);

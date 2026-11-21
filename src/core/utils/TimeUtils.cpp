@@ -1,39 +1,46 @@
 #include "TimeUtils.h"
 
-#include <QTime>
-
 QString msec2string(qint64 msec) {
   if (msec <= 0) {
     return QStringLiteral("00:00:000");
   }
-  QTime time = QTime(0, 0).addMSecs(msec);
+  const qint64 ms = msec % 1000;
+  const qint64 totalSec = msec / 1000;
+  const qint64 sec = totalSec % 60;
+  const qint64 totalMin = totalSec / 60;
+  const qint64 min = totalMin % 60;
+  const qint64 hours = totalMin / 60;
 
-  QString format = "mm:ss:zzz";
-  if (msec >= 3600000) {
-    format = "hh:mm:ss:zzz";
+  if (hours > 0) {
+    return QString::asprintf("%02lld:%02lld:%02lld:%03lld",
+                             static_cast<long long>(hours),
+                             static_cast<long long>(min),
+                             static_cast<long long>(sec),
+                             static_cast<long long>(ms));
   }
-
-  return time.toString(format);
+  return QString::asprintf("%02lld:%02lld:%03lld",
+                           static_cast<long long>(min),
+                           static_cast<long long>(sec),
+                           static_cast<long long>(ms));
 }
 
 QString formatDuration(qint64 msec, bool forceHours) {
   if (msec <= 0) {
     return forceHours ? QStringLiteral("00:00:00") : QStringLiteral("00:00");
   }
-  qint64 totalSec = msec / 1000;
-  qint64 minutes = totalSec / 60;
-  qint64 seconds = totalSec % 60;
-  qint64 hours = minutes / 60;
-  minutes = minutes % 60;
+  const qint64 totalSec = msec / 1000;
+  const qint64 seconds = totalSec % 60;
+  const qint64 totalMin = totalSec / 60;
+  const qint64 minutes = totalMin % 60;
+  const qint64 hours = totalMin / 60;
 
   if (hours > 0 || forceHours) {
-    return QString("%1:%2:%3")
-        .arg(hours, 2, 10, QChar('0'))
-        .arg(minutes, 2, 10, QChar('0'))
-        .arg(seconds, 2, 10, QChar('0'));
+    return QString::asprintf("%02lld:%02lld:%02lld",
+                             static_cast<long long>(hours),
+                             static_cast<long long>(minutes),
+                             static_cast<long long>(seconds));
   }
-  return QString("%1:%2")
-      .arg(minutes, 2, 10, QChar('0'))
-      .arg(seconds, 2, 10, QChar('0'));
+  return QString::asprintf("%02lld:%02lld", static_cast<long long>(minutes),
+                           static_cast<long long>(seconds));
 }
 

@@ -70,7 +70,7 @@ QMimeData *CatalogListModel::mimeData(const QModelIndexList &indexes) const {
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
-    stream << item.title << item.path << item.rawMediaType();
+    stream << item.title << item.path << item.rawMediaType() << item.durationMs;
     mime->setData("application/x-catalog-item", data);
     break; // Arrasto de item único
   }

@@ -1,5 +1,6 @@
 #include "PlaylistItemDelegate.h"
 #include "core/models.h"
+#include "core/playlist/PlaylistListModel.h"
 #include "core/utils/TimeUtils.h"
 
 #include <QLinearGradient>
@@ -52,7 +53,15 @@ PlaylistItemDelegate::Fonts::Fonts(const QFont &base)
     : blockTime(base, 13, true), blockName(base, 11, false),
       marker(base, 9, true), mediaFinished(base, 10, false),
       mediaTitle(base, 10, true), mediaPos(base, 10, true),
-      mediaDur(base, 9, false), badge(base, 7, true), est(base, 9, false) {}
+      mediaDur(base, 9, false), badge(base, 7, true), est(base, 9, false),
+      timeColWidth(
+          qMax(mediaPos.fm.horizontalAdvance(QStringLiteral("00:00:000")),
+               mediaDur.fm.horizontalAdvance(QStringLiteral("00:00:000")))),
+      badgePlayingWidth(
+          badge.fm.horizontalAdvance(QStringLiteral("NO AR")) + 12),
+      badgeNextWidth(
+          badge.fm.horizontalAdvance(QStringLiteral("PRÓXIMO")) + 12),
+      estTimeWidth(est.fm.horizontalAdvance(QStringLiteral("00:00:00"))) {}
 
 const PlaylistItemDelegate::Fonts &
 PlaylistItemDelegate::fonts(const QFont &base) const {
@@ -123,7 +132,12 @@ bool PlaylistItemDelegate::isFirstInBlock(const QModelIndex &index,
   return index.row() == 0 || isBlockMarker;
 }
 
-bool PlaylistItemDelegate::isLastInBlock(const QModelIndex &index) const {
+bool PlaylistItemDelegate::isLastInBlock(
+    const QModelIndex &index, const PlaylistListModel *plistModel) const {
+  if (plistModel) {
+    const PlaylistItem *nextItem = plistModel->itemAt(index.row() + 1);
+    return !nextItem || nextItem->type == ItemType::BlockMarker;
+  }
   const QAbstractItemModel *m = index.model();
   if (!m)
     return true;
@@ -173,7 +187,11 @@ QSize PlaylistItemDelegate::sizeHint(const QStyleOptionViewItem &option,
   if (!index.isValid())
     return QStyledItemDelegate::sizeHint(option, index);
 
-  const ItemType type = typeOf(index);
+  const auto *plistModel =
+      qobject_cast<const PlaylistListModel *>(index.model());
+  const PlaylistItem *directItem =
+      plistModel ? plistModel->itemAt(index.row()) : nullptr;
+  const ItemType type = directItem ? directItem->type : typeOf(index);
 
   int h = 48;
   switch (type) {
@@ -182,19 +200,23 @@ QSize PlaylistItemDelegate::sizeHint(const QStyleOptionViewItem &option,
     break;
   case ItemType::StartMarker: {
     const BlockType bType =
-        static_cast<BlockType>(index.data(BlockTypeRole).toInt());
+        directItem ? directItem->blockType
+                   : static_cast<BlockType>(index.data(BlockTypeRole).toInt());
     h = (bType == BlockType::Commercial) ? 24 : 6;
     break;
   }
   case ItemType::EndMarker: {
     const BlockType bType =
-        static_cast<BlockType>(index.data(BlockTypeRole).toInt());
+        directItem ? directItem->blockType
+                   : static_cast<BlockType>(index.data(BlockTypeRole).toInt());
     h = (bType == BlockType::Commercial) ? 26 : 24;
     break;
   }
   case ItemType::Media: {
     const PlaylistItemStatus status =
-        static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
+        directItem
+            ? directItem->status
+            : static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
     if (status == PlaylistItemStatus::Finished)
       h = 32;
     else if (status == PlaylistItemStatus::Playing)
@@ -206,7 +228,7 @@ QSize PlaylistItemDelegate::sizeHint(const QStyleOptionViewItem &option,
   if (isFirstInBlock(index, type == ItemType::BlockMarker))
     h += kBlockMargin;
 
-  if (isLastInBlock(index)) {
+  if (isLastInBlock(index, plistModel)) {
     h += kBlockInnerBottomPad;
     const QAbstractItemModel *m = index.model();
     if (m && index.row() + 1 >= m->rowCount())
@@ -223,14 +245,18 @@ void PlaylistItemDelegate::paint(QPainter *p,
     return;
 
   const Fonts &f = fonts(option.font);
-  const ItemType type = typeOf(index);
+  const auto *plistModel =
+      qobject_cast<const PlaylistListModel *>(index.model());
+  const PlaylistItem *directItem =
+      plistModel ? plistModel->itemAt(index.row()) : nullptr;
+  const ItemType type = directItem ? directItem->type : typeOf(index);
 
   p->save();
 
   p->fillRect(option.rect, kColListBg);
 
   const bool first = isFirstInBlock(index, type == ItemType::BlockMarker);
-  const bool last = isLastInBlock(index);
+  const bool last = isLastInBlock(index, plistModel);
   const QAbstractItemModel *m = index.model();
   const bool isEndOfList = last && m && index.row() + 1 >= m->rowCount();
 
@@ -264,7 +290,7 @@ void PlaylistItemDelegate::paint(QPainter *p,
     paintEndMarker(p, itemOpt, index, f);
     break;
   case ItemType::Media:
-    paintMediaItem(p, itemOpt, index, f);
+    paintMediaItem(p, itemOpt, index, f, plistModel);
     break;
   }
 
@@ -370,19 +396,26 @@ void PlaylistItemDelegate::paintEndMarker(QPainter *p,
               Qt::AlignVCenter | Qt::AlignRight, summary);
 }
 
-void PlaylistItemDelegate::paintMediaItem(QPainter *p,
-                                          const QStyleOptionViewItem &opt,
-                                          const QModelIndex &index,
-                                          const Fonts &f) const {
+void PlaylistItemDelegate::paintMediaItem(
+    QPainter *p, const QStyleOptionViewItem &opt, const QModelIndex &index,
+    const Fonts &f, const PlaylistListModel *plistModel) const {
   const QRect r = opt.rect;
 
+  const PlaylistItem *directItem =
+      plistModel ? plistModel->itemAt(index.row()) : nullptr;
+
   const PlaylistItemStatus status =
-      static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
+      directItem
+          ? directItem->status
+          : static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
   const MediaType mType =
-      static_cast<MediaType>(index.data(MediaTypeRole).toInt());
+      directItem ? directItem->mediaType
+                 : static_cast<MediaType>(index.data(MediaTypeRole).toInt());
   const BlockType bType =
-      static_cast<BlockType>(index.data(BlockTypeRole).toInt());
-  const QString title = index.data(TitleRole).toString();
+      directItem ? directItem->blockType
+                 : static_cast<BlockType>(index.data(BlockTypeRole).toInt());
+  const QString title =
+      directItem ? directItem->title : index.data(TitleRole).toString();
 
   if (bType == BlockType::Commercial) {
     const int lineX = r.left() + 7;
@@ -422,10 +455,24 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
     return;
   }
 
-  const QString estTime = index.data(EstimatedTimeRole).toString();
-  const qint64 durationMs = index.data(DurationRole).toLongLong();
-  const qint64 positionMs =
-      isPlaying ? index.data(PositionRole).toLongLong() : 0;
+  const QString estTime = directItem ? directItem->estimatedTime
+                                     : index.data(EstimatedTimeRole).toString();
+  const qint64 durationMs = directItem ? directItem->durationMs
+                                       : index.data(DurationRole).toLongLong();
+  const qint64 startPt =
+      qMax<qint64>(0, directItem ? directItem->startPoint
+                                 : index.data(StartPointRole).toLongLong());
+  const qint64 rawEndPt =
+      directItem ? directItem->endPoint : index.data(EndPointRole).toLongLong();
+  const qint64 endPt = (rawEndPt > startPt) ? rawEndPt : durationMs;
+  const qint64 playableDur = qMax<qint64>(0, endPt - startPt);
+
+  const qint64 rawPosMs =
+      isPlaying ? (directItem ? directItem->positionMs
+                              : index.data(PositionRole).toLongLong())
+                : 0;
+  const qint64 relativePosMs =
+      isPlaying ? qBound<qint64>(0, rawPosMs - startPt, playableDur) : 0;
 
   const QRect cardRect = r.adjusted(14, 1, -14, -1);
 
@@ -435,9 +482,9 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
 
   p->fillPath(cardPath, brushForType(mType));
 
-  if (isPlaying && durationMs > 0) {
+  if (isPlaying && playableDur > 0) {
     const qreal ratio =
-        qBound(0.0, static_cast<qreal>(positionMs) / durationMs, 1.0);
+        qBound(0.0, static_cast<qreal>(relativePosMs) / playableDur, 1.0);
     const int progWidth = static_cast<int>(cardRect.width() * ratio);
     if (progWidth > 0) {
       // Clip the progress fill to the rounded card shape.
@@ -462,11 +509,14 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
   drawTypeIcon(p, iconRect, mType);
 
   const QString posStr =
-      isPlaying ? msec2string(positionMs) : QStringLiteral("00:00:000");
-  const QString durStr = msec2string(durationMs);
+      isPlaying ? msec2string(relativePosMs) : QStringLiteral("00:00:000");
+  const QString durStr = msec2string(playableDur);
 
-  const int timeColW = qMax(f.mediaPos.fm.horizontalAdvance(posStr),
-                            f.mediaDur.fm.horizontalAdvance(durStr));
+  const int timeColW =
+      (playableDur >= 3600000 || relativePosMs >= 3600000)
+          ? qMax(f.mediaPos.fm.horizontalAdvance(posStr),
+                 f.mediaDur.fm.horizontalAdvance(durStr))
+          : f.timeColWidth;
   const int timeRightX = cardRect.right() - 12;
 
   const QRect posRect(timeRightX - timeColW, cardRect.top() + 5, timeColW, 18);
@@ -486,16 +536,16 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
     const QString sbText =
         isPlaying ? QStringLiteral("NO AR") : QStringLiteral("PRÓXIMO");
 
-    const int sbW = f.badge.fm.horizontalAdvance(sbText) + 12;
+    const int sbW = isPlaying ? f.badgePlayingWidth : f.badgeNextWidth;
     const int sbH = 16;
     const int sbX = (timeRightX - timeColW) - 10 - sbW;
     const int sbY = posRect.top() + (posRect.height() - sbH) / 2;
     const QRect sbRect(sbX, sbY, sbW, sbH);
 
     p->setRenderHint(QPainter::Antialiasing, true);
-    QPainterPath sbPath;
-    sbPath.addRoundedRect(QRectF(sbRect), 3.5, 3.5);
-    p->fillPath(sbPath, isPlaying ? kColBadgePlayingBg : kColBadgeNextBg);
+    p->setPen(Qt::NoPen);
+    p->setBrush(isPlaying ? kColBadgePlayingBg : kColBadgeNextBg);
+    p->drawRoundedRect(QRectF(sbRect), 3.5, 3.5);
     p->setRenderHint(QPainter::Antialiasing, false);
 
     p->setFont(f.badge.font);
@@ -535,7 +585,9 @@ void PlaylistItemDelegate::paintMediaItem(QPainter *p,
     if (!estTime.isEmpty()) {
       p->setFont(f.est.font);
       p->setPen(kColWhite);
-      const int estW = f.est.fm.horizontalAdvance(estTime);
+      const int estW = (estTime.size() == 8)
+                           ? f.estTimeWidth
+                           : f.est.fm.horizontalAdvance(estTime);
       p->drawText(QRect(currentX, bottomY, estW, 16),
                   Qt::AlignVCenter | Qt::AlignLeft, estTime);
     }
