@@ -4,6 +4,8 @@ include(version.cmake)
 
 project(${EXECUTABLE_NAME} VERSION ${CLEAN_APP_VERSION} LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -13,7 +15,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Multimedia LinguistTools)
 
-
 set(QT_MEDIA_BACKEND ffmpeg)
 
 add_subdirectory(src/app)
@@ -22,9 +23,14 @@ add_subdirectory(src/lang)
 add_subdirectory(src/resources)
 add_subdirectory(src/ui)
 
+include(CTest)
+find_package(Qt6 QUIET COMPONENTS Test)
+if(BUILD_TESTING AND Qt6Test_FOUND)
+    add_subdirectory(tests)
+endif()
+
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/app.rc")
 target_sources(${EXECUTABLE_NAME} PRIVATE ${app_icon_resource_windows})
-
 
 
 set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.NaxStudio.${EXECUTABLE_NAME})

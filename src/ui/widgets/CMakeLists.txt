@@ -1,24 +1,27 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
-    catalog/FileWidget.cpp
-    catalog/FileWidget.h
+    catalog/CatalogItemDelegate.cpp
+    catalog/CatalogItemDelegate.h
+    catalog/FolderItemDelegate.cpp
+    catalog/FolderItemDelegate.h
+    catalog/CatalogWidget.cpp
+    catalog/CatalogWidget.h
+    catalog/CatalogWidget.ui
 
-    cartwall/CartWallArea.cpp
-    cartwall/CartWallArea.h
-    cartwall/CartWallArea.ui
-    cartwall/CartWallItem.cpp
-    cartwall/CartWallItem.h
-    cartwall/CartWallItem.ui
+    playlist/PlaylistItemDelegate.h
+    playlist/PlaylistItemDelegate.cpp
+    playlist/PlaylistView.h
+    playlist/PlaylistView.cpp
+
+    cartwall/CartWallView.cpp
+    cartwall/CartWallView.h
+    cartwall/CartWallItemDelegate.cpp
+    cartwall/CartWallItemDelegate.h
 
     editor/MixEditor.cpp
     editor/MixEditor.h
     editor/MixEditor.ui
-
-    playlist/PlaylistItem.cpp
-    playlist/PlaylistItem.h
-    playlist/PlaylistItem.ui
-    playlist/ProgramBlock.cpp
-    playlist/ProgramBlock.h
-    playlist/ProgramBlock.ui
+    editor/WaveformWidget.cpp
+    editor/WaveformWidget.h
 )
 
 target_include_directories(${EXECUTABLE_NAME}

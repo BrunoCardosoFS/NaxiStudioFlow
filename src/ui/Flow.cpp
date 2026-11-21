@@ -1,241 +1,205 @@
 #include "Flow.h"
 #include "ui_Flow.h"
 
-#include "core/catalog/FoldersList.h"
+#include <QJsonArray>
+#include <QJsonObject>
 
-#include "ui/widgets/catalog/FileWidget.h"
-
-#include "ui/widgets/cartwall/CartWallArea.h"
+#include "core/cartwall/CartWallTableModel.h"
+#include "core/playlist/PlaylistManager.h"
+#include "ui/widgets/cartwall/CartWallItemDelegate.h"
+#include "ui/widgets/cartwall/CartWallView.h"
+#include "ui/widgets/editor/MixEditor.h"
+#include "ui/widgets/playlist/PlaylistItemDelegate.h"
+#include "ui/widgets/playlist/PlaylistView.h"
 
 #include <QGridLayout>
 
 #include <QDateTime>
-#include <QTimer>
 #include <QMessageBox>
+#include <QMouseEvent>
+#include <QTimer>
 #include <QTranslator>
 
 #include <QDebug>
 
 #include <QLocale>
 
-Flow::Flow(QWidget *parent):QMainWindow(parent), ui(new Ui::Flow){
-    ui->setupUi(this);
-    QString version = QStringLiteral(APP_VERSION);
-    this->setWindowTitle("NaxStudio Flow " + version);
+Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
+  ui->setupUi(this);
+  QString version = QStringLiteral(APP_VERSION);
+  this->setWindowTitle("NaxStudio Flow " + version);
 
+  this->setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition::North);
+  this->ui->DockTop->setTitleBarWidget(new QWidget());
+  // this->ui->DockTop->setTitleBarWidget(nullptr);
 
-    this->setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::TabPosition::North);
-    this->ui->DockTop->setTitleBarWidget(new QWidget());
-    // this->ui->DockTop->setTitleBarWidget(nullptr);
+  if (!this->settings->contains("db")) {
+    this->settings->setValue("db",
+                             QCoreApplication::applicationDirPath() + "/../db");
+  }
 
-    if(!this->settings->contains("db")){
-        this->settings->setValue("db", QCoreApplication::applicationDirPath() + "/../db");
-    }
+  this->catalogWidget = new CatalogWidget(this);
+  this->catalogWidget->setDatabasePath(this->settings->value("db").toString());
+  this->ui->DocCatalogWidget->layout()->addWidget(this->catalogWidget);
 
-    connect(this->filesList, &FilesList::finish, this, &Flow::loadFiles);
+  // this->showFullScreen();
+  // this->showMaximized();
 
-    connect(this, &Flow::getFiles, this->filesList, &FilesList::init);
+  this->updateClock();
+  QTimer *clockTimer = new QTimer(this);
+  connect(clockTimer, &QTimer::timeout, this, &Flow::updateClock);
+  clockTimer->start(1000);
 
-    this->loadFolders();
+  this->ui->selectProfile->hide();
 
+  this->playlistManager = new PlaylistManager(this);
+  this->playlistDelegate = new PlaylistItemDelegate(this);
+  this->ui->playlistView->setModel(this->playlistManager->model());
+  this->ui->playlistView->setItemDelegate(this->playlistDelegate);
 
-    // this->showFullScreen();
-    // this->showMaximized();
+  connect(this->ui->btnPlay, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::play);
+  connect(this->ui->btnPause, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::pause);
+  connect(this->ui->btnStop, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::stop);
+  connect(this->ui->btnNext, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::next);
 
-    this->updateClock();
-    QTimer *clockTimer = new QTimer(this);
-    connect(clockTimer, &QTimer::timeout, this, &Flow::updateClock);
-    clockTimer->start(1000);
+  connect(this->playlistManager, &PlaylistManager::statusChanged, this,
+          &Flow::updateTransportButtons);
+  connect(this->playlistManager, &PlaylistManager::currentItemChanged, this,
+          [this](int row, const QUuid &) {
+            const QModelIndex idx =
+                this->playlistManager->model()->index(row, 0);
+            if (idx.isValid()) {
+              this->ui->playlistView->scrollTo(
+                  idx, QAbstractItemView::EnsureVisible);
+            }
+          });
+  connect(this->ui->playlistView, &PlaylistView::mixEditorRequested, this,
+          &Flow::openMixEditorForPlaylistItem);
 
-    // this->ui->selectProfile->addItem("Manhã Show");
-    // this->ui->selectProfile->addItem("Band Bom Dia");
-    // this->ui->selectProfile->addItem("Clube da Band");
-    this->ui->selectProfile->hide();
+  this->updateTransportButtons(this->playlistManager->status());
 
-    ProgramBlock *blocoteste = new ProgramBlock(this);
-    blocoteste->setHour("21:00");
-    blocoteste->setTitle(tr("Musical"));
-    this->ui->PlaylistContent->layout()->addWidget(blocoteste);
-    this->blocks.append(blocoteste);
+  auto *cartWallModel = new CartWallTableModel(this);
+  cartWallModel->setColumnCount(this->ui->cartWallColumns->value());
+  cartWallModel->loadMockData();
 
-    // ProgramBlock *blocoteste2 = new ProgramBlock(this);
-    // blocoteste2->setHour("22:00");
-    // blocoteste2->setTitle("Comercial");
-    // this->ui->PlaylistContent->layout()->addWidget(blocoteste2);
-    // this->blocks.append(blocoteste2);
+  auto *cartWallView = new CartWallView(this->ui->DocCartWallWidget);
+  cartWallView->setObjectName("cartWallView");
+  cartWallView->setModel(cartWallModel);
+  cartWallView->setItemDelegate(new CartWallItemDelegate(cartWallView));
+  this->ui->DocCartWallWidget->layout()->addWidget(cartWallView);
 
-    // ProgramBlock *blocoteste3 = new ProgramBlock(this);
-    // blocoteste3->setHour("22:05");
-    // blocoteste3->setTitle("Musical");
-    // this->ui->PlaylistContent->layout()->addWidget(blocoteste3);
-    // this->blocks.append(blocoteste3);
+  connect(this->ui->cartWallColumns, &QSpinBox::valueChanged, cartWallView,
+          &CartWallView::setColumnCount);
+  connect(cartWallView, &CartWallView::slotTriggered, this,
+          [](int index) { qInfo() << "Cart slot triggered:" << index; });
 
-    QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-    this->ui->PlaylistContent->layout()->addItem(spacer);
-
-
-    CartWallArea *cartWallArea = new CartWallArea(this); //Consumindo muita memória >90MB
-    this->ui->DocCartWallScrollWidget->layout()->addWidget(cartWallArea);
-    // this->ui->DocCartWallScroll->setWidget(cartWallArea);
-
-    restoreLayout();
+  restoreLayout();
 }
 
-Flow::~Flow(){
-    saveLayout();
-    delete ui;
+Flow::~Flow() {
+  saveLayout();
+  delete ui;
 }
 
-void Flow::loadFolders(){
-    QJsonArray folders = getFolders(this->settings->value("db").toString());
+void Flow::saveLayout() { this->settings->setValue("layout", saveState()); }
 
-    foreach (QJsonValue jsonValue, folders) {
-        QJsonObject jsonObject = jsonValue.toObject();
-
-        QString title = jsonObject.value("title").toString();
-        int type = jsonObject.value("type").toInt();
-
-        QPushButton *item = new QPushButton(this->ui->FoldersListContent);
-        item->setText(title);
-        item->setToolTip(title);
-        item->setProperty("id", jsonObject.value("id").toString());
-
-        item->setIconSize(QSize(20, 20));
-        item->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-        item->setCursor(Qt::PointingHandCursor);
-
-        connect(item, &QPushButton::clicked, this, [this, jsonObject](){
-            emit this->getFiles(jsonObject.value("path").toString(), "");
-        });
-
-        if(type == 0){
-            item->setProperty("type", "jingle");
-            item->setIcon(QIcon(":/images/catalog/jingle.svg"));
-            this->ui->JinglesFolders->layout()->addWidget(item);
-        }else if(type == 1){
-            item->setProperty("type", "music");
-            item->setIcon(QIcon(":/images/catalog/music.svg"));
-            this->ui->MusicFolders->layout()->addWidget(item);
-        }else if(type == 2){
-            item->setProperty("type", "commercial");
-            item->setIcon(QIcon(":/images/catalog/commercial.svg"));
-            this->ui->CommercialFolders->layout()->addWidget(item);
-        }else{
-            item->setProperty("type", "other");
-            item->setIcon(QIcon(":/images/catalog/other.svg"));
-            this->ui->OtherFolders->layout()->addWidget(item);
-        }
-    }
+void Flow::restoreLayout() {
+  QByteArray layoutData = this->settings->value("layout").toByteArray();
+  if (!layoutData.isEmpty()) {
+    restoreState(layoutData);
+  }
 }
 
-void Flow::loadFiles(QJsonArray list, QString pathFolder){
-    this->openFolder = pathFolder;
+void Flow::updateClock() {
+  QDateTime currentTime = QDateTime::currentDateTime();
+  QLocale locale(QLocale::Portuguese, QLocale::Brazil);
 
-    // Deleting all widgets from the file list
-    QLayoutItem *item;
-    while ((item = this->ui->FilesListContent->layout()->takeAt(0)) != nullptr) {
-        delete item->widget();
-    }
-
-    foreach (QJsonValue item, list) {
-        QJsonArray itemArray = item.toArray();
-        FileWidget *itemList = new FileWidget(this->ui->FilesListContent);
-        itemList->setInfo(itemArray[0].toString(), itemArray[1].toString());
-
-        this->ui->FilesListContent->layout()->addWidget(itemList);
-    }
-
-    QSpacerItem *spacer = new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-    this->ui->FilesListContent->layout()->addItem(spacer);
+  this->ui->clock->setText(currentTime.toString("hh:mm:ss"));
+  this->ui->date->setText(
+      locale.toString(currentTime, "dddd, dd 'de' MMMM 'de' yyyy"));
 }
 
-
-
-void Flow::saveLayout(){
-    this->settings->setValue("layout", saveState());
-}
-
-void Flow::restoreLayout(){
-    QByteArray layoutData = this->settings->value("layout").toByteArray();
-    if (!layoutData.isEmpty()) {
-        restoreState(layoutData);
-    }
-}
-
-void Flow::updateClock(){
-    QDateTime currentTime = QDateTime::currentDateTime();
-    QLocale locale(QLocale::Portuguese, QLocale::Brazil);
-
-    this->ui->clock->setText(currentTime.toString("hh:mm:ss"));
-    this->ui->date->setText(locale.toString(currentTime, "dddd, dd 'de' MMMM 'de' yyyy"));
-}
-
-
-void Flow::on_btnFull_clicked()
-{
-    if(this->isFullScreen()){
-        // this->showNormal();
-        this->showMaximized();
-    }else{
-        this->showFullScreen();
-    }
+void Flow::on_btnFull_clicked() {
+  if (this->isFullScreen()) {
+    // this->showNormal();
+    this->showMaximized();
+  } else {
+    this->showFullScreen();
+  }
 }
 
 void Flow::changeEvent(QEvent *event) {
-    if (event->type() == QEvent::WindowStateChange) {
-        if (isFullScreen()) {
-            this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen-exit.svg"));
-        } else {
-            this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen.svg"));
-        }
+  if (event->type() == QEvent::WindowStateChange) {
+    if (isFullScreen()) {
+      this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen-exit.svg"));
+    } else {
+      this->ui->btnFull->setIcon(QIcon(":/images/icons/full-screen.svg"));
     }
+  }
 }
 
 void Flow::closeEvent(QCloseEvent *event) {
-    // QMessageBox msgBox;
-    // msgBox.setWindowTitle("Fechar o NaxStudio Flow");
-    // msgBox.setText("Tem certeza que deseja fechar?");
-    // msgBox.setIcon(QMessageBox::Question);
-    // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-    // int res = msgBox.exec();
-
-    // if (res == QMessageBox::Yes) {
-    //     event->accept();
-    // } else {
-    //     event->ignore();
-    // }
-}
-
-
-void Flow::on_SearchLocal_clicked()
-{
-    this->filesList->init(this->openFolder, this->ui->SearchLine->text());
-}
-
-void Flow::on_SearchClean_clicked()
-{
-    this->ui->SearchLine->setText("");
-    if(this->openFolder != ""){
-        this->filesList->init(this->openFolder, "");
+  if (this->m_mixEditor) {
+    this->m_mixEditor->close();
+  }
+  if (this->playlistManager) {
+    this->playlistManager->stopImmediate();
+    if (this->playlistManager->model()) {
+      this->playlistManager->model()->cancelDurationProbes();
     }
+  }
+  saveLayout();
+  QMainWindow::closeEvent(event);
 }
 
-void Flow::on_SearchLine_returnPressed(){
-    this->on_SearchLocal_clicked();
+void Flow::openMixEditorForPlaylistItem(const QUuid &itemUuid) {
+  if (!this->playlistManager || !this->playlistManager->model() ||
+      itemUuid.isNull()) {
+    return;
+  }
+
+  if (!this->m_mixEditor) {
+    this->m_mixEditor = new MixEditor(this);
+    this->m_mixEditor->setAttribute(Qt::WA_DeleteOnClose, true);
+  }
+
+  if (!this->m_mixEditor->loadPlaylistItem(this->playlistManager->model(),
+                                           itemUuid)) {
+    return;
+  }
+
+  this->m_mixEditor->show();
+  this->m_mixEditor->raise();
+  this->m_mixEditor->activateWindow();
 }
 
-
-void Flow::on_btnPlay_clicked(){
-    this->blocks[0]->controller->play();
+void Flow::updateTransportButtons(PlaylistStatus status) {
+  switch (status) {
+  case PlaylistStatus::Stopped:
+    this->ui->btnPlay->setEnabled(true);
+    this->ui->btnPause->setEnabled(false);
+    this->ui->btnStop->setEnabled(false);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  case PlaylistStatus::Playing:
+    this->ui->btnPlay->setEnabled(false);
+    this->ui->btnPause->setEnabled(true);
+    this->ui->btnStop->setEnabled(true);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  case PlaylistStatus::Paused:
+    this->ui->btnPlay->setEnabled(true);
+    this->ui->btnPause->setEnabled(false);
+    this->ui->btnStop->setEnabled(true);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  }
 }
 
-
-void Flow::on_btnPause_clicked(){
-    this->blocks[0]->controller->pause();
+bool Flow::eventFilter(QObject *watched, QEvent *event) {
+  return QMainWindow::eventFilter(watched, event);
 }
-
-void Flow::on_btnStop_clicked(){
-    this->blocks[0]->controller->stop();
-}
-

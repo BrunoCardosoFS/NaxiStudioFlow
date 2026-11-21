@@ -28,6 +28,13 @@
     </message>
 </context>
 <context>
+    <name>CatalogWidget</name>
+    <message>
+        <source>Abrir no Editor de Mixagem (to do (M11))</source>
+        <translation>Open in Mix Editor (to do (M11))</translation>
+    </message>
+</context>
+<context>
     <name>Flow</name>
     <message>
         <location filename="../../ui/Flow.ui" line="712"/>
@@ -96,102 +103,140 @@
 <context>
     <name>MixEditor</name>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="20"/>
-        <source>NaxiStudio Editor - Editor de Mixagem</source>
-        <translation>NaxiStudio Editor - Mix Editor</translation>
+        <source>NaxStudio Flow - Editor de Mixagem</source>
+        <translation>NaxStudio Flow - Mix Editor</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="41"/>
         <source>&lt;Nome do arquivo&gt;</source>
         <translation>&lt;File Name&gt;</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="84"/>
         <source>Play</source>
-        <translation type="unfinished"></translation>
+        <translation>Play</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="91"/>
         <source>Pause</source>
-        <translation type="unfinished"></translation>
+        <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="98"/>
         <source>Stop</source>
-        <translation type="unfinished"></translation>
+        <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="118"/>
-        <source>Salvar</source>
-        <translation type="unfinished"></translation>
+        <source>Diminuir zoom</source>
+        <translation>Zoom out</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="200"/>
+        <source>Ajustar forma de onda à janela</source>
+        <translation>Fit waveform to window</translation>
+    </message>
+    <message>
+        <source>Aumentar zoom</source>
+        <translation>Zoom in</translation>
+    </message>
+    <message>
+        <source>Corte, Mixagem e Volumes</source>
+        <translation>Trim, Mix &amp; Volumes</translation>
+    </message>
+    <message>
+        <source>Ponto inicial</source>
+        <translation>Start point</translation>
+    </message>
+    <message>
+        <source>Definir com a posição atual do playhead</source>
+        <translation>Set from current playhead position</translation>
+    </message>
+    <message>
+        <source>Marcar</source>
+        <translation>Mark</translation>
+    </message>
+    <message>
         <source>Ponto de mixagem inicial</source>
-        <translation type="unfinished"></translation>
+        <translation>Mix start point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="217"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="256"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="507"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="546"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="585"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="618"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="651"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="684"/>
-        <source>mm:ss:zzz</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="246"/>
         <source>Ponto de mixagem final</source>
-        <translation type="unfinished"></translation>
+        <translation>Mix end point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="285"/>
+        <source>Ponto final</source>
+        <translation>End point</translation>
+    </message>
+    <message>
         <source>Volume do início</source>
-        <translation type="unfinished"></translation>
+        <translation>Start volume</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="359"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="444"/>
-        <source>0%</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="394"/>
         <source>Volume do final</source>
-        <translation type="unfinished"></translation>
+        <translation>End volume</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="497"/>
+        <source>Fades e Envelope de Volume</source>
+        <translation>Fades &amp; Volume Envelope</translation>
+    </message>
+    <message>
         <source>Ponto do fim do Fade In</source>
-        <translation type="unfinished"></translation>
+        <translation>Fade In end point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="536"/>
         <source>Ponto do início do aumento do volume</source>
-        <translation type="unfinished"></translation>
+        <translation>Volume increase start point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="575"/>
         <source>Ponto do fim do aumento do volume</source>
-        <translation type="unfinished"></translation>
+        <translation>Volume increase end point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="608"/>
         <source>Ponto do início da diminuição do volume</source>
-        <translation type="unfinished"></translation>
+        <translation>Volume decrease start point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="641"/>
         <source>Ponto do fim da diminuição do volume</source>
-        <translation type="unfinished"></translation>
+        <translation>Volume decrease end point</translation>
     </message>
     <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="674"/>
         <source>Ponto do início do Fade Out</source>
-        <translation type="unfinished"></translation>
+        <translation>Fade Out start point</translation>
+    </message>
+    <message>
+        <source>Restaurar padrões</source>
+        <translation>Reset defaults</translation>
+    </message>
+    <message>
+        <source>Cancelar</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>Persistência global em arquivo .json será habilitada após o marco M11</source>
+        <translation>Global persistence in .json sidecar files will be enabled after milestone M11</translation>
+    </message>
+    <message>
+        <source>Salvar globalmente - to do (M11)</source>
+        <translation>Save globally - to do (M11)</translation>
+    </message>
+    <message>
+        <source>Salvar na Playlist</source>
+        <translation>Save to Playlist</translation>
+    </message>
+    <message>
+        <source>Carregando forma de onda...</source>
+        <translation>Loading waveform...</translation>
+    </message>
+    <message>
+        <source>Arquivo de áudio não encontrado no disco — editando apenas marcadores de tempo</source>
+        <translation>Audio file not found on disk — editing time markers only</translation>
+    </message>
+    <message>
+        <source>Item indisponível</source>
+        <translation>Item unavailable</translation>
+    </message>
+    <message>
+        <source>Não foi possível salvar: o item foi removido da playlist ou já foi finalizado.</source>
+        <translation>Could not save: the item was removed from the playlist or has already finished.</translation>
+    </message>
+    <message>
+        <source>Não foi possível carregar o áudio para pré-escuta.</source>
+        <translation>Could not load audio for preview playback.</translation>
     </message>
 </context>
 <context>
@@ -203,11 +248,76 @@
     </message>
 </context>
 <context>
+    <name>PlaylistView</name>
+    <message>
+        <source>Abrir no Editor de Mixagem</source>
+        <translation>Open in Mix Editor</translation>
+    </message>
+    <message>
+        <source>Remover</source>
+        <translation>Remove</translation>
+    </message>
+</context>
+<context>
     <name>ProgramBlock</name>
     <message>
         <location filename="../../ui/widgets/playlist/ProgramBlock.ui" line="20"/>
         <source>Form</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WaveformExtractor</name>
+    <message>
+        <source>Arquivo de áudio não encontrado no disco.</source>
+        <translation>Audio file not found on disk.</translation>
+    </message>
+    <message>
+        <source>Erro ao decodificar arquivo de áudio (%1).</source>
+        <translation>Error decoding audio file (%1).</translation>
+    </message>
+</context>
+<context>
+    <name>WaveformWidget</name>
+    <message>
+        <source>Ponto inicial</source>
+        <translation>Start point</translation>
+    </message>
+    <message>
+        <source>Mixagem inicial</source>
+        <translation>Mix start</translation>
+    </message>
+    <message>
+        <source>Fim do Fade In</source>
+        <translation>Fade In end</translation>
+    </message>
+    <message>
+        <source>Início do aumento de volume</source>
+        <translation>Volume up start</translation>
+    </message>
+    <message>
+        <source>Fim do aumento de volume</source>
+        <translation>Volume up end</translation>
+    </message>
+    <message>
+        <source>Início da diminuição de volume</source>
+        <translation>Volume down start</translation>
+    </message>
+    <message>
+        <source>Fim da diminuição de volume</source>
+        <translation>Volume down end</translation>
+    </message>
+    <message>
+        <source>Início do Fade Out</source>
+        <translation>Fade Out start</translation>
+    </message>
+    <message>
+        <source>Mixagem final</source>
+        <translation>Mix end</translation>
+    </message>
+    <message>
+        <source>Ponto final</source>
+        <translation>End point</translation>
     </message>
 </context>
 </TS>

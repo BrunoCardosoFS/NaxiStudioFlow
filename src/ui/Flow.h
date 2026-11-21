@@ -1,14 +1,16 @@
 #ifndef FLOW_H
 #define FLOW_H
 
-#include <QMainWindow>
-#include <QSettings>
 #include <QCloseEvent>
-#include <QLocale>
 #include <QList>
+#include <QLocale>
+#include <QMainWindow>
+#include <QPointer>
+#include <QSettings>
+#include <QUuid>
 
-#include "core/catalog/FilesList.h"
-#include "ui/widgets/playlist/ProgramBlock.h"
+#include "core/models.h"
+#include "ui/widgets/catalog/CatalogWidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,48 +18,39 @@ class Flow;
 }
 QT_END_NAMESPACE
 
-class Flow : public QMainWindow
-{
-    Q_OBJECT
+class PlaylistManager;
+class PlaylistItemDelegate;
+class MixEditor;
+
+class Flow : public QMainWindow {
+  Q_OBJECT
 
 public:
-    Flow(QWidget *parent = nullptr);
-    ~Flow();
+  Flow(QWidget *parent = nullptr);
+  ~Flow();
 
 private slots:
-    void on_btnFull_clicked();
-    void on_SearchLocal_clicked();
-    void on_SearchClean_clicked();
-    void on_SearchLine_returnPressed();
-
-    void on_btnPlay_clicked();
-    void on_btnPause_clicked();
-
-    void on_btnStop_clicked();
+  void on_btnFull_clicked();
+  void openMixEditorForPlaylistItem(const QUuid &itemUuid);
 
 private:
-    Ui::Flow *ui;
+  Ui::Flow *ui;
 
-    QSettings *settings = new QSettings("NaxStudio", "Flow");
+  QSettings *settings = new QSettings("NaxStudio", "Flow", this);
+  CatalogWidget *catalogWidget = nullptr;
+  PlaylistManager *playlistManager = nullptr;
+  PlaylistItemDelegate *playlistDelegate = nullptr;
+  QPointer<MixEditor> m_mixEditor;
 
-    FilesList *filesList = new FilesList(this);
-
-    void loadFolders();
-    void loadFiles(QJsonArray list, QString pathFolder);
-    QString openFolder = "";
-
-    void saveLayout();
-    void restoreLayout();
-    void updateClock();
-
-    QList<ProgramBlock*> blocks;
+  void saveLayout();
+  void restoreLayout();
+  void updateClock();
+  void updateTransportButtons(PlaylistStatus status);
 
 protected:
-    void changeEvent(QEvent *event) override;
-    void closeEvent(QCloseEvent *event) override;
-
-signals:
-    void getFiles(QString folder, QString search);
+  void changeEvent(QEvent *event) override;
+  void closeEvent(QCloseEvent *event) override;
+  bool eventFilter(QObject *watched, QEvent *event) override;
 };
 
 #endif // FLOW_H

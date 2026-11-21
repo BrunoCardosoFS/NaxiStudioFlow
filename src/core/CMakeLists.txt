@@ -1,19 +1,33 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
-    catalog/FilesList.cpp
-    catalog/FilesList.h
-    catalog/FoldersList.cpp
-    catalog/FoldersList.h
+    models.h
+
+    audio/WaveformExtractor.cpp
+    audio/WaveformExtractor.h
+
+    catalog/CatalogItem.h
+    catalog/CatalogListModel.cpp
+    catalog/CatalogListModel.h
+    catalog/CatalogRepository.cpp
+    catalog/CatalogRepository.h
+    catalog/CatalogScanner.cpp
+    catalog/CatalogScanner.h
+    catalog/FolderItem.h
+    catalog/FolderListModel.cpp
+    catalog/FolderListModel.h
+
+    cartwall/CartItem.h
+    cartwall/CartWallTableModel.cpp
+    cartwall/CartWallTableModel.h
+
+    playlist/PlaylistManager.cpp
+    playlist/PlaylistManager.h
+    playlist/PlaylistListModel.cpp
+    playlist/PlaylistListModel.h
+    playlist/player/PlayerManager.cpp
+    playlist/player/PlayerManager.h
 
     utils/TimeUtils.cpp
     utils/TimeUtils.h
-
-    player/PlayerPlaylistItem.cpp
-    player/PlayerPlaylistItem.h
-
-    playlist/MasterController.cpp
-    playlist/MasterController.h
-    playlist/PlaylistController.cpp
-    playlist/PlaylistController.h
 )
 
 target_include_directories(${EXECUTABLE_NAME}
