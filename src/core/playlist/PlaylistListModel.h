@@ -3,17 +3,26 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QList>
 #include <QObject>
 #include <QTime>
 #include <QUuid>
 #include <QVector>
 
+#include <functional>
+
 #include "core/models.h"
+
+class QMediaPlayer;
+class QTimer;
 
 class PlaylistListModel : public QAbstractListModel {
   Q_OBJECT
 public:
+  using DurationResolver = std::function<qint64(const QString &path)>;
+
   explicit PlaylistListModel(QObject *parent = nullptr);
+  ~PlaylistListModel() override;
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   QVariant data(const QModelIndex &index,
@@ -25,24 +34,67 @@ public:
   const QVector<PlaylistItem> &items() const { return m_items; }
   const PlaylistItem *itemAt(int row) const;
 
+  int rowForUuid(const QUuid &uuid) const;
+  int findNextMediaRow(int afterRow) const;
+  int findNextPlayableRow() const;
+  int blockMarkerRowForRow(int row) const;
+
   int currentPlayingRow() const;
+  int lastLockedRow() const;
   bool isDropRowBetweenMarkers(int row) const;
+  bool canRemoveRow(int row) const;
 
   void addItem(const PlaylistItem &item);
   void insertItem(int row, const PlaylistItem &item);
-  void removeItem(int row);
+  bool insertCatalogItem(int row, const QString &title, const QString &path,
+                         MediaType mediaType, qint64 durationMs = 0);
+  bool removeItem(int row);
   void clear();
+  void cancelDurationProbes();
+
+  void setDurationResolver(DurationResolver resolver);
+
+  void setPlayingRow(int row);
+  void stopPlayingRow(bool markAsFinished);
+  void markRowFinished(int row);
+  void setItemPosition(int row, qint64 positionMs);
+  void setItemPlayerId(int row, int playerId);
+  void updateItemAudioMetadata(int row, qint64 durationMs, qint64 startPoint,
+                               qint64 endPoint, qint64 mixStart, qint64 mixEnd,
+                               qint64 fadeInEndPoint, qint64 fadeOutStartPoint);
+  void updateItemMixMetadata(int row, qint64 durationMs, qint64 startPoint,
+                             qint64 endPoint, qint64 mixStart, qint64 mixEnd,
+                             qint64 fadeInEndPoint, qint64 fadeOutStartPoint,
+                             float startVolume, float endVolume,
+                             qint64 volumeUpStartPoint,
+                             qint64 volumeUpEndPoint,
+                             qint64 volumeDownStartPoint,
+                             qint64 volumeDownEndPoint);
 
   bool moveItem(int fromRow, int toRow);
   void recalculateBlockMetadata();
   void loadMockData();
+
+signals:
+  void itemDurationLoaded(int row, const QUuid &uuid, qint64 durationMs);
 
 private:
   QVector<PlaylistItem> m_items;
   QHash<QUuid, int> m_uuidRowMap;
   int m_playingRow = -1;
 
+  QMediaPlayer *m_probePlayer = nullptr;
+  QTimer *m_probeTimeoutTimer = nullptr;
+  QList<QUuid> m_pendingDurationProbes;
+  QUuid m_activeProbeUuid;
+  DurationResolver m_durationResolver;
+
   void rebuildUuidMap();
+  void enqueueDurationProbe(const QUuid &uuid);
+  void processNextDurationProbe();
+  void finalizeActiveDurationProbe(qint64 durationMs);
+  void cancelAllDurationProbes();
+  void applyProbedDuration(const QUuid &uuid, qint64 durationMs);
 };
 
 #endif // PLAYLISTLISTMODEL_H
