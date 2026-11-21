@@ -53,6 +53,7 @@ public:
   void cancelDurationProbes();
 
   void setDurationResolver(DurationResolver resolver);
+  void cacheDuration(const QString &path, qint64 durationMs);
 
   void setPlayingRow(int row);
   void stopPlayingRow(bool markAsFinished);
@@ -79,9 +80,13 @@ signals:
   void itemDurationLoaded(int row, const QUuid &uuid, qint64 durationMs);
 
 private:
+  static constexpr int kMaxDurationCacheEntries = 4096;
+
   QVector<PlaylistItem> m_items;
   QHash<QUuid, int> m_uuidRowMap;
+  QHash<QString, qint64> m_durationCache;
   int m_playingRow = -1;
+  int m_lastLockedRow = -1;
 
   QMediaPlayer *m_probePlayer = nullptr;
   QTimer *m_probeTimeoutTimer = nullptr;
@@ -90,6 +95,8 @@ private:
   DurationResolver m_durationResolver;
 
   void rebuildUuidMap();
+  void updateUuidMapFrom(int startRow);
+  void recalculateBlockMetadataInternal(int overridePlayingRow);
   void enqueueDurationProbe(const QUuid &uuid);
   void processNextDurationProbe();
   void finalizeActiveDurationProbe(qint64 durationMs);

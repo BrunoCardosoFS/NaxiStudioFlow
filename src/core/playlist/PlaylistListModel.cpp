@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <algorithm>
 #include <cmath>
 
 PlaylistListModel::PlaylistListModel(QObject *parent)
@@ -186,17 +187,8 @@ int PlaylistListModel::currentPlayingRow() const {
 }
 
 int PlaylistListModel::lastLockedRow() const {
-  int locked = m_playingRow;
-  for (int i = m_items.size() - 1; i >= 0; --i) {
-    const PlaylistItem &it = m_items.at(i);
-    if (it.type == ItemType::Media &&
-        (it.status == PlaylistItemStatus::Playing ||
-         it.status == PlaylistItemStatus::Finished)) {
-      locked = qMax(locked, i);
-      break;
-    }
-  }
-  return locked;
+  // Cached; refreshed by recalculateBlockMetadata().
+  return m_lastLockedRow;
 }
 
 bool PlaylistListModel::isDropRowBetweenMarkers(int row) const {
@@ -248,7 +240,7 @@ void PlaylistListModel::addItem(const PlaylistItem &item) {
 
   beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
   m_items.append(copy);
-  rebuildUuidMap();
+  m_uuidRowMap.insert(copy.uuid, m_items.size() - 1);
   endInsertRows();
 
   recalculateBlockMetadata();
@@ -287,7 +279,7 @@ void PlaylistListModel::insertItem(int row, const PlaylistItem &item) {
   const int targetRow = qBound(0, row, m_items.size());
   beginInsertRows(QModelIndex(), targetRow, targetRow);
   m_items.insert(targetRow, copy);
-  rebuildUuidMap();
+  updateUuidMapFrom(targetRow);
   endInsertRows();
 
   recalculateBlockMetadata();
@@ -345,7 +337,8 @@ bool PlaylistListModel::removeItem(int row) {
 
   beginRemoveRows(QModelIndex(), row, row);
   m_items.removeAt(row);
-  rebuildUuidMap();
+  m_uuidRowMap.remove(removedUuid);
+  updateUuidMapFrom(row);
   endRemoveRows();
 
   recalculateBlockMetadata();
@@ -358,6 +351,7 @@ void PlaylistListModel::clear() {
   m_items.clear();
   m_uuidRowMap.clear();
   m_playingRow = -1;
+  m_lastLockedRow = -1;
   endResetModel();
 }
 
@@ -367,42 +361,24 @@ void PlaylistListModel::setDurationResolver(DurationResolver resolver) {
   m_durationResolver = std::move(resolver);
 }
 
+void PlaylistListModel::cacheDuration(const QString &path, qint64 durationMs) {
+  if (!path.isEmpty() && durationMs > 0) {
+    if (m_durationCache.size() >= kMaxDurationCacheEntries &&
+        !m_durationCache.contains(path)) {
+      m_durationCache.clear();
+    }
+    m_durationCache.insert(path, durationMs);
+  }
+}
+
 void PlaylistListModel::setPlayingRow(int row) {
   if (row < 0 || row >= m_items.size() ||
       m_items.at(row).type != ItemType::Media) {
     return;
   }
 
-  QList<int> changedRows;
-  for (int i = 0; i < m_items.size(); ++i) {
-    PlaylistItem &item = m_items[i];
-    if (item.type != ItemType::Media || i == row) {
-      continue;
-    }
-    const PlaylistItemStatus oldStatus = item.status;
-    if (item.status == PlaylistItemStatus::Playing) {
-      item.status = (i < row) ? PlaylistItemStatus::Finished
-                              : PlaylistItemStatus::Default;
-      item.playerId = -1;
-    } else if (i < row) {
-      item.status = PlaylistItemStatus::Finished;
-    }
-    if (item.status != oldStatus) {
-      changedRows.append(i);
-    }
-  }
-
-  if (m_items[row].status != PlaylistItemStatus::Playing) {
-    m_items[row].status = PlaylistItemStatus::Playing;
-    changedRows.append(row);
-  }
-
-  for (int changedRow : std::as_const(changedRows)) {
-    const QModelIndex idx = index(changedRow, 0);
-    emit dataChanged(idx, idx, {StatusRole});
-  }
-
-  recalculateBlockMetadata();
+  // Single-pass status + metadata recalculation avoids emitting StatusRole twice.
+  recalculateBlockMetadataInternal(row);
 }
 
 void PlaylistListModel::stopPlayingRow(bool markAsFinished) {
@@ -493,11 +469,11 @@ void PlaylistListModel::updateItemAudioMetadata(int row, qint64 durationMs,
   }
 
   const PlaylistItem &item = m_items.at(row);
-  updateItemMixMetadata(
-      row, durationMs, startPoint, endPoint, mixStart, mixEnd, fadeInEndPoint,
-      fadeOutStartPoint, item.startVolume, item.endVolume,
-      item.volumeUpStartPoint, item.volumeUpEndPoint, item.volumeDownStartPoint,
-      item.volumeDownEndPoint);
+  updateItemMixMetadata(row, durationMs, startPoint, endPoint, mixStart, mixEnd,
+                        fadeInEndPoint, fadeOutStartPoint, item.startVolume,
+                        item.endVolume, item.volumeUpStartPoint,
+                        item.volumeUpEndPoint, item.volumeDownStartPoint,
+                        item.volumeDownEndPoint);
 }
 
 void PlaylistListModel::updateItemMixMetadata(
@@ -610,7 +586,11 @@ bool PlaylistListModel::moveItem(int fromRow, int toRow) {
   int destination = toRow > fromRow ? toRow + 1 : toRow;
   beginMoveRows(QModelIndex(), fromRow, fromRow, QModelIndex(), destination);
   m_items.move(fromRow, toRow);
-  rebuildUuidMap();
+  const int rangeStart = qMin(fromRow, toRow);
+  const int rangeEnd = qMax(fromRow, toRow);
+  for (int i = rangeStart; i <= rangeEnd; ++i) {
+    m_uuidRowMap.insert(m_items.at(i).uuid, i);
+  }
   endMoveRows();
 
   recalculateBlockMetadata();
@@ -618,14 +598,20 @@ bool PlaylistListModel::moveItem(int fromRow, int toRow) {
 }
 
 void PlaylistListModel::recalculateBlockMetadata() {
+  recalculateBlockMetadataInternal(-2);
+}
+
+void PlaylistListModel::recalculateBlockMetadataInternal(
+    int overridePlayingRow) {
   if (m_items.isEmpty()) {
     m_playingRow = -1;
+    m_lastLockedRow = -1;
     return;
   }
 
   // Snapshot derived fields so dataChanged is emitted only for changed rows.
   struct Derived {
-    QString estimatedTime;
+    qint64 estimatedTimeMs;
     QString markerText;
     qint64 totalDurationMs;
     int itemsCount;
@@ -635,17 +621,27 @@ void PlaylistListModel::recalculateBlockMetadata() {
   QVector<Derived> before;
   before.reserve(m_items.size());
   for (const PlaylistItem &it : std::as_const(m_items)) {
-    before.append({it.estimatedTime, it.markerText, it.totalDurationMs,
+    before.append({it.estimatedTimeMs, it.markerText, it.totalDurationMs,
                    it.itemsCount, it.status, it.blockType});
   }
 
-  m_playingRow = -1;
-  for (int i = 0; i < m_items.size(); ++i) {
-    const PlaylistItem &it = m_items.at(i);
-    if (it.type == ItemType::Media &&
-        it.status == PlaylistItemStatus::Playing) {
-      m_playingRow = i;
-      break;
+  if (overridePlayingRow >= 0 && overridePlayingRow < m_items.size()) {
+    m_playingRow = overridePlayingRow;
+    for (int i = 0; i < m_items.size(); ++i) {
+      if (i != overridePlayingRow &&
+          m_items.at(i).status == PlaylistItemStatus::Playing) {
+        m_items[i].playerId = -1;
+      }
+    }
+  } else {
+    m_playingRow = -1;
+    for (int i = 0; i < m_items.size(); ++i) {
+      const PlaylistItem &it = m_items.at(i);
+      if (it.type == ItemType::Media &&
+          it.status == PlaylistItemStatus::Playing) {
+        m_playingRow = i;
+        break;
+      }
     }
   }
 
@@ -671,7 +667,8 @@ void PlaylistListModel::recalculateBlockMetadata() {
       currentBlockMarkerIdx = i;
       currentBlockDurationMs = 0;
 
-      QTime parsed = QTime::fromString(item.title.trimmed(), "hh:mm");
+      QTime parsed =
+          QTime::fromString(item.title.trimmed(), QStringLiteral("hh:mm"));
       if (parsed.isValid()) {
         accumulatedTime = parsed;
       }
@@ -692,7 +689,16 @@ void PlaylistListModel::recalculateBlockMetadata() {
       }
     } else if (item.type == ItemType::Media) {
       item.blockType = activeBlockType;
-      item.estimatedTime = accumulatedTime.toString("hh:mm:ss");
+      const qint64 estSecMs =
+          static_cast<qint64>(accumulatedTime.msecsSinceStartOfDay() / 1000) *
+          1000;
+      if (item.estimatedTimeMs != estSecMs || item.estimatedTime.isEmpty()) {
+        item.estimatedTimeMs = estSecMs;
+        item.estimatedTime =
+            QString::asprintf("%02d:%02d:%02d", accumulatedTime.hour(),
+                              accumulatedTime.minute(),
+                              accumulatedTime.second());
+      }
 
       const qint64 effectiveEnd =
           (item.mixEnd > item.startPoint)
@@ -718,14 +724,14 @@ void PlaylistListModel::recalculateBlockMetadata() {
       accumulatedTime =
           accumulatedTime.addMSecs(static_cast<int>(effectiveDuration));
 
-      currentBlockDurationMs += item.durationMs;
+      currentBlockDurationMs += effectiveDuration;
 
       if (activeBlockType == BlockType::Commercial) {
         commercialCount++;
-        commercialDurationMs += item.durationMs;
+        commercialDurationMs += effectiveDuration;
       } else {
         musicCount++;
-        musicDurationMs += item.durationMs;
+        musicDurationMs += effectiveDuration;
       }
     } else if (item.type == ItemType::EndMarker) {
       if (item.blockType == BlockType::Commercial) {
@@ -745,6 +751,7 @@ void PlaylistListModel::recalculateBlockMetadata() {
   }
 
   const int playingRow = m_playingRow;
+  m_lastLockedRow = playingRow;
   bool foundNext = false;
 
   for (int i = 0; i < m_items.size(); ++i) {
@@ -765,6 +772,7 @@ void PlaylistListModel::recalculateBlockMetadata() {
       }
     } else {
       if (item.status == PlaylistItemStatus::Finished) {
+        m_lastLockedRow = qMax(m_lastLockedRow, i);
         continue;
       }
       if (!foundNext) {
@@ -774,34 +782,88 @@ void PlaylistListModel::recalculateBlockMetadata() {
         item.status = PlaylistItemStatus::Default;
       }
     }
+
+    if (item.status == PlaylistItemStatus::Playing ||
+        item.status == PlaylistItemStatus::Finished) {
+      m_lastLockedRow = qMax(m_lastLockedRow, i);
+    }
   }
 
-  // Coalesce changed rows into contiguous dataChanged ranges.
+  // Coalesce changed rows into contiguous dataChanged ranges with exact roles.
   int runStart = -1;
+  bool runStatus = false;
+  bool runBlockType = false;
+  bool runTotalDur = false;
+  bool runItemsCount = false;
+  bool runEstTime = false;
+  bool runMarkerText = false;
+
   for (int i = 0; i <= m_items.size(); ++i) {
     bool changed = false;
+    bool statusCh = false;
+    bool blockTypeCh = false;
+    bool totalDurCh = false;
+    bool itemsCountCh = false;
+    bool estTimeCh = false;
+    bool markerTextCh = false;
+
     if (i < m_items.size()) {
       const PlaylistItem &it = m_items.at(i);
       const Derived &b = before.at(i);
-      changed = it.status != b.status || it.blockType != b.blockType ||
-                it.totalDurationMs != b.totalDurationMs ||
-                it.itemsCount != b.itemsCount ||
-                it.estimatedTime != b.estimatedTime ||
-                it.markerText != b.markerText;
+      statusCh = (it.status != b.status);
+      blockTypeCh = (it.blockType != b.blockType);
+      totalDurCh = (it.totalDurationMs != b.totalDurationMs);
+      itemsCountCh = (it.itemsCount != b.itemsCount);
+      estTimeCh = (it.estimatedTimeMs != b.estimatedTimeMs);
+      markerTextCh = (it.markerText != b.markerText);
+      changed = statusCh || blockTypeCh || totalDurCh || itemsCountCh ||
+                estTimeCh || markerTextCh;
     }
+
     if (changed) {
-      if (runStart < 0)
+      if (runStart < 0) {
         runStart = i;
+      }
+      runStatus |= statusCh;
+      runBlockType |= blockTypeCh;
+      runTotalDur |= totalDurCh;
+      runItemsCount |= itemsCountCh;
+      runEstTime |= estTimeCh;
+      runMarkerText |= markerTextCh;
     } else if (runStart >= 0) {
-      emit dataChanged(index(runStart, 0), index(i - 1, 0));
+      QList<int> roles;
+      roles.reserve(6);
+      if (runStatus)
+        roles.append(StatusRole);
+      if (runBlockType)
+        roles.append(BlockTypeRole);
+      if (runTotalDur)
+        roles.append(TotalDurationRole);
+      if (runItemsCount)
+        roles.append(ItemsCountRole);
+      if (runEstTime)
+        roles.append(EstimatedTimeRole);
+      if (runMarkerText)
+        roles.append(MarkerTextRole);
+
+      emit dataChanged(index(runStart, 0), index(i - 1, 0), roles);
       runStart = -1;
+      runStatus = runBlockType = runTotalDur = runItemsCount = runEstTime =
+          runMarkerText = false;
     }
   }
 }
 
 void PlaylistListModel::rebuildUuidMap() {
   m_uuidRowMap.clear();
+  m_uuidRowMap.reserve(m_items.size());
   for (int i = 0; i < m_items.size(); ++i) {
+    m_uuidRowMap.insert(m_items.at(i).uuid, i);
+  }
+}
+
+void PlaylistListModel::updateUuidMapFrom(int startRow) {
+  for (int i = qMax(0, startRow); i < m_items.size(); ++i) {
     m_uuidRowMap.insert(m_items.at(i).uuid, i);
   }
 }
@@ -822,7 +884,9 @@ void PlaylistListModel::enqueueDurationProbe(const QUuid &uuid) {
     return;
   }
 
-  if (!QFileInfo::exists(item->path)) {
+  const qint64 cachedDuration = m_durationCache.value(item->path, 0);
+  if (cachedDuration > 0) {
+    applyProbedDuration(uuid, cachedDuration);
     return;
   }
 
@@ -846,7 +910,13 @@ void PlaylistListModel::processNextDurationProbe() {
 
     const PlaylistItem *it = itemAt(row);
     if (!it || it->type != ItemType::Media || it->durationMs > 0 ||
-        it->path.isEmpty() || !QFileInfo::exists(it->path)) {
+        it->path.isEmpty()) {
+      continue;
+    }
+
+    const qint64 cachedDuration = m_durationCache.value(it->path, 0);
+    if (cachedDuration > 0) {
+      applyProbedDuration(uuid, cachedDuration);
       continue;
     }
 
@@ -894,9 +964,15 @@ void PlaylistListModel::processNextDurationProbe() {
       });
     }
 
+    const QUrl targetUrl = QUrl::fromLocalFile(it->path);
+    if (m_probePlayer->source() == targetUrl) {
+      // Qt6 QMediaPlayer::setSource(sameUrl) is a no-op; reset source first.
+      m_probePlayer->setSource(QUrl());
+    }
+
     m_activeProbeUuid = uuid;
     m_probeTimeoutTimer->start(5000);
-    m_probePlayer->setSource(QUrl::fromLocalFile(it->path));
+    m_probePlayer->setSource(targetUrl);
     return;
   }
 
@@ -941,6 +1017,9 @@ void PlaylistListModel::applyProbedDuration(const QUuid &uuid,
   const PlaylistItem *item = itemAt(row);
   if (item && item->type == ItemType::Media && item->durationMs <= 0 &&
       durationMs > 0) {
+    if (!item->path.isEmpty()) {
+      cacheDuration(item->path, durationMs);
+    }
     const qint64 endPt = (item->endPoint > 0 && item->endPoint <= durationMs)
                              ? item->endPoint
                              : durationMs;

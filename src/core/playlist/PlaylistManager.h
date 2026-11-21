@@ -20,6 +20,7 @@ public:
   static constexpr qint64 kDefaultManualNextFadeMs = 500;
   static constexpr qint64 kDefaultStopFadeMs = 1500;
   static constexpr int kMonitorIntervalMs = 30;
+  static constexpr qint64 kUiPositionMinDeltaMs = 33;
 
   enum class SlotRole { Free, Active, Tail, PreloadNext, PreloadExt };
 
@@ -85,6 +86,10 @@ private:
   bool m_transitionTriggeredForActive = false;
   bool m_inAdvance = false;
   bool m_updatingModelMetadata = false;
+  int m_cachedActiveRow = -1;
+  int m_cachedNextRow = -1;
+  qint64 m_cachedTriggerPos = -1;
+  qint64 m_lastUiPositionMs = -1;
   qint64 m_minPreloadWindowMs = kDefaultMinPreloadWindowMs;
   qint64 m_manualNextFadeMs = kDefaultManualNextFadeMs;
   qint64 m_stopFadeMs = kDefaultStopFadeMs;
@@ -101,6 +106,9 @@ private:
   void startPlaybackFromRow(int startRow, bool fadeOutOutgoing);
   void syncPreloads();
   void preloadSlot(int slotIndex, int targetRow, SlotRole role);
+  void refreshMixTriggerCache(int knownActiveRow = -1, int knownNextRow = -2);
+  void resetMixTriggerCache();
+  void updateUiPosition(int row, qint64 pos, bool force = false);
   void checkMixTrigger(qint64 pos);
   void emitBlockTransitionIfNeeded(int mediaRow);
 

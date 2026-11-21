@@ -108,6 +108,7 @@ struct PlaylistItem {
   MediaType mediaType = MediaType::Music;
 
   QString estimatedTime;
+  qint64 estimatedTimeMs = -1;
   qint64 totalDurationMs = 0;
   int itemsCount = 0;
   QString markerText;
