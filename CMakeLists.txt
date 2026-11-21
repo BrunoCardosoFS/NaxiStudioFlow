@@ -23,6 +23,12 @@ add_subdirectory(src/lang)
 add_subdirectory(src/resources)
 add_subdirectory(src/ui)
 
+include(CTest)
+find_package(Qt6 QUIET COMPONENTS Test)
+if(BUILD_TESTING AND Qt6Test_FOUND)
+    add_subdirectory(tests)
+endif()
+
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/app.rc")
 target_sources(${EXECUTABLE_NAME} PRIVATE ${app_icon_resource_windows})
 

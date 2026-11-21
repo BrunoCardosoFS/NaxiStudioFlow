@@ -6,6 +6,7 @@
 !/dist
 !/docs
 !/src
+!/tests
 !/.gitignore
 !/CMakeLists.txt
 !/CONTRIBUTING.md
