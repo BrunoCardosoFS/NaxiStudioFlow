@@ -58,6 +58,13 @@ enum PlaylistItemRoles {
   FadeInEndPointRole,
   FadeOutStartPointRole,
 
+  StartVolumeRole,
+  EndVolumeRole,
+  VolumeUpStartPointRole,
+  VolumeUpEndPointRole,
+  VolumeDownStartPointRole,
+  VolumeDownEndPointRole,
+
   BlockTypeRole,
   TypeRole,
   MediaTypeRole,
@@ -88,6 +95,13 @@ struct PlaylistItem {
 
   qint64 fadeInEndPoint = 0;
   qint64 fadeOutStartPoint = 0;
+
+  float startVolume = 1.0f;
+  float endVolume = 1.0f;
+  qint64 volumeUpStartPoint = 0;
+  qint64 volumeUpEndPoint = 0;
+  qint64 volumeDownStartPoint = 0;
+  qint64 volumeDownEndPoint = 0;
 
   BlockType blockType = BlockType::Music;
   ItemType type = ItemType::Media;

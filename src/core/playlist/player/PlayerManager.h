@@ -1,11 +1,13 @@
 #ifndef PLAYERMANAGER_H
 #define PLAYERMANAGER_H
 
+#include <QAudioDevice>
 #include <QAudioOutput>
 #include <QMediaPlayer>
 #include <QObject>
+#include <QUrl>
 
-enum class PlayerStatus { Loaded, Playing, End, Error };
+enum class PlayerStatus { Idle, Loading, Loaded, Playing, Paused, End, Error };
 
 struct PlayerMetadata {
   qint64 mixStart = 0;
@@ -17,6 +19,13 @@ struct PlayerMetadata {
   qint64 fadeInEndPoint = 0;
   qint64 fadeOutStartPoint = 0;
 
+  float startVolume = 1.0f;
+  float endVolume = 1.0f;
+  qint64 volumeUpStartPoint = 0;
+  qint64 volumeUpEndPoint = 0;
+  qint64 volumeDownStartPoint = 0;
+  qint64 volumeDownEndPoint = 0;
+
   qint64 duration = 0;
 };
 
@@ -24,42 +33,75 @@ class PlayerManager : public QObject {
   Q_OBJECT
 public:
   explicit PlayerManager(QObject *parent = nullptr);
+  ~PlayerManager() override;
 
-  void play();
-  void pause();
-  void stop();
+  virtual void load(const QUrl &source, const PlayerMetadata &metadata,
+                    bool autoPlay = false);
+  virtual void unload();
 
-  void setMetadata(const PlayerMetadata &metadata);
+  virtual void play();
+  virtual void pause();
+  virtual void stop();
+  virtual void seek(qint64 positionMs);
+  virtual void playFrom(qint64 positionMs);
+  virtual void triggerFadeOut(qint64 fadeDurationMs);
 
-  QMediaPlayer *mediaPlayer = new QMediaPlayer(this);
-  PlayerMetadata metadata;
-  PlayerStatus status() const;
+  virtual void setMetadata(const PlayerMetadata &metadata);
+  void setAudioOutputDevice(const QAudioDevice &device);
 
-signals:
-  void volumeChanged(float volume);
-  void statusChanged(PlayerStatus status);
+  static float computeVolumeFactor(const PlayerMetadata &meta, qint64 position);
 
-private:
-  QAudioOutput *audioOutput = new QAudioOutput(this);
-
-  PlayerStatus m_status = PlayerStatus::End;
-  float m_targetVolume = 1.0f;
-  float m_currentVolume = -1.0f;
-
-  float m_invFadeInDuration = 0.0f;
-  float m_invFadeOutDuration = 0.0f;
-
-  void applyVolume(float volume);
-  void setStatus(PlayerStatus status);
-
-  void updateFadeParameters();
+  virtual qint64 position() const;
+  virtual qint64 duration() const;
+  QUrl source() const { return m_source; }
 
   void setTargetVolume(float volume);
   float targetVolume() const;
   float currentVolume() const;
 
-private slots:
+  QMediaPlayer *mediaPlayer = nullptr;
+  PlayerMetadata metadata;
+  const PlayerMetadata &currentMetadata() const { return metadata; }
+  PlayerStatus status() const;
+
+signals:
+  void volumeChanged(float volume);
+  void statusChanged(PlayerStatus status);
+  void positionChanged(qint64 position);
+  void durationLoaded(qint64 durationMs);
+
+protected:
+  explicit PlayerManager(bool initializeMediaBackend,
+                         QObject *parent = nullptr);
+
+  void applyVolume(float volume);
+  void applyVolumeForPosition(qint64 position);
+  void setStatus(PlayerStatus status);
+  void normalizeMetadata(qint64 realDuration);
+  void updateFadeParameters();
   void volumeControl(qint64 position);
+
+  QUrl m_source;
+  bool m_pendingPlay = false;
+  qint64 m_pendingSeekPos = -1;
+
+private:
+  QAudioOutput *audioOutput = nullptr;
+
+  PlayerStatus m_status = PlayerStatus::Idle;
+  float m_targetVolume = 1.0f;
+  float m_currentVolume = -1.0f;
+
+  float m_invFadeInDuration = 0.0f;
+  float m_invFadeOutDuration = 0.0f;
+  float m_invVolUpDuration = 0.0f;
+  float m_invVolDownDuration = 0.0f;
+  bool m_hasIntroEnvelope = false;
+  bool m_hasOutroEnvelope = false;
+  qint64 m_plateauStart = 0;
+  qint64 m_plateauEnd = 0;
+
+private slots:
   void mediaStatusChanged(QMediaPlayer::MediaStatus status);
 };
 
