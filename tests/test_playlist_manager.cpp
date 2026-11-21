@@ -302,6 +302,9 @@ private slots:
   void testPlaylistViewCatalogDropAndDeleteKey();
   void testStopFadeOutAndRemainingAudioClamp();
   void testPlaylistViewRowHeightUpdatesOnStopAndFinish();
+  void testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume();
+  void testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTimeout();
+  void testRecalculateBlockMetadataEmitsExactRoles();
 };
 
 void TestPlaylistManager::initTestCase() {
@@ -1047,7 +1050,8 @@ void TestPlaylistManager::testRemoveFutureItemsAndLockProtection() {
   QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::PreloadNext);
   QCOMPARE(manager.slotItemUuid(1), t3.uuid);
   QCOMPARE(model->itemAt(5)->itemsCount, 3);
-  QCOMPARE(model->itemAt(5)->totalDurationMs, qint64(42000));
+  // Effective total with mixEnd points: T1(9000) + T3(19000) + T4(11000) = 39000
+  QCOMPARE(model->itemAt(5)->totalDurationMs, qint64(39000));
 
   // Advance T1 to finish -> T3 plays, T1 is Finished
   fakes[0]->advanceTo(9000);
@@ -1277,6 +1281,102 @@ void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
   const QRect endAfter = view.visualRect(model->index(4, 0));
   QCOMPARE(finishedRect2.height(), 32);
   QCOMPARE(endAfter.top(), finishedRect2.bottom() + 1);
+}
+
+void TestPlaylistManager::testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume() {
+  FakeAudioRegistry registry;
+  FakePlayerManager player(&registry);
+
+  PlayerMetadata meta;
+  meta.duration = 10000;
+  meta.startPoint = 0;
+  meta.endPoint = 10000;
+  meta.fadeInEndPoint = 0;
+  meta.fadeOutStartPoint = 6000; // 4s fade-out
+
+  player.load(QUrl::fromLocalFile("C:/audio/fade.mp3"), meta, true);
+  QCOMPARE(player.status(), PlayerStatus::Playing);
+
+  // Mid-fade-out at 8000ms (progress = 0.5 -> sin(pi/4) ~= 0.7071)
+  player.advanceTo(8000);
+  const float volBefore = player.currentVolume();
+  QVERIFY(volBefore > 0.65f && volBefore < 0.75f);
+
+  // Shorten fade-out to 500ms (ends at 8500ms): must NOT jump back to 1.0!
+  player.triggerFadeOut(500);
+  const float volAtTrigger = player.currentVolume();
+  QVERIFY2(volAtTrigger <= volBefore + 0.003f,
+           qPrintable(QString("Volume jumped from %1 to %2")
+                          .arg(volBefore)
+                          .arg(volAtTrigger)));
+  QCOMPARE(player.currentMetadata().endPoint, qint64(8500));
+
+  // Halfway through shortened fade-out (8250ms): monotonically decreasing
+  player.advanceTo(8250);
+  const float volMid = player.currentVolume();
+  QVERIFY(volMid > 0.0f && volMid < volAtTrigger);
+
+  // Calling triggerFadeOut with a longer duration (2000ms) while only 250ms remain
+  // must keep existing shorter fade-out without jumping volume
+  player.triggerFadeOut(2000);
+  QCOMPARE(player.currentMetadata().endPoint, qint64(8500));
+  QVERIFY(player.currentVolume() <= volMid + 0.003f);
+
+  // Reach endPoint -> stops cleanly at 0.0
+  player.advanceTo(8500);
+  QCOMPARE(player.status(), PlayerStatus::End);
+  QCOMPARE(player.currentVolume(), 0.0f);
+}
+
+void TestPlaylistManager::testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTimeout() {
+  QTemporaryDir tempDir;
+  QVERIFY(tempDir.isValid());
+  const QString wavPath = tempDir.filePath("dup_probe.wav");
+  QVERIFY(writeTestWavFile(wavPath, 1000));
+
+  PlaylistListModel model;
+  model.clear();
+  model.addItem(makeBlockMarker("22:00", "Dup Probe"));
+  model.addItem(makeStartMarker(BlockType::Music));
+  model.addItem(makeEndMarker(BlockType::Music));
+
+  // Drop the exact same file twice back-to-back before the first probe finishes
+  QVERIFY(model.insertCatalogItem(2, "Dup 1", wavPath, MediaType::Jingle, 0));
+  QVERIFY(model.insertCatalogItem(3, "Dup 2", wavPath, MediaType::Jingle, 0));
+
+  // Both must resolve quickly (well under the 5000ms probe timeout)
+  QTRY_VERIFY_WITH_TIMEOUT(
+      model.itemAt(2)->durationMs >= 800 && model.itemAt(3)->durationMs >= 800,
+      4000);
+
+  // A third drop of the same file must resolve synchronously from cache!
+  QVERIFY(model.insertCatalogItem(4, "Dup 3", wavPath, MediaType::Jingle, 0));
+  QVERIFY(model.itemAt(4)->durationMs >= 800);
+}
+
+void TestPlaylistManager::testRecalculateBlockMetadataEmitsExactRoles() {
+  PlaylistListModel model;
+  model.clear();
+  model.addItem(makeBlockMarker("23:00", "Roles Test"));
+  model.addItem(makeStartMarker(BlockType::Music));
+  model.addItem(makeMediaItem("A", "C:/audio/a.mp3", 10000));
+  model.addItem(makeMediaItem("B", "C:/audio/b.mp3", 10000));
+  model.addItem(makeEndMarker(BlockType::Music));
+
+  QSignalSpy dataSpy(&model, &QAbstractItemModel::dataChanged);
+
+  // Updating duration of row 2 shifts estimatedTime of row 3 & totalDuration of EndMarker/BlockMarker,
+  // but does NOT change any item's StatusRole!
+  model.updateItemAudioMetadata(2, 20000, 0, 20000, 0, 20000, 0, 20000);
+
+  QVERIFY(dataSpy.count() >= 1);
+  for (int i = 0; i < dataSpy.count(); ++i) {
+    const QList<int> roles = dataSpy.at(i).at(2).value<QList<int>>();
+    QVERIFY2(!roles.isEmpty(),
+             "dataChanged must specify exact roles instead of empty list");
+    QVERIFY2(!roles.contains(StatusRole),
+             "StatusRole should not be emitted when only schedule/duration changed");
+  }
 }
 
 QTEST_MAIN(TestPlaylistManager)
