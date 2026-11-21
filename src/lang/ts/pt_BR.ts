@@ -1,205 +1,315 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="pt_BR">
-<context>
-    <name>CartWallArea</name>
-    <message>
-        <location filename="../../ui/widgets/cartwall/CartWallArea.ui" line="23"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>CartWallItem</name>
-    <message>
-        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="35"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="62"/>
-        <source>Título</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line="157"/>
-        <source>Waveform</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>Flow</name>
-    <message>
-        <location filename="../../ui/Flow.ui" line="712"/>
-        <source>Catálogo</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="773"/>
-        <source>Buscar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="990"/>
-        <source>Vinhetas</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1021"/>
-        <source>Músicas</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1052"/>
-        <source>Outros</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1083"/>
-        <source>Comerciais</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1173"/>
-        <source>Cartucheira</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1234"/>
-        <source>ToDo: Cartucheira</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1400"/>
-        <source>Selecione um perfil</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.ui" line="1521"/>
-        <source>F11</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/Flow.cpp" line="57"/>
-        <source>Musical</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>MixEditor</name>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="20"/>
-        <source>NaxiStudio Editor - Editor de Mixagem</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="41"/>
-        <source>&lt;Nome do arquivo&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="84"/>
-        <source>Play</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="91"/>
-        <source>Pause</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="98"/>
-        <source>Stop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="118"/>
-        <source>Salvar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="200"/>
-        <source>Ponto de mixagem inicial</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="217"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="256"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="507"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="546"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="585"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="618"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="651"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="684"/>
-        <source>mm:ss:zzz</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="246"/>
-        <source>Ponto de mixagem final</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="285"/>
-        <source>Volume do início</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="359"/>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="444"/>
-        <source>0%</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="394"/>
-        <source>Volume do final</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="497"/>
-        <source>Ponto do fim do Fade In</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="536"/>
-        <source>Ponto do início do aumento do volume</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="575"/>
-        <source>Ponto do fim do aumento do volume</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="608"/>
-        <source>Ponto do início da diminuição do volume</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="641"/>
-        <source>Ponto do fim da diminuição do volume</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/widgets/editor/MixEditor.ui" line="674"/>
-        <source>Ponto do início do Fade Out</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>PlaylistItem</name>
-    <message>
-        <location filename="../../ui/widgets/playlist/PlaylistItem.ui" line="32"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>ProgramBlock</name>
-    <message>
-        <location filename="../../ui/widgets/playlist/ProgramBlock.ui" line="20"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-</TS>
+<?xml version="1.0" encoding = "utf-8" ?>
+    <!DOCTYPE TS >
+    <TS version="2.1" language = "pt_BR" >
+        <context>
+        <name>CartWallArea </name>
+        < message >
+        <location filename="../../ui/widgets/cartwall/CartWallArea.ui" line = "23" />
+            <source>Form </source>
+            < translation type = "unfinished" > </translation>
+                </message>
+                </context>
+                < context >
+                <name>CartWallItem </name>
+                < message >
+                <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line = "35" />
+                    <source>Form </source>
+                    < translation type = "unfinished" > </translation>
+                        </message>
+                        < message >
+                        <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line = "62" />
+                            <source>Título </source>
+                            < translation type = "unfinished" > </translation>
+                                </message>
+                                < message >
+                                <location filename="../../ui/widgets/cartwall/CartWallItem.ui" line = "157" />
+                                    <source>Waveform </source>
+                                    < translation type = "unfinished" > </translation>
+                                        </message>
+                                        </context>
+                                        < context >
+                                        <name>CatalogWidget </name>
+                                        < message >
+                                        <source>Abrir no Editor de Mixagem(to do (M11))</source>
+                                            < translation > Abrir no Editor de Mixagem(to do (M11))</translation>
+                                                </message>
+                                                </context>
+                                                < context >
+                                                <name>Flow </name>
+                                                < message >
+                                                <location filename="../../ui/Flow.ui" line = "712" />
+                                                    <source>Catálogo </source>
+                                                    < translation type = "unfinished" > </translation>
+                                                        </message>
+                                                        < message >
+                                                        <location filename="../../ui/Flow.ui" line = "773" />
+                                                            <source>Buscar </source>
+                                                            < translation type = "unfinished" > </translation>
+                                                                </message>
+                                                                < message >
+                                                                <location filename="../../ui/Flow.ui" line = "990" />
+                                                                    <source>Vinhetas </source>
+                                                                    < translation type = "unfinished" > </translation>
+                                                                        </message>
+                                                                        < message >
+                                                                        <location filename="../../ui/Flow.ui" line = "1021" />
+                                                                            <source>Músicas </source>
+                                                                            < translation type = "unfinished" > </translation>
+                                                                                </message>
+                                                                                < message >
+                                                                                <location filename="../../ui/Flow.ui" line = "1052" />
+                                                                                    <source>Outros </source>
+                                                                                    < translation type = "unfinished" > </translation>
+                                                                                        </message>
+                                                                                        < message >
+                                                                                        <location filename="../../ui/Flow.ui" line = "1083" />
+                                                                                            <source>Comerciais </source>
+                                                                                            < translation type = "unfinished" > </translation>
+                                                                                                </message>
+                                                                                                < message >
+                                                                                                <location filename="../../ui/Flow.ui" line = "1173" />
+                                                                                                    <source>Cartucheira </source>
+                                                                                                    < translation type = "unfinished" > </translation>
+                                                                                                        </message>
+                                                                                                        < message >
+                                                                                                        <location filename="../../ui/Flow.ui" line = "1234" />
+                                                                                                            <source>ToDo: Cartucheira </source>
+                                                                                                                < translation type = "unfinished" > </translation>
+                                                                                                                    </message>
+                                                                                                                    < message >
+                                                                                                                    <location filename="../../ui/Flow.ui" line = "1400" />
+                                                                                                                        <source>Selecione um perfil </source>
+                                                                                                                            < translation type = "unfinished" > </translation>
+                                                                                                                                </message>
+                                                                                                                                < message >
+                                                                                                                                <location filename="../../ui/Flow.ui" line = "1521" />
+                                                                                                                                    <source>F11 </source>
+                                                                                                                                    < translation type = "unfinished" > </translation>
+                                                                                                                                        </message>
+                                                                                                                                        < message >
+                                                                                                                                        <location filename="../../ui/Flow.cpp" line = "57" />
+                                                                                                                                            <source>Musical </source>
+                                                                                                                                            < translation type = "unfinished" > </translation>
+                                                                                                                                                </message>
+                                                                                                                                                </context>
+                                                                                                                                                < context >
+                                                                                                                                                <name>MixEditor </name>
+                                                                                                                                                < message >
+                                                                                                                                                <source>NaxStudio Flow - Editor de Mixagem </source>
+                                                                                                                                                    < translation > NaxStudio Flow - Editor de Mixagem </translation>
+                                                                                                                                                        </message>
+                                                                                                                                                        < message >
+                                                                                                                                                        <source>& lt;Nome do arquivo & gt;</source>
+                                                                                                                                                            <translation> & lt;Nome do arquivo & gt;</translation>
+                                                                                                                                                                </message>
+                                                                                                                                                                < message >
+                                                                                                                                                                <source>Play </source>
+                                                                                                                                                                < translation > Play </translation>
+                                                                                                                                                                </message>
+                                                                                                                                                                < message >
+                                                                                                                                                                <source>Pause </source>
+                                                                                                                                                                < translation > Pause </translation>
+                                                                                                                                                                </message>
+                                                                                                                                                                < message >
+                                                                                                                                                                <source>Stop </source>
+                                                                                                                                                                < translation > Stop </translation>
+                                                                                                                                                                </message>
+                                                                                                                                                                < message >
+                                                                                                                                                                <source>Diminuir zoom </source>
+                                                                                                                                                                    < translation > Diminuir zoom </translation>
+                                                                                                                                                                        </message>
+                                                                                                                                                                        < message >
+                                                                                                                                                                        <source>Ajustar forma de onda à janela </source>
+                                                                                                                                                                            < translation > Ajustar forma de onda à janela </translation>
+                                                                                                                                                                                </message>
+                                                                                                                                                                                < message >
+                                                                                                                                                                                <source>Aumentar zoom </source>
+                                                                                                                                                                                    < translation > Aumentar zoom </translation>
+                                                                                                                                                                                        </message>
+                                                                                                                                                                                        < message >
+                                                                                                                                                                                        <source>Corte, Mixagem e Volumes </source>
+                                                                                                                                                                                            < translation > Corte, Mixagem e Volumes </translation>
+                                                                                                                                                                                                </message>
+                                                                                                                                                                                                < message >
+                                                                                                                                                                                                <source>Ponto inicial </source>
+                                                                                                                                                                                                    < translation > Ponto inicial </translation>
+                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                        <source>Definir com a posição atual do playhead </source>
+                                                                                                                                                                                                            < translation > Definir com a posição atual do playhead </translation>
+                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                <source>Marcar </source>
+                                                                                                                                                                                                                < translation > Marcar </translation>
+                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                <source>Ponto de mixagem inicial </source>
+                                                                                                                                                                                                                    < translation > Ponto de mixagem inicial </translation>
+                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                        <source>Ponto de mixagem final </source>
+                                                                                                                                                                                                                            < translation > Ponto de mixagem final </translation>
+                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                <source>Ponto final </source>
+                                                                                                                                                                                                                                    < translation > Ponto final </translation>
+                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                        <source>Volume do início </source>
+                                                                                                                                                                                                                                            < translation > Volume do início </translation>
+                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                <source>Volume do final </source>
+                                                                                                                                                                                                                                                    < translation > Volume do final </translation>
+                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                        <source>Fades e Envelope de Volume </source>
+                                                                                                                                                                                                                                                            < translation > Fades e Envelope de Volume </translation>
+                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                <source>Ponto do fim do Fade In </source>
+                                                                                                                                                                                                                                                                    < translation > Ponto do fim do Fade In </translation>
+                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                        <source>Ponto do início do aumento do volume </source>
+                                                                                                                                                                                                                                                                            < translation > Ponto do início do aumento do volume </translation>
+                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                <source>Ponto do fim do aumento do volume </source>
+                                                                                                                                                                                                                                                                                    < translation > Ponto do fim do aumento do volume </translation>
+                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                        <source>Ponto do início da diminuição do volume </source>
+                                                                                                                                                                                                                                                                                            < translation > Ponto do início da diminuição do volume </translation>
+                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                <source>Ponto do fim da diminuição do volume </source>
+                                                                                                                                                                                                                                                                                                    < translation > Ponto do fim da diminuição do volume </translation>
+                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                        <source>Ponto do início do Fade Out </source>
+                                                                                                                                                                                                                                                                                                            < translation > Ponto do início do Fade Out </translation>
+                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                <source>Restaurar padrões </source>
+                                                                                                                                                                                                                                                                                                                    < translation > Restaurar padrões </translation>
+                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                        <source>Cancelar </source>
+                                                                                                                                                                                                                                                                                                                        < translation > Cancelar </translation>
+                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                        <source>Persistência global em arquivo.json será habilitada após o marco M11 </source>
+                                                                                                                                                                                                                                                                                                                            < translation > Persistência global em arquivo.json será habilitada após o marco M11 </translation>
+                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                <source>Salvar globalmente - to do (M11) </source>
+                                                                                                                                                                                                                                                                                                                                    < translation > Salvar globalmente - to do (M11) </translation>
+                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                        <source>Salvar na Playlist </source>
+                                                                                                                                                                                                                                                                                                                                            < translation > Salvar na Playlist </translation>
+                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                <source>Carregando forma de onda...</source>
+                                                                                                                                                                                                                                                                                                                                                    < translation > Carregando forma de onda...</translation>
+                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                        <source>Arquivo de áudio não encontrado no disco — editando apenas marcadores de tempo </source>
+                                                                                                                                                                                                                                                                                                                                                            < translation > Arquivo de áudio não encontrado no disco — editando apenas marcadores de tempo </translation>
+                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                <source>Item indisponível </source>
+                                                                                                                                                                                                                                                                                                                                                                    < translation > Item indisponível </translation>
+                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                        <source>Não foi possível salvar: o item foi removido da playlist ou já foi finalizado.</source>
+                                                                                                                                                                                                                                                                                                                                                                            < translation > Não foi possível salvar: o item foi removido da playlist ou já foi finalizado.</translation>
+                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                <source>Não foi possível carregar o áudio para pré - escuta.</source>
+                                                                                                                                                                                                                                                                                                                                                                                    < translation > Não foi possível carregar o áudio para pré - escuta.</translation>
+                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                        </context>
+                                                                                                                                                                                                                                                                                                                                                                                        < context >
+                                                                                                                                                                                                                                                                                                                                                                                        <name>PlaylistItem </name>
+                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                        <location filename="../../ui/widgets/playlist/PlaylistItem.ui" line = "32" />
+                                                                                                                                                                                                                                                                                                                                                                                            <source>Form </source>
+                                                                                                                                                                                                                                                                                                                                                                                            < translation type = "unfinished" > </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                </context>
+                                                                                                                                                                                                                                                                                                                                                                                                < context >
+                                                                                                                                                                                                                                                                                                                                                                                                <name>PlaylistView </name>
+                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                <source>Abrir no Editor de Mixagem </source>
+                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Abrir no Editor de Mixagem </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                        <source>Remover </source>
+                                                                                                                                                                                                                                                                                                                                                                                                        < translation > Remover </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                        </context>
+                                                                                                                                                                                                                                                                                                                                                                                                        < context >
+                                                                                                                                                                                                                                                                                                                                                                                                        <name>ProgramBlock </name>
+                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                        <location filename="../../ui/widgets/playlist/ProgramBlock.ui" line = "20" />
+                                                                                                                                                                                                                                                                                                                                                                                                            <source>Form </source>
+                                                                                                                                                                                                                                                                                                                                                                                                            < translation type = "unfinished" > </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                </context>
+                                                                                                                                                                                                                                                                                                                                                                                                                < context >
+                                                                                                                                                                                                                                                                                                                                                                                                                <name>WaveformExtractor </name>
+                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                <source>Arquivo de áudio não encontrado no disco.</source>
+                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Arquivo de áudio não encontrado no disco.</translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Erro ao decodificar arquivo de áudio(% 1).</source>
+                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Erro ao decodificar arquivo de áudio(% 1).</translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                </context>
+                                                                                                                                                                                                                                                                                                                                                                                                                                < context >
+                                                                                                                                                                                                                                                                                                                                                                                                                                <name>WaveformWidget </name>
+                                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                <source>Ponto inicial </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Ponto inicial </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Mixagem inicial </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Mixagem inicial </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                <source>Fim do Fade In </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Fim do Fade In </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Início do aumento de volume </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Início do aumento de volume </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                <source>Fim do aumento de volume </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Fim do aumento de volume </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Início da diminuição de volume </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Início da diminuição de volume </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <source>Fim da diminuição de volume </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Fim da diminuição de volume </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Início do Fade Out </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Início do Fade Out </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <source>Mixagem final </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    < translation > Mixagem final </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        < message >
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <source>Ponto final </source>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            < translation > Ponto final </translation>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </message>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </context>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </TS>
