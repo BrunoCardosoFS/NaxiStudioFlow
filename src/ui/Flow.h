@@ -5,8 +5,11 @@
 #include <QList>
 #include <QLocale>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSettings>
+#include <QUuid>
 
+#include "core/models.h"
 #include "ui/widgets/catalog/CatalogWidget.h"
 
 QT_BEGIN_NAMESPACE
@@ -17,6 +20,7 @@ QT_END_NAMESPACE
 
 class PlaylistManager;
 class PlaylistItemDelegate;
+class MixEditor;
 
 class Flow : public QMainWindow {
   Q_OBJECT
@@ -27,21 +31,21 @@ public:
 
 private slots:
   void on_btnFull_clicked();
-  void on_btnPlay_clicked();
-  void on_btnPause_clicked();
-  void on_btnStop_clicked();
+  void openMixEditorForPlaylistItem(const QUuid &itemUuid);
 
 private:
   Ui::Flow *ui;
 
-  QSettings *settings = new QSettings("NaxStudio", "Flow");
+  QSettings *settings = new QSettings("NaxStudio", "Flow", this);
   CatalogWidget *catalogWidget = nullptr;
   PlaylistManager *playlistManager = nullptr;
   PlaylistItemDelegate *playlistDelegate = nullptr;
+  QPointer<MixEditor> m_mixEditor;
 
   void saveLayout();
   void restoreLayout();
   void updateClock();
+  void updateTransportButtons(PlaylistStatus status);
 
 protected:
   void changeEvent(QEvent *event) override;

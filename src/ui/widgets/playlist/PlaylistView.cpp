@@ -1,7 +1,18 @@
 #include "PlaylistView.h"
+#include "core/models.h"
 #include "core/playlist/PlaylistListModel.h"
 
+#include <QAction>
+#include <QDataStream>
+#include <QIODevice>
+#include <QKeySequence>
+#include <QMenu>
+#include <QMimeData>
 #include <QPainter>
+
+namespace {
+constexpr const char *kCatalogMime = "application/x-catalog-item";
+}
 
 PlaylistView::PlaylistView(QWidget *parent) : QListView(parent) {
   setSelectionMode(QAbstractItemView::SingleSelection);
@@ -9,7 +20,7 @@ PlaylistView::PlaylistView(QWidget *parent) : QListView(parent) {
   setDragEnabled(true);
   setAcceptDrops(true);
   setDropIndicatorShown(false);
-  setDragDropMode(QAbstractItemView::InternalMove);
+  setDragDropMode(QAbstractItemView::DragDrop);
   setDefaultDropAction(Qt::MoveAction);
   setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
   setAutoScroll(true);
@@ -19,6 +30,42 @@ PlaylistView::PlaylistView(QWidget *parent) : QListView(parent) {
 }
 
 PlaylistView::~PlaylistView() = default;
+
+void PlaylistView::dataChanged(const QModelIndex &topLeft,
+                               const QModelIndex &bottomRight,
+                               const QList<int> &roles) {
+  QListView::dataChanged(topLeft, bottomRight, roles);
+
+  // Fast path: position updates during playback do not change item heights.
+  if (roles.size() == 1 && roles.constFirst() == PositionRole) {
+    return;
+  }
+
+  if (roles.isEmpty() || roles.contains(StatusRole) ||
+      roles.contains(Qt::SizeHintRole)) {
+    scheduleDelayedItemsLayout();
+    viewport()->update();
+  }
+}
+
+bool PlaylistView::removeSelectedItem() {
+  PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
+  const QModelIndex idx = currentIndex();
+  if (!plistModel || !idx.isValid()) {
+    return false;
+  }
+
+  const int row = idx.row();
+  if (!plistModel->removeItem(row)) {
+    return false;
+  }
+
+  if (plistModel->rowCount() > 0) {
+    setCurrentIndex(
+        plistModel->index(qMin(row, plistModel->rowCount() - 1), 0));
+  }
+  return true;
+}
 
 int PlaylistView::calculateDropRow(const QPoint &pos) const {
   QModelIndex idx = indexAt(pos);
@@ -49,8 +96,8 @@ void PlaylistView::startDrag(Qt::DropActions supportedActions) {
     return;
   }
 
-  int playingRow = plistModel->currentPlayingRow();
-  if (playingRow >= 0 && index.row() <= playingRow) {
+  const int lockedRow = plistModel->lastLockedRow();
+  if (lockedRow >= 0 && index.row() <= lockedRow) {
     return;
   }
 
@@ -60,6 +107,10 @@ void PlaylistView::startDrag(Qt::DropActions supportedActions) {
 void PlaylistView::dragEnterEvent(QDragEnterEvent *event) {
   if (event->source() == this) {
     event->setDropAction(Qt::MoveAction);
+    event->accept();
+  } else if (event->mimeData() &&
+             event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime))) {
+    event->setDropAction(Qt::CopyAction);
     event->accept();
   } else {
     event->ignore();
@@ -74,33 +125,36 @@ void PlaylistView::setDropIndicatorRow(int row) {
 }
 
 void PlaylistView::dragMoveEvent(QDragMoveEvent *event) {
-  if (event->source() == this) {
-    int targetRow = calculateDropRow(event->position().toPoint());
+  const bool internal = (event->source() == this);
+  const bool fromCatalog =
+      !internal && event->mimeData() &&
+      event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime));
 
-    PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
-    if (plistModel) {
-      int playingRow = plistModel->currentPlayingRow();
-      if (playingRow >= 0 && targetRow <= playingRow) {
-        setDropIndicatorRow(-1);
-        event->ignore();
-        return;
-      }
-
-      if (!plistModel->isDropRowBetweenMarkers(targetRow)) {
-        setDropIndicatorRow(-1);
-        event->ignore();
-        return;
-      }
-    }
-
-    setDropIndicatorRow(targetRow);
-    event->setDropAction(Qt::MoveAction);
-    event->accept();
+  if (!internal && !fromCatalog) {
+    setDropIndicatorRow(-1);
+    event->ignore();
     return;
   }
 
-  setDropIndicatorRow(-1);
-  QListView::dragMoveEvent(event);
+  const int targetRow = calculateDropRow(event->position().toPoint());
+  PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
+  if (!plistModel) {
+    setDropIndicatorRow(-1);
+    event->ignore();
+    return;
+  }
+
+  const int lockedRow = plistModel->lastLockedRow();
+  if ((lockedRow >= 0 && targetRow <= lockedRow) ||
+      !plistModel->isDropRowBetweenMarkers(targetRow)) {
+    setDropIndicatorRow(-1);
+    event->ignore();
+    return;
+  }
+
+  setDropIndicatorRow(targetRow);
+  event->setDropAction(internal ? Qt::MoveAction : Qt::CopyAction);
+  event->accept();
 }
 
 void PlaylistView::dragLeaveEvent(QDragLeaveEvent *event) {
@@ -110,9 +164,16 @@ void PlaylistView::dragLeaveEvent(QDragLeaveEvent *event) {
 }
 
 void PlaylistView::dropEvent(QDropEvent *event) {
-  int targetRow = calculateDropRow(event->position().toPoint());
-  m_dropIndicatorRow = -1;
-  viewport()->update();
+  const int targetRow = calculateDropRow(event->position().toPoint());
+  setDropIndicatorRow(-1);
+
+  PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
+  if (!plistModel) {
+    event->ignore();
+    return;
+  }
+
+  const int lockedRow = plistModel->lastLockedRow();
 
   if (event->source() == this) {
     QModelIndexList selected = selectedIndexes();
@@ -121,39 +182,130 @@ void PlaylistView::dropEvent(QDropEvent *event) {
       return;
     }
 
-    int sourceRow = selected.first().row();
-    PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
-    if (plistModel) {
-      int playingRow = plistModel->currentPlayingRow();
-      if (playingRow >= 0 &&
-          (sourceRow <= playingRow || targetRow <= playingRow)) {
-        event->ignore();
-        return;
-      }
+    const int sourceRow = selected.first().row();
+    if ((lockedRow >= 0 &&
+         (sourceRow <= lockedRow || targetRow <= lockedRow)) ||
+        !plistModel->isDropRowBetweenMarkers(targetRow)) {
+      event->ignore();
+      return;
+    }
 
-      if (!plistModel->isDropRowBetweenMarkers(targetRow)) {
-        event->ignore();
-        return;
-      }
+    int finalDest = targetRow;
+    if (targetRow > sourceRow) {
+      finalDest = targetRow - 1;
+    }
 
-      int finalDest = targetRow;
-      if (targetRow > sourceRow) {
-        finalDest = targetRow - 1;
-      }
-
-      if (finalDest != sourceRow &&
-          plistModel->moveItem(sourceRow, finalDest)) {
-        event->setDropAction(Qt::MoveAction);
-        event->accept();
-        setCurrentIndex(plistModel->index(finalDest, 0));
-        return;
-      }
+    if (finalDest != sourceRow && plistModel->moveItem(sourceRow, finalDest)) {
+      event->setDropAction(Qt::MoveAction);
+      event->accept();
+      setCurrentIndex(plistModel->index(finalDest, 0));
+      return;
     }
     event->ignore();
     return;
   }
 
-  QListView::dropEvent(event);
+  if (event->mimeData() &&
+      event->mimeData()->hasFormat(QString::fromLatin1(kCatalogMime))) {
+    if ((lockedRow >= 0 && targetRow <= lockedRow) ||
+        !plistModel->isDropRowBetweenMarkers(targetRow)) {
+      event->ignore();
+      return;
+    }
+
+    QByteArray data =
+        event->mimeData()->data(QString::fromLatin1(kCatalogMime));
+    QDataStream stream(&data, QIODevice::ReadOnly);
+    QString title;
+    QString path;
+    qint8 rawMediaType = 0;
+    stream >> title >> path >> rawMediaType;
+
+    if (stream.status() != QDataStream::Ok ||
+        (title.isEmpty() && path.isEmpty())) {
+      event->ignore();
+      return;
+    }
+
+    if (plistModel->insertCatalogItem(targetRow, title, path,
+                                      static_cast<MediaType>(rawMediaType))) {
+      setCurrentIndex(plistModel->index(targetRow, 0));
+      event->setDropAction(Qt::CopyAction);
+      event->accept();
+      return;
+    }
+  }
+
+  event->ignore();
+}
+
+void PlaylistView::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+    removeSelectedItem();
+    event->accept();
+    return;
+  }
+  QListView::keyPressEvent(event);
+}
+
+QMenu *PlaylistView::createContextMenu(const QModelIndex &index,
+                                       QWidget *parent) {
+  PlaylistListModel *plistModel = qobject_cast<PlaylistListModel *>(model());
+  if (!plistModel || !index.isValid()) {
+    return nullptr;
+  }
+
+  const PlaylistItem *item = plistModel->itemAt(index.row());
+  if (!item || item->type != ItemType::Media) {
+    return nullptr;
+  }
+
+  auto *menu = new QMenu(parent ? parent : this);
+  menu->setStyleSheet(QStringLiteral("QMenu {"
+                                     "  background-color: #1F232C;"
+                                     "  color: #FFFFFF;"
+                                     "  border: 1px solid #2D3340;"
+                                     "  border-radius: 6px;"
+                                     "  padding: 4px;"
+                                     "}"
+                                     "QMenu::item {"
+                                     "  padding: 6px 14px;"
+                                     "  border-radius: 4px;"
+                                     "}"
+                                     "QMenu::item:selected {"
+                                     "  background-color: #3E4A5E;"
+                                     "}"
+                                     "QMenu::item:disabled {"
+                                     "  color: #8E9EB5;"
+                                     "}"));
+
+  QAction *mixEditorAction = menu->addAction(tr("Abrir no Editor de Mixagem"));
+  mixEditorAction->setEnabled(item->status != PlaylistItemStatus::Finished);
+  const QUuid itemUuid = item->uuid;
+  connect(mixEditorAction, &QAction::triggered, this,
+          [this, itemUuid]() { emit mixEditorRequested(itemUuid); });
+
+  menu->addSeparator();
+
+  QAction *removeAction = menu->addAction(tr("Remover"));
+  removeAction->setShortcut(QKeySequence::Delete);
+  removeAction->setEnabled(plistModel->canRemoveRow(index.row()));
+  connect(removeAction, &QAction::triggered, this,
+          [this]() { removeSelectedItem(); });
+
+  return menu;
+}
+
+void PlaylistView::contextMenuEvent(QContextMenuEvent *event) {
+  const QModelIndex index = indexAt(event->pos());
+  QMenu *menu = createContextMenu(index, this);
+  if (!menu) {
+    return;
+  }
+
+  setCurrentIndex(index);
+  menu->exec(event->globalPos());
+  menu->deleteLater();
 }
 
 void PlaylistView::paintEvent(QPaintEvent *event) {

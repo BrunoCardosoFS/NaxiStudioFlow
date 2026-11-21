@@ -15,6 +15,8 @@ namespace Ui {
 class CatalogWidget;
 }
 
+class QMenu;
+
 class CatalogWidget : public QWidget {
   Q_OBJECT
 
@@ -31,6 +33,9 @@ public:
   QString currentOpenFolder() const { return m_openFolder; }
   int currentOpenFolderType() const { return m_openFolderType; }
 
+  QMenu *createFileContextMenu(const QModelIndex &index,
+                               QWidget *parent = nullptr);
+
 signals:
   void fileDoubleClicked(const CatalogItem &item);
   void folderSelected(const QString &path, int type);
@@ -46,6 +51,7 @@ private slots:
   void onFolderActivated(const QModelIndex &index);
   void onFilesLoaded(const QVector<CatalogItem> &list,
                      const QString &pathFolder, bool isGlobal);
+  void onFilesContextMenuRequested(const QPoint &pos);
 
 private:
   Ui::CatalogWidget *ui;

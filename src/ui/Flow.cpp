@@ -8,7 +8,9 @@
 #include "core/playlist/PlaylistManager.h"
 #include "ui/widgets/cartwall/CartWallItemDelegate.h"
 #include "ui/widgets/cartwall/CartWallView.h"
+#include "ui/widgets/editor/MixEditor.h"
 #include "ui/widgets/playlist/PlaylistItemDelegate.h"
+#include "ui/widgets/playlist/PlaylistView.h"
 
 #include <QGridLayout>
 
@@ -54,6 +56,31 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
   this->playlistDelegate = new PlaylistItemDelegate(this);
   this->ui->playlistView->setModel(this->playlistManager->model());
   this->ui->playlistView->setItemDelegate(this->playlistDelegate);
+
+  connect(this->ui->btnPlay, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::play);
+  connect(this->ui->btnPause, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::pause);
+  connect(this->ui->btnStop, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::stop);
+  connect(this->ui->btnNext, &QPushButton::clicked, this->playlistManager,
+          &PlaylistManager::next);
+
+  connect(this->playlistManager, &PlaylistManager::statusChanged, this,
+          &Flow::updateTransportButtons);
+  connect(this->playlistManager, &PlaylistManager::currentItemChanged, this,
+          [this](int row, const QUuid &) {
+            const QModelIndex idx =
+                this->playlistManager->model()->index(row, 0);
+            if (idx.isValid()) {
+              this->ui->playlistView->scrollTo(
+                  idx, QAbstractItemView::EnsureVisible);
+            }
+          });
+  connect(this->ui->playlistView, &PlaylistView::mixEditorRequested, this,
+          &Flow::openMixEditorForPlaylistItem);
+
+  this->updateTransportButtons(this->playlistManager->status());
 
   auto *cartWallModel = new CartWallTableModel(this);
   cartWallModel->setColumnCount(this->ui->cartWallColumns->value());
@@ -116,26 +143,62 @@ void Flow::changeEvent(QEvent *event) {
 }
 
 void Flow::closeEvent(QCloseEvent *event) {
-  // QMessageBox msgBox;
-  // msgBox.setWindowTitle("Fechar o NaxStudio Flow");
-  // msgBox.setText("Tem certeza que deseja fechar?");
-  // msgBox.setIcon(QMessageBox::Question);
-  // msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-
-  // int res = msgBox.exec();
-
-  // if (res == QMessageBox::Yes) {
-  //     event->accept();
-  // } else {
-  //     event->ignore();
-  // }
+  if (this->m_mixEditor) {
+    this->m_mixEditor->close();
+  }
+  if (this->playlistManager) {
+    this->playlistManager->stopImmediate();
+    if (this->playlistManager->model()) {
+      this->playlistManager->model()->cancelDurationProbes();
+    }
+  }
+  saveLayout();
+  QMainWindow::closeEvent(event);
 }
 
-void Flow::on_btnPlay_clicked() {}
+void Flow::openMixEditorForPlaylistItem(const QUuid &itemUuid) {
+  if (!this->playlistManager || !this->playlistManager->model() ||
+      itemUuid.isNull()) {
+    return;
+  }
 
-void Flow::on_btnPause_clicked() {}
+  if (!this->m_mixEditor) {
+    this->m_mixEditor = new MixEditor(this);
+    this->m_mixEditor->setAttribute(Qt::WA_DeleteOnClose, true);
+  }
 
-void Flow::on_btnStop_clicked() {}
+  if (!this->m_mixEditor->loadPlaylistItem(this->playlistManager->model(),
+                                           itemUuid)) {
+    return;
+  }
+
+  this->m_mixEditor->show();
+  this->m_mixEditor->raise();
+  this->m_mixEditor->activateWindow();
+}
+
+void Flow::updateTransportButtons(PlaylistStatus status) {
+  switch (status) {
+  case PlaylistStatus::Stopped:
+    this->ui->btnPlay->setEnabled(true);
+    this->ui->btnPause->setEnabled(false);
+    this->ui->btnStop->setEnabled(false);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  case PlaylistStatus::Playing:
+    this->ui->btnPlay->setEnabled(false);
+    this->ui->btnPause->setEnabled(true);
+    this->ui->btnStop->setEnabled(true);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  case PlaylistStatus::Paused:
+    this->ui->btnPlay->setEnabled(true);
+    this->ui->btnPause->setEnabled(false);
+    this->ui->btnStop->setEnabled(true);
+    this->ui->btnNext->setEnabled(true);
+    break;
+  }
+}
 
 bool Flow::eventFilter(QObject *watched, QEvent *event) {
   return QMainWindow::eventFilter(watched, event);

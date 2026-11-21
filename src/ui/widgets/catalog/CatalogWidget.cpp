@@ -1,6 +1,8 @@
 #include "CatalogWidget.h"
 #include "ui_CatalogWidget.h"
 
+#include <QAction>
+#include <QMenu>
 #include <QMouseEvent>
 
 CatalogWidget::CatalogWidget(QWidget *parent)
@@ -62,6 +64,60 @@ void CatalogWidget::initViews() {
   ui->FoldersListView->setMouseTracking(true);
   ui->FoldersListView->viewport()->setMouseTracking(true);
   ui->FoldersListView->viewport()->installEventFilter(this);
+
+  ui->FilesListView->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(ui->FilesListView, &QListView::customContextMenuRequested, this,
+          &CatalogWidget::onFilesContextMenuRequested);
+}
+
+QMenu *CatalogWidget::createFileContextMenu(const QModelIndex &index,
+                                            QWidget *parent) {
+  if (!index.isValid()) {
+    return nullptr;
+  }
+
+  const CatalogItem *item = m_catalogModel->itemAt(index.row());
+  if (!item || item->isHeader() || item->isLoading()) {
+    return nullptr;
+  }
+
+  auto *menu = new QMenu(parent ? parent : this);
+  menu->setStyleSheet(QStringLiteral("QMenu {"
+                                     "  background-color: #1F232C;"
+                                     "  color: #FFFFFF;"
+                                     "  border: 1px solid #2D3340;"
+                                     "  border-radius: 6px;"
+                                     "  padding: 4px;"
+                                     "}"
+                                     "QMenu::item {"
+                                     "  padding: 6px 14px;"
+                                     "  border-radius: 4px;"
+                                     "}"
+                                     "QMenu::item:selected {"
+                                     "  background-color: #3E4A5E;"
+                                     "}"
+                                     "QMenu::item:disabled {"
+                                     "  color: #8E9EB5;"
+                                     "}"));
+
+  // TODO(M11): Enable opening MixEditor from Catalog once global sidecar (.json) saving is implemented.
+  QAction *mixAction =
+      menu->addAction(tr("Abrir no Editor de Mixagem (to do (M11))"));
+  mixAction->setEnabled(false);
+
+  return menu;
+}
+
+void CatalogWidget::onFilesContextMenuRequested(const QPoint &pos) {
+  const QModelIndex index = ui->FilesListView->indexAt(pos);
+  QMenu *menu = createFileContextMenu(index, this);
+  if (!menu) {
+    return;
+  }
+
+  ui->FilesListView->setCurrentIndex(index);
+  menu->exec(ui->FilesListView->viewport()->mapToGlobal(pos));
+  menu->deleteLater();
 }
 
 void CatalogWidget::setDatabasePath(const QString &dbPath) {
