@@ -91,6 +91,7 @@ private:
   PlayerStatus m_status = PlayerStatus::Idle;
   float m_targetVolume = 1.0f;
   float m_currentVolume = -1.0f;
+  float m_fadeOutScale = 1.0f;
 
   float m_invFadeInDuration = 0.0f;
   float m_invFadeOutDuration = 0.0f;

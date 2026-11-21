@@ -1,7 +1,7 @@
 #include "./PlayerManager.h"
 
 #include <QAudioDevice>
-#include <QFileInfo>
+#include <QMediaMetaData>
 
 #include <algorithm>
 #include <cmath>
@@ -10,10 +10,78 @@ namespace {
 constexpr float HALF_PI = 1.5707963267948966f; // Pi / 2
 
 inline float equalPowerFactor(float t) { return std::sin(t * HALF_PI); }
+
+inline float evaluateVolumeEnvelope(
+    const PlayerMetadata &meta, qint64 position, float startVol, float endVol,
+    bool hasIntroEnv, bool hasOutroEnv, qint64 plateauStart, qint64 plateauEnd,
+    float invFadeIn, float invFadeOut, float invVolUp, float invVolDown,
+    float fadeOutScale) {
+  if (position < meta.startPoint) {
+    return 0.0f;
+  }
+  if (meta.endPoint > 0 && position >= meta.endPoint) {
+    return 0.0f;
+  }
+
+  // High-performance fast path: Plateau region (full target volume).
+  // Statistically >95% of calls will hit this branch.
+  if (Q_LIKELY(position >= plateauStart &&
+               (meta.endPoint <= 0 || position < plateauEnd))) {
+    return 1.0f;
+  }
+
+  // Left-side envelope: Fade In -> Intro Hold -> Volume Up Ramp
+  float leftFactor = 1.0f;
+  const float introTarget = hasIntroEnv ? startVol : 1.0f;
+  if (position < meta.fadeInEndPoint) {
+    if (invFadeIn > 0.0f) {
+      const float progress =
+          std::clamp(static_cast<float>(position - meta.startPoint) * invFadeIn,
+                     0.0f, 1.0f);
+      leftFactor = equalPowerFactor(progress) * introTarget;
+    } else {
+      leftFactor = introTarget;
+    }
+  } else if (hasIntroEnv && position < meta.volumeUpEndPoint) {
+    if (position <= meta.volumeUpStartPoint || invVolUp <= 0.0f) {
+      leftFactor = startVol;
+    } else {
+      const float t = std::clamp(
+          static_cast<float>(position - meta.volumeUpStartPoint) * invVolUp,
+          0.0f, 1.0f);
+      leftFactor = startVol + t * (1.0f - startVol);
+    }
+  }
+
+  // Right-side envelope: Volume Down Ramp -> Outro Hold -> Fade Out
+  float rightFactor = 1.0f;
+  const float outroTarget = hasOutroEnv ? endVol : 1.0f;
+  if (hasOutroEnv && position >= meta.volumeDownStartPoint &&
+      position < meta.fadeOutStartPoint) {
+    if (position >= meta.volumeDownEndPoint || invVolDown <= 0.0f) {
+      rightFactor = endVol;
+    } else {
+      const float t = std::clamp(
+          static_cast<float>(position - meta.volumeDownStartPoint) * invVolDown,
+          0.0f, 1.0f);
+      rightFactor = 1.0f - t * (1.0f - endVol);
+    }
+  } else if (meta.endPoint > 0 && position >= meta.fadeOutStartPoint) {
+    if (invFadeOut <= 0.0f) {
+      rightFactor = 0.0f;
+    } else {
+      const float progress =
+          std::clamp(static_cast<float>(meta.endPoint - position) * invFadeOut,
+                     0.0f, 1.0f);
+      rightFactor = equalPowerFactor(progress) * outroTarget * fadeOutScale;
+    }
+  }
+
+  return std::min(leftFactor, rightFactor);
+}
 } // namespace
 
-PlayerManager::PlayerManager(QObject *parent)
-    : PlayerManager(true, parent) {}
+PlayerManager::PlayerManager(QObject *parent) : PlayerManager(true, parent) {}
 
 PlayerManager::~PlayerManager() {
   if (this->mediaPlayer) {
@@ -65,9 +133,7 @@ void PlayerManager::load(const QUrl &source, const PlayerMetadata &newMetadata,
   // Always transition through Loading so consecutive errors still emit Error.
   this->setStatus(PlayerStatus::Loading);
 
-  const bool invalidLocalFile =
-      source.isLocalFile() && !QFileInfo::exists(source.toLocalFile());
-  if (source.isEmpty() || invalidLocalFile) {
+  if (source.isEmpty()) {
     this->m_pendingPlay = false;
     this->m_source.clear();
     this->metadata = PlayerMetadata{};
@@ -89,6 +155,7 @@ void PlayerManager::load(const QUrl &source, const PlayerMetadata &newMetadata,
   this->metadata = newMetadata;
   this->m_pendingPlay = autoPlay;
   this->m_pendingSeekPos = -1;
+  this->m_fadeOutScale = 1.0f;
   this->normalizeMetadata(this->metadata.duration);
   this->applyVolume(0.0f);
 
@@ -100,6 +167,7 @@ void PlayerManager::load(const QUrl &source, const PlayerMetadata &newMetadata,
 void PlayerManager::unload() {
   this->m_pendingPlay = false;
   this->m_pendingSeekPos = -1;
+  this->m_fadeOutScale = 1.0f;
   this->m_source.clear();
   this->metadata = PlayerMetadata{};
   this->updateFadeParameters();
@@ -140,9 +208,16 @@ void PlayerManager::play() {
 
   this->applyVolumeForPosition(startPos);
   if (this->mediaPlayer) {
-    this->mediaPlayer->setActiveAudioTrack(-1);
-    this->mediaPlayer->play();
-    this->mediaPlayer->setActiveAudioTrack(0);
+    const bool needsCoverArtWorkaround =
+        startingFromCue && !this->mediaPlayer->videoTracks().isEmpty();
+    if (needsCoverArtWorkaround) {
+      // Workaround para MP3s com capa de album (video track embutida) no FFmpeg
+      this->mediaPlayer->setActiveAudioTrack(-1);
+      this->mediaPlayer->play();
+      this->mediaPlayer->setActiveAudioTrack(0);
+    } else {
+      this->mediaPlayer->play();
+    }
   }
   this->setStatus(PlayerStatus::Playing);
 }
@@ -165,17 +240,10 @@ void PlayerManager::stop() {
   this->m_pendingPlay = false;
   this->m_pendingSeekPos = -1;
   this->applyVolume(0.0f);
-  // Transition to End before pausing/seeking to prevent re-entrant stop().
+  // Transition to End before pausing to prevent re-entrant stop().
   this->setStatus(PlayerStatus::End);
   if (this->mediaPlayer) {
     this->mediaPlayer->pause();
-    const QMediaPlayer::MediaStatus ms = this->mediaPlayer->mediaStatus();
-    if (ms == QMediaPlayer::LoadedMedia ||
-        ms == QMediaPlayer::BufferedMedia ||
-        ms == QMediaPlayer::BufferingMedia ||
-        ms == QMediaPlayer::EndOfMedia) {
-      this->mediaPlayer->setPosition(this->metadata.endPoint);
-    }
   }
 }
 
@@ -232,9 +300,17 @@ void PlayerManager::playFrom(qint64 positionMs) {
 
   if (this->m_status != PlayerStatus::Playing) {
     if (this->mediaPlayer) {
-      this->mediaPlayer->setActiveAudioTrack(-1);
-      this->mediaPlayer->play();
-      this->mediaPlayer->setActiveAudioTrack(0);
+      const bool needsCoverArtWorkaround =
+          (this->m_status == PlayerStatus::Loaded ||
+           this->m_status == PlayerStatus::End) &&
+          !this->mediaPlayer->videoTracks().isEmpty();
+      if (needsCoverArtWorkaround) {
+        this->mediaPlayer->setActiveAudioTrack(-1);
+        this->mediaPlayer->play();
+        this->mediaPlayer->setActiveAudioTrack(0);
+      } else {
+        this->mediaPlayer->play();
+      }
     }
     this->setStatus(PlayerStatus::Playing);
   }
@@ -256,14 +332,35 @@ void PlayerManager::triggerFadeOut(qint64 fadeDurationMs) {
   if (audioEnd <= 0 || (totalDur > 0 && audioEnd > totalDur)) {
     audioEnd = totalDur;
   }
-  const qint64 currentEnd =
-      (audioEnd > 0) ? audioEnd : (pos + fadeDurationMs);
+  const qint64 currentEnd = (audioEnd > 0) ? audioEnd : (pos + fadeDurationMs);
   const qint64 newEnd = qMin(currentEnd, pos + fadeDurationMs);
   if (newEnd <= pos) {
     this->stop();
     return;
   }
 
+  const bool alreadyInFadeOut =
+      (this->metadata.endPoint > 0 && pos >= this->metadata.fadeOutStartPoint);
+  if (alreadyInFadeOut) {
+    if (currentEnd <= pos + fadeDurationMs) {
+      // Existing fade-out already finishes sooner or at the same time.
+      return;
+    }
+    const float currentFactor = std::clamp(
+        computeVolumeFactor(this->metadata, pos) * this->m_fadeOutScale, 0.0f,
+        1.0f);
+    this->metadata.volumeDownStartPoint = 0;
+    this->metadata.volumeDownEndPoint = 0;
+    this->metadata.endVolume = 1.0f;
+    this->m_fadeOutScale = currentFactor;
+    this->metadata.fadeOutStartPoint = pos;
+    this->metadata.endPoint = newEnd;
+    this->updateFadeParameters();
+    this->volumeControl(pos);
+    return;
+  }
+
+  this->m_fadeOutScale = 1.0f;
   if (this->metadata.volumeDownStartPoint <= 0 ||
       this->metadata.volumeDownStartPoint >= pos) {
     // Haven't entered outro ducking yet: fade out cleanly from plateau level.
@@ -281,7 +378,8 @@ void PlayerManager::triggerFadeOut(qint64 fadeDurationMs) {
                 static_cast<float>(rampDur),
             0.0f, 1.0f);
         this->metadata.endVolume =
-            1.0f - t * (1.0f - std::clamp(this->metadata.endVolume, 0.0f, 1.0f));
+            1.0f -
+            t * (1.0f - std::clamp(this->metadata.endVolume, 0.0f, 1.0f));
       }
     }
     this->metadata.volumeDownEndPoint =
@@ -302,13 +400,16 @@ void PlayerManager::setAudioOutputDevice(const QAudioDevice &device) {
 }
 
 void PlayerManager::setMetadata(const PlayerMetadata &newMetadata) {
+  const qint64 prevStartPoint = this->metadata.startPoint;
   this->metadata = newMetadata;
+  this->m_fadeOutScale = 1.0f;
   const qint64 knownDur =
       (this->metadata.duration > 0)
           ? this->metadata.duration
           : (this->mediaPlayer ? this->mediaPlayer->duration() : 0);
   this->normalizeMetadata(knownDur);
-  if (this->mediaPlayer && this->m_status == PlayerStatus::Loaded) {
+  if (this->mediaPlayer && this->m_status == PlayerStatus::Loaded &&
+      this->metadata.startPoint != prevStartPoint) {
     this->mediaPlayer->setPosition(this->metadata.startPoint);
   }
   this->applyVolumeForPosition(this->position());
@@ -336,7 +437,8 @@ void PlayerManager::normalizeMetadata(qint64 realDuration) {
     this->metadata.endPoint = this->metadata.duration;
   }
 
-  this->metadata.startVolume = std::clamp(this->metadata.startVolume, 0.0f, 1.0f);
+  this->metadata.startVolume =
+      std::clamp(this->metadata.startVolume, 0.0f, 1.0f);
   this->metadata.endVolume = std::clamp(this->metadata.endVolume, 0.0f, 1.0f);
 
   if (this->metadata.endPoint > 0) {
@@ -350,8 +452,8 @@ void PlayerManager::normalizeMetadata(qint64 realDuration) {
       this->metadata.mixEnd = this->metadata.endPoint;
     }
     this->metadata.fadeInEndPoint =
-        qBound<qint64>(this->metadata.startPoint,
-                       this->metadata.fadeInEndPoint, this->metadata.endPoint);
+        qBound<qint64>(this->metadata.startPoint, this->metadata.fadeInEndPoint,
+                       this->metadata.endPoint);
     if (this->metadata.fadeOutStartPoint <= 0) {
       this->metadata.fadeOutStartPoint = this->metadata.endPoint;
     } else {
@@ -379,10 +481,9 @@ void PlayerManager::normalizeMetadata(qint64 realDuration) {
           qBound<qint64>(qMin(minDown, this->metadata.fadeOutStartPoint),
                          this->metadata.volumeDownStartPoint,
                          this->metadata.fadeOutStartPoint);
-      this->metadata.volumeDownEndPoint =
-          qBound<qint64>(this->metadata.volumeDownStartPoint,
-                         this->metadata.volumeDownEndPoint,
-                         this->metadata.fadeOutStartPoint);
+      this->metadata.volumeDownEndPoint = qBound<qint64>(
+          this->metadata.volumeDownStartPoint,
+          this->metadata.volumeDownEndPoint, this->metadata.fadeOutStartPoint);
     }
   } else {
     this->metadata.startPoint = qMax<qint64>(0, this->metadata.startPoint);
@@ -404,8 +505,9 @@ void PlayerManager::normalizeMetadata(qint64 realDuration) {
                                  : this->metadata.fadeInEndPoint;
       this->metadata.volumeDownStartPoint =
           qMax<qint64>(minDown, this->metadata.volumeDownStartPoint);
-      this->metadata.volumeDownEndPoint = qMax<qint64>(
-          this->metadata.volumeDownStartPoint, this->metadata.volumeDownEndPoint);
+      this->metadata.volumeDownEndPoint =
+          qMax<qint64>(this->metadata.volumeDownStartPoint,
+                       this->metadata.volumeDownEndPoint);
     }
   }
 
@@ -442,7 +544,8 @@ void PlayerManager::updateFadeParameters() {
   const qint64 volDownDuration =
       this->metadata.volumeDownEndPoint - this->metadata.volumeDownStartPoint;
   this->m_invVolDownDuration =
-      (volDownDuration > 0) ? (1.0f / static_cast<float>(volDownDuration)) : 0.0f;
+      (volDownDuration > 0) ? (1.0f / static_cast<float>(volDownDuration))
+                            : 0.0f;
 
   this->m_plateauStart = this->m_hasIntroEnvelope
                              ? this->metadata.volumeUpEndPoint
@@ -543,11 +646,10 @@ void PlayerManager::mediaStatusChanged(QMediaPlayer::MediaStatus status) {
     this->mediaPlayer->setPosition(initialPos);
   }
   this->applyVolumeForPosition(initialPos);
-  this->setStatus(PlayerStatus::Loaded);
-
   if (dur > 0) {
     emit this->durationLoaded(dur);
   }
+  this->setStatus(PlayerStatus::Loaded);
 
   if (this->m_pendingPlay) {
     this->m_pendingPlay = false;
@@ -582,13 +684,6 @@ void PlayerManager::volumeControl(qint64 position) {
 
 float PlayerManager::computeVolumeFactor(const PlayerMetadata &meta,
                                          qint64 position) {
-  if (position < meta.startPoint) {
-    return 0.0f;
-  }
-  if (meta.endPoint > 0 && position >= meta.endPoint) {
-    return 0.0f;
-  }
-
   const float startVol = std::clamp(meta.startVolume, 0.0f, 1.0f);
   const float endVol = std::clamp(meta.endVolume, 0.0f, 1.0f);
   const bool hasIntroEnv =
@@ -603,169 +698,26 @@ float PlayerManager::computeVolumeFactor(const PlayerMetadata &meta,
   const qint64 plateauEnd =
       hasOutroEnv ? meta.volumeDownStartPoint : meta.fadeOutStartPoint;
 
-  if (Q_LIKELY(position >= plateauStart &&
-               (meta.endPoint <= 0 || position < plateauEnd))) {
-    return 1.0f;
-  }
+  const qint64 fadeInDur = meta.fadeInEndPoint - meta.startPoint;
+  const qint64 fadeOutDur = meta.endPoint - meta.fadeOutStartPoint;
+  const qint64 volUpDur = meta.volumeUpEndPoint - meta.volumeUpStartPoint;
+  const qint64 volDownDur = meta.volumeDownEndPoint - meta.volumeDownStartPoint;
 
-  // Left-side envelope: Fade In -> Intro Hold -> Volume Up Ramp
-  float leftFactor = 1.0f;
-  const float introTarget = hasIntroEnv ? startVol : 1.0f;
-  if (position < meta.fadeInEndPoint) {
-    const qint64 fadeInDuration = meta.fadeInEndPoint - meta.startPoint;
-    if (fadeInDuration > 0) {
-      const float progress = std::clamp(
-          static_cast<float>(position - meta.startPoint) /
-              static_cast<float>(fadeInDuration),
-          0.0f, 1.0f);
-      leftFactor = equalPowerFactor(progress) * introTarget;
-    } else {
-      leftFactor = introTarget;
-    }
-  } else if (hasIntroEnv && position < meta.volumeUpEndPoint) {
-    if (position <= meta.volumeUpStartPoint ||
-        meta.volumeUpEndPoint <= meta.volumeUpStartPoint) {
-      leftFactor = startVol;
-    } else {
-      const qint64 rampDuration =
-          meta.volumeUpEndPoint - meta.volumeUpStartPoint;
-      const float t = std::clamp(
-          static_cast<float>(position - meta.volumeUpStartPoint) /
-              static_cast<float>(rampDuration),
-          0.0f, 1.0f);
-      leftFactor = startVol + t * (1.0f - startVol);
-    }
-  }
-
-  // Right-side envelope: Volume Down Ramp -> Outro Hold -> Fade Out
-  float rightFactor = 1.0f;
-  const float outroTarget = hasOutroEnv ? endVol : 1.0f;
-  if (hasOutroEnv && position >= meta.volumeDownStartPoint &&
-      position < meta.fadeOutStartPoint) {
-    if (position >= meta.volumeDownEndPoint ||
-        meta.volumeDownEndPoint <= meta.volumeDownStartPoint) {
-      rightFactor = endVol;
-    } else {
-      const qint64 rampDuration =
-          meta.volumeDownEndPoint - meta.volumeDownStartPoint;
-      const float t = std::clamp(
-          static_cast<float>(position - meta.volumeDownStartPoint) /
-              static_cast<float>(rampDuration),
-          0.0f, 1.0f);
-      rightFactor = 1.0f - t * (1.0f - endVol);
-    }
-  } else if (meta.endPoint > 0 && position >= meta.fadeOutStartPoint) {
-    const qint64 fadeOutDuration = meta.endPoint - meta.fadeOutStartPoint;
-    if (fadeOutDuration <= 0) {
-      rightFactor = 0.0f;
-    } else {
-      const float progress = std::clamp(
-          static_cast<float>(meta.endPoint - position) /
-              static_cast<float>(fadeOutDuration),
-          0.0f, 1.0f);
-      rightFactor = equalPowerFactor(progress) * outroTarget;
-    }
-  }
-
-  return std::min(leftFactor, rightFactor);
+  return evaluateVolumeEnvelope(
+      meta, position, startVol, endVol, hasIntroEnv, hasOutroEnv, plateauStart,
+      plateauEnd, (fadeInDur > 0) ? (1.0f / static_cast<float>(fadeInDur)) : 0.0f,
+      (fadeOutDur > 0) ? (1.0f / static_cast<float>(fadeOutDur)) : 0.0f,
+      (volUpDur > 0) ? (1.0f / static_cast<float>(volUpDur)) : 0.0f,
+      (volDownDur > 0) ? (1.0f / static_cast<float>(volDownDur)) : 0.0f, 1.0f);
 }
 
 void PlayerManager::applyVolumeForPosition(qint64 position) {
-  // Outside playable boundaries before startPoint (silence)
-  if (position < this->metadata.startPoint) {
-    this->applyVolume(0.0f);
-    return;
-  }
-
-  if (this->metadata.endPoint > 0 && position >= this->metadata.endPoint) {
-    this->applyVolume(0.0f);
-    return;
-  }
-
-  // High-performance fast path: Plateau region (full target volume)
-  // Statistically >95% of calls will hit this branch.
-  if (Q_LIKELY(position >= this->m_plateauStart &&
-               (this->metadata.endPoint <= 0 || position < this->m_plateauEnd))) {
-    this->applyVolume(this->m_targetVolume);
-    return;
-  }
-
-  float leftFactor = 1.0f;
-  const float startVol = std::clamp(this->metadata.startVolume, 0.0f, 1.0f);
-  const float introTarget = this->m_hasIntroEnvelope ? startVol : 1.0f;
-  if (position < this->metadata.fadeInEndPoint) {
-    const qint64 fadeInDuration =
-        this->metadata.fadeInEndPoint - this->metadata.startPoint;
-    if (Q_UNLIKELY(fadeInDuration <= 0)) {
-      leftFactor = introTarget;
-    } else {
-      if (Q_UNLIKELY(this->m_invFadeInDuration <= 0.0f)) {
-        this->m_invFadeInDuration = 1.0f / static_cast<float>(fadeInDuration);
-      }
-      const float progress = std::clamp(
-          static_cast<float>(position - this->metadata.startPoint) *
-              this->m_invFadeInDuration,
-          0.0f, 1.0f);
-      leftFactor = equalPowerFactor(progress) * introTarget;
-    }
-  } else if (this->m_hasIntroEnvelope &&
-             position < this->metadata.volumeUpEndPoint) {
-    if (position <= this->metadata.volumeUpStartPoint ||
-        this->metadata.volumeUpEndPoint <= this->metadata.volumeUpStartPoint) {
-      leftFactor = startVol;
-    } else {
-      if (Q_UNLIKELY(this->m_invVolUpDuration <= 0.0f)) {
-        this->m_invVolUpDuration = 1.0f / static_cast<float>(
-                                              this->metadata.volumeUpEndPoint -
-                                              this->metadata.volumeUpStartPoint);
-      }
-      const float t = std::clamp(
-          static_cast<float>(position - this->metadata.volumeUpStartPoint) *
-              this->m_invVolUpDuration,
-          0.0f, 1.0f);
-      leftFactor = startVol + t * (1.0f - startVol);
-    }
-  }
-
-  float rightFactor = 1.0f;
-  const float endVol = std::clamp(this->metadata.endVolume, 0.0f, 1.0f);
-  const float outroTarget = this->m_hasOutroEnvelope ? endVol : 1.0f;
-  if (this->m_hasOutroEnvelope &&
-      position >= this->metadata.volumeDownStartPoint &&
-      position < this->metadata.fadeOutStartPoint) {
-    if (position >= this->metadata.volumeDownEndPoint ||
-        this->metadata.volumeDownEndPoint <=
-            this->metadata.volumeDownStartPoint) {
-      rightFactor = endVol;
-    } else {
-      if (Q_UNLIKELY(this->m_invVolDownDuration <= 0.0f)) {
-        this->m_invVolDownDuration =
-            1.0f / static_cast<float>(this->metadata.volumeDownEndPoint -
-                                      this->metadata.volumeDownStartPoint);
-      }
-      const float t = std::clamp(
-          static_cast<float>(position - this->metadata.volumeDownStartPoint) *
-              this->m_invVolDownDuration,
-          0.0f, 1.0f);
-      rightFactor = 1.0f - t * (1.0f - endVol);
-    }
-  } else if (this->metadata.endPoint > 0 &&
-             position >= this->metadata.fadeOutStartPoint) {
-    const qint64 fadeOutDuration =
-        this->metadata.endPoint - this->metadata.fadeOutStartPoint;
-    if (Q_UNLIKELY(fadeOutDuration <= 0)) {
-      rightFactor = 0.0f;
-    } else {
-      if (Q_UNLIKELY(this->m_invFadeOutDuration <= 0.0f)) {
-        this->m_invFadeOutDuration = 1.0f / static_cast<float>(fadeOutDuration);
-      }
-      const float progress = std::clamp(
-          static_cast<float>(this->metadata.endPoint - position) *
-              this->m_invFadeOutDuration,
-          0.0f, 1.0f);
-      rightFactor = equalPowerFactor(progress) * outroTarget;
-    }
-  }
-
-  this->applyVolume(std::min(leftFactor, rightFactor) * this->m_targetVolume);
+  const float factor = evaluateVolumeEnvelope(
+      this->metadata, position, this->metadata.startVolume,
+      this->metadata.endVolume, this->m_hasIntroEnvelope,
+      this->m_hasOutroEnvelope, this->m_plateauStart, this->m_plateauEnd,
+      this->m_invFadeInDuration, this->m_invFadeOutDuration,
+      this->m_invVolUpDuration, this->m_invVolDownDuration,
+      this->m_fadeOutScale);
+  this->applyVolume(factor * this->m_targetVolume);
 }
