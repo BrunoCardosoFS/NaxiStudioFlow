@@ -20,6 +20,8 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     editor/MixEditor.cpp
     editor/MixEditor.h
     editor/MixEditor.ui
+    editor/WaveformWidget.cpp
+    editor/WaveformWidget.h
 )
 
 target_include_directories(${EXECUTABLE_NAME}

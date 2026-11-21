@@ -1,6 +1,9 @@
 target_sources(${EXECUTABLE_NAME} PRIVATE
     models.h
-    
+
+    audio/WaveformExtractor.cpp
+    audio/WaveformExtractor.h
+
     catalog/CatalogItem.h
     catalog/CatalogListModel.cpp
     catalog/CatalogListModel.h

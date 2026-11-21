@@ -6,41 +6,222 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>700</width>
-    <height>550</height>
+    <width>960</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>700</width>
-    <height>550</height>
+    <width>860</width>
+    <height>640</height>
    </size>
   </property>
   <property name="windowTitle">
-   <string>NaxiStudio Editor - Editor de Mixagem</string>
+   <string>NaxStudio Flow - Editor de Mixagem</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#MixEditor, #scrollArea, #scrollAreaWidgetContents {
+	background-color: #191D24;
+	color: #FFFFFF;
+	border: none;
+}
+
+QLabel {
+	color: #FFFFFF;
+}
+
+#labelDuration, #labelPosition, #labelSectionLeft, #labelSectionRight {
+	color: #8E9EB5;
+	font-weight: bold;
+}
+
+#waveformCard, #col1, #col2 {
+	background-color: #1F232C;
+	border: 1px solid #2D3340;
+	border-radius: 10px;
+}
+
+QPushButton {
+	background-color: #2D3340;
+	color: #FFFFFF;
+	border: none;
+	border-radius: 7px;
+	padding: 6px 12px;
+	font-weight: bold;
+}
+
+QPushButton:hover {
+	background-color: #3E4A5E;
+}
+
+QPushButton:disabled {
+	background-color: #242934;
+	color: #8E9EB5;
+}
+
+#btnSave {
+	background-color: #FFA60A;
+	color: #000000;
+}
+
+#btnSave:hover {
+	background-color: #CA8102;
+}
+
+#btnSave:disabled {
+	background-color: #3B3222;
+	color: #8E9EB5;
+}
+
+QTimeEdit {
+	background-color: #2D3340;
+	color: #FFFFFF;
+	border: 1px solid #3E4A5E;
+	border-radius: 7px;
+	padding: 5px 24px 5px 8px;
+}
+
+QTimeEdit:focus {
+	border: 1px solid #FFA60A;
+}
+
+QTimeEdit::up-button, QTimeEdit::down-button {
+	subcontrol-origin: border;
+	width: 20px;
+	border: none;
+	background-color: transparent;
+}
+
+QTimeEdit::up-button {
+	subcontrol-position: top right;
+	border-top-right-radius: 7px;
+}
+
+QTimeEdit::down-button {
+	subcontrol-position: bottom right;
+	border-bottom-right-radius: 7px;
+}
+
+QTimeEdit::up-button:hover, QTimeEdit::down-button:hover {
+	background-color: #1F232C;
+}
+
+QTimeEdit::up-arrow {
+	image: url(":/images/icons/arrow-up.svg");
+	width: 8px;
+	height: 8px;
+}
+
+QTimeEdit::down-arrow {
+	image: url(":/images/icons/arrow-down.svg");
+	width: 8px;
+	height: 8px;
+}
+
+QSlider::groove:horizontal {
+	background: #191D24;
+	height: 8px;
+	border-radius: 4px;
+}
+
+QSlider::sub-page:horizontal {
+	background: #FFA60A;
+	height: 8px;
+	border-radius: 4px;
+}
+
+QSlider::add-page:horizontal {
+	background: #191D24;
+	height: 8px;
+	border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+	background: #FFFFFF;
+	border: 2px solid #FFA60A;
+	width: 12px;
+	height: 12px;
+	margin: -4px 0;
+	border-radius: 8px;
+}
+
+QScrollBar:horizontal {
+	background: #191D24;
+	height: 10px;
+	border-radius: 5px;
+}
+
+QScrollBar::handle:horizontal {
+	background: #3E4A5E;
+	min-width: 24px;
+	border-radius: 5px;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+	width: 0px;
+}
+
+QScrollBar:vertical {
+	background: #191D24;
+	width: 10px;
+	border-radius: 5px;
+}
+
+QScrollBar::handle:vertical {
+	background: #3E4A5E;
+	min-height: 24px;
+	border-radius: 5px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+	height: 0px;
+}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-    <number>5</number>
+    <number>10</number>
    </property>
    <property name="leftMargin">
-    <number>10</number>
+    <number>12</number>
    </property>
    <property name="topMargin">
-    <number>10</number>
+    <number>12</number>
    </property>
    <property name="rightMargin">
-    <number>10</number>
+    <number>12</number>
    </property>
    <property name="bottomMargin">
-    <number>10</number>
+    <number>12</number>
    </property>
    <item>
-    <widget class="QLabel" name="labelFileName">
-     <property name="text">
-      <string>&lt;Nome do arquivo&gt;</string>
+    <layout class="QHBoxLayout" name="headerLayout">
+     <property name="spacing">
+      <number>10</number>
      </property>
-    </widget>
+     <item>
+      <widget class="QLabel" name="labelFileName">
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>&lt;Nome do arquivo&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelDuration">
+       <property name="text">
+        <string notr="true">00:00:000</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QWidget" name="control" native="true">
@@ -53,18 +234,12 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>50</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>50</height>
+       <height>38</height>
       </size>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="spacing">
-       <number>5</number>
+       <number>6</number>
       </property>
       <property name="leftMargin">
        <number>0</number>
@@ -80,6 +255,9 @@
       </property>
       <item>
        <widget class="QPushButton" name="btnPlay">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="text">
          <string>Play</string>
         </property>
@@ -87,6 +265,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="btnPause">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="text">
          <string>Pause</string>
         </property>
@@ -94,8 +275,18 @@
       </item>
       <item>
        <widget class="QPushButton" name="btnStop">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="text">
          <string>Stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelPosition">
+        <property name="text">
+         <string notr="true">00:00:000 / 00:00:000</string>
         </property>
        </widget>
       </item>
@@ -113,9 +304,117 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="btnSave">
+       <widget class="QPushButton" name="btnZoomOut">
+        <property name="minimumSize">
+         <size>
+          <width>34</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>Diminuir zoom</string>
+        </property>
         <property name="text">
-         <string>Salvar</string>
+         <string notr="true">-</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnZoomReset">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>Ajustar forma de onda à janela</string>
+        </property>
+        <property name="text">
+         <string notr="true">100%</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnZoomIn">
+        <property name="minimumSize">
+         <size>
+          <width>34</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="toolTip">
+         <string>Aumentar zoom</string>
+        </property>
+        <property name="text">
+         <string notr="true">+</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="waveformCard" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QVBoxLayout" name="waveformCardLayout">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>8</number>
+      </property>
+      <property name="topMargin">
+       <number>8</number>
+      </property>
+      <property name="rightMargin">
+       <number>8</number>
+      </property>
+      <property name="bottomMargin">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="waveformContainer" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>210</height>
+         </size>
+        </property>
+        <layout class="QVBoxLayout" name="waveformContainerLayout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QScrollBar" name="waveformScrollBar">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
        </widget>
       </item>
@@ -132,13 +431,13 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>678</width>
-        <height>448</height>
+        <width>936</width>
+        <height>300</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="spacing">
-        <number>5</number>
+        <number>6</number>
        </property>
        <property name="leftMargin">
         <number>0</number>
@@ -156,7 +455,7 @@
         <widget class="QWidget" name="settings" native="true">
          <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,1">
           <property name="spacing">
-           <number>15</number>
+           <number>10</number>
           </property>
           <property name="leftMargin">
            <number>0</number>
@@ -174,113 +473,205 @@
            <widget class="QWidget" name="col1" native="true">
             <layout class="QVBoxLayout" name="verticalLayout_3">
              <property name="spacing">
-              <number>5</number>
+              <number>6</number>
              </property>
              <property name="leftMargin">
-              <number>0</number>
+              <number>12</number>
              </property>
              <property name="topMargin">
-              <number>0</number>
+              <number>10</number>
              </property>
              <property name="rightMargin">
-              <number>0</number>
+              <number>12</number>
              </property>
              <property name="bottomMargin">
-              <number>0</number>
+              <number>10</number>
              </property>
              <item>
-              <widget class="QLabel" name="labelMixStart">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
+              <widget class="QLabel" name="labelSectionLeft">
+               <property name="text">
+                <string>Corte, Mixagem e Volumes</string>
                </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="labelStartPoint">
+               <property name="text">
+                <string>Ponto inicial</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="rowStartPoint">
+               <property name="spacing">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QTimeEdit" name="timeStartPoint">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkStartPoint">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QLabel" name="labelMixStart">
                <property name="text">
                 <string>Ponto de mixagem inicial</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeMixStart">
-               <property name="maximumTime">
-                <time>
-                 <hour>23</hour>
-                 <minute>59</minute>
-                 <second>59</second>
-                </time>
+              <layout class="QHBoxLayout" name="rowMixStart">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
-               </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="verticalSpacer_4">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
+               <item>
+                <widget class="QTimeEdit" name="timeMixStart">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkMixStart">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QLabel" name="labelMixEnd">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
                <property name="text">
                 <string>Ponto de mixagem final</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeMixEnd">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowMixEnd">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
+               <item>
+                <widget class="QTimeEdit" name="timeMixEnd">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkMixEnd">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QLabel" name="labelEndPoint">
+               <property name="text">
+                <string>Ponto final</string>
                </property>
               </widget>
              </item>
              <item>
-              <spacer name="verticalSpacer_5">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
+              <layout class="QHBoxLayout" name="rowEndPoint">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
+               <item>
+                <widget class="QTimeEdit" name="timeEndPoint">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkEndPoint">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QLabel" name="labelVolStart">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
                <property name="text">
                 <string>Volume do início</string>
                </property>
@@ -290,7 +681,7 @@
               <widget class="QWidget" name="volControlStart" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_3">
                 <property name="spacing">
-                 <number>3</number>
+                 <number>6</number>
                 </property>
                 <property name="leftMargin">
                  <number>0</number>
@@ -309,54 +700,30 @@
                   <property name="maximum">
                    <number>100</number>
                   </property>
-                  <property name="singleStep">
-                   <number>1</number>
-                  </property>
                   <property name="value">
-                   <number>0</number>
-                  </property>
-                  <property name="sliderPosition">
-                   <number>0</number>
-                  </property>
-                  <property name="tracking">
-                   <bool>true</bool>
+                   <number>100</number>
                   </property>
                   <property name="orientation">
                    <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                  <property name="invertedAppearance">
-                   <bool>false</bool>
-                  </property>
-                  <property name="invertedControls">
-                   <bool>false</bool>
-                  </property>
-                  <property name="tickPosition">
-                   <enum>QSlider::TickPosition::NoTicks</enum>
                   </property>
                  </widget>
                 </item>
                 <item>
                  <widget class="QLabel" name="textVolStart">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
                   <property name="minimumSize">
                    <size>
-                    <width>50</width>
+                    <width>46</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>50</width>
+                    <width>46</width>
                     <height>16777215</height>
                    </size>
                   </property>
                   <property name="text">
-                   <string>0%</string>
+                   <string notr="true">100%</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -367,29 +734,7 @@
               </widget>
              </item>
              <item>
-              <spacer name="verticalSpacer_6">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
               <widget class="QLabel" name="labelVolEnd">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
                <property name="text">
                 <string>Volume do final</string>
                </property>
@@ -399,7 +744,7 @@
               <widget class="QWidget" name="volControlEnd" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_4">
                 <property name="spacing">
-                 <number>3</number>
+                 <number>6</number>
                 </property>
                 <property name="leftMargin">
                  <number>0</number>
@@ -415,6 +760,12 @@
                 </property>
                 <item>
                  <widget class="QSlider" name="sliderVolEnd">
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                  <property name="value">
+                   <number>100</number>
+                  </property>
                   <property name="orientation">
                    <enum>Qt::Orientation::Horizontal</enum>
                   </property>
@@ -422,26 +773,20 @@
                 </item>
                 <item>
                  <widget class="QLabel" name="textVolEnd">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
                   <property name="minimumSize">
                    <size>
-                    <width>50</width>
+                    <width>46</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>50</width>
+                    <width>46</width>
                     <height>16777215</height>
                    </size>
                   </property>
                   <property name="text">
-                   <string>0%</string>
+                   <string notr="true">100%</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -459,7 +804,7 @@
                <property name="sizeHint" stdset="0">
                 <size>
                  <width>20</width>
-                 <height>5</height>
+                 <height>4</height>
                 </size>
                </property>
               </spacer>
@@ -471,202 +816,246 @@
            <widget class="QWidget" name="col2" native="true">
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
-              <number>5</number>
+              <number>6</number>
              </property>
              <property name="leftMargin">
-              <number>0</number>
+              <number>12</number>
              </property>
              <property name="topMargin">
-              <number>0</number>
+              <number>10</number>
              </property>
              <property name="rightMargin">
-              <number>0</number>
+              <number>12</number>
              </property>
              <property name="bottomMargin">
-              <number>0</number>
+              <number>10</number>
              </property>
              <item>
-              <widget class="QLabel" name="labelFadeIn">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
+              <widget class="QLabel" name="labelSectionRight">
+               <property name="text">
+                <string>Fades e Envelope de Volume</string>
                </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="labelFadeIn">
                <property name="text">
                 <string>Ponto do fim do Fade In</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeFadeIn">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowFadeIn">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
+               <item>
+                <widget class="QTimeEdit" name="timeFadeIn">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkFadeIn">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
-              <spacer name="verticalSpacer_7">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_4">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
+              <widget class="QLabel" name="labelVolUpStart">
                <property name="text">
                 <string>Ponto do início do aumento do volume</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeEdit_4">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowVolUpStart">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
+               <item>
+                <widget class="QTimeEdit" name="timeVolUpStart">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkVolUpStart">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
-              <spacer name="verticalSpacer_8">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_5">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
+              <widget class="QLabel" name="labelVolUpEnd">
                <property name="text">
                 <string>Ponto do fim do aumento do volume</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeEdit_5">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowVolUpEnd">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
+               <item>
+                <widget class="QTimeEdit" name="timeVolUpEnd">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkVolUpEnd">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
-              <spacer name="verticalSpacer_9">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_8">
+              <widget class="QLabel" name="labelVolDownStart">
                <property name="text">
                 <string>Ponto do início da diminuição do volume</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeEdit_6">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowVolDownStart">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
+               <item>
+                <widget class="QTimeEdit" name="timeVolDownStart">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkVolDownStart">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
-              <spacer name="verticalSpacer_10">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_9">
+              <widget class="QLabel" name="labelVolDownEnd">
                <property name="text">
                 <string>Ponto do fim da diminuição do volume</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeEdit_7">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowVolDownEnd">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="verticalSpacer_11">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Policy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>10</height>
-                </size>
-               </property>
-              </spacer>
+               <item>
+                <widget class="QTimeEdit" name="timeVolDownEnd">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkVolDownEnd">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <widget class="QLabel" name="labelFadeOut">
@@ -676,14 +1065,41 @@
               </widget>
              </item>
              <item>
-              <widget class="QTimeEdit" name="timeFadeOut">
-               <property name="currentSection">
-                <enum>QDateTimeEdit::Section::MinuteSection</enum>
+              <layout class="QHBoxLayout" name="rowFadeOut">
+               <property name="spacing">
+                <number>6</number>
                </property>
-               <property name="displayFormat">
-                <string>mm:ss:zzz</string>
-               </property>
-              </widget>
+               <item>
+                <widget class="QTimeEdit" name="timeFadeOut">
+                 <property name="maximumTime">
+                  <time>
+                   <hour>23</hour>
+                   <minute>59</minute>
+                   <second>59</second>
+                  </time>
+                 </property>
+                 <property name="currentSection">
+                  <enum>QDateTimeEdit::Section::MinuteSection</enum>
+                 </property>
+                 <property name="displayFormat">
+                  <string notr="true">mm:ss:zzz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnMarkFadeOut">
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="toolTip">
+                  <string>Definir com a posição atual do playhead</string>
+                 </property>
+                 <property name="text">
+                  <string>Marcar</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item>
               <spacer name="verticalSpacer_3">
@@ -693,7 +1109,7 @@
                <property name="sizeHint" stdset="0">
                 <size>
                  <width>20</width>
-                 <height>5</height>
+                 <height>4</height>
                 </size>
                </property>
               </spacer>
@@ -704,21 +1120,91 @@
          </layout>
         </widget>
        </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
       </layout>
      </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="footer" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QHBoxLayout" name="footerLayout">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="btnReset">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>Restaurar padrões</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="footerSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnCancel">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>Cancelar</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnSaveGlobal">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>Persistência global em arquivo .json será habilitada após o marco M11</string>
+        </property>
+        <property name="text">
+         <string>Salvar globalmente - to do (M11)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnSave">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="text">
+         <string>Salvar na Playlist</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
   </layout>
