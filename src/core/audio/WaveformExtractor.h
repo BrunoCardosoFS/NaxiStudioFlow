@@ -29,8 +29,7 @@ public:
   qint64 bucketDurationMs() const { return kDefaultBucketDurationMs; }
 
 signals:
-  void progressUpdated(const QVector<WaveformSample> &samples,
-                       qint64 durationMs);
+  void progressChunk(const QVector<WaveformSample> &delta, qint64 durationMs);
   void finished(const QVector<WaveformSample> &samples, qint64 durationMs);
   void errorOccurred(const QString &errorMessage);
 
@@ -40,16 +39,21 @@ private slots:
   void onError(QAudioDecoder::Error error);
 
 private:
+  void recreateDecoder(bool forceCompactFormat);
+  void startDecode(bool forceCompactFormat);
   void resetAccumulator();
   void consumePendingBuffers();
   void flushPartialBucket();
   qint64 resolvedDurationMs() const;
 
   QAudioDecoder *m_decoder = nullptr;
+  QString m_currentFilePath;
   quint64 m_requestId = 0;
   bool m_isDecoding = false;
+  bool m_usedForcedFormat = true;
 
   QVector<WaveformSample> m_samples;
+  qsizetype m_lastEmittedCount = 0;
   qint64 m_knownDurationMs = 0;
   qint64 m_totalFrames = 0;
   int m_sampleRate = 0;
