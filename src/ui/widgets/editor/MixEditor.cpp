@@ -236,7 +236,8 @@ bool MixEditor::saveToPlaylist() {
   const int row = m_playlistModel->rowForUuid(m_itemUuid);
   const PlaylistItem *item = m_playlistModel->itemAt(row);
   if (!item || item->type != ItemType::Media ||
-      item->status == PlaylistItemStatus::Finished) {
+      item->status == PlaylistItemStatus::Finished ||
+      item->status == PlaylistItemStatus::Mixing) {
     return false;
   }
 

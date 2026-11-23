@@ -6,6 +6,8 @@
 #include <QLinearGradient>
 #include <QPainterPath>
 
+#include <cmath>
+
 namespace {
 constexpr int kBlockPaddingSide = 12;
 constexpr int kBlockMargin = 14;
@@ -19,12 +21,23 @@ const QColor kColWhiteDim = QColor(255, 255, 255, 210);
 const QColor kColMuted = QColor::fromRgb(0x8E9EB5);
 const QColor kColFinishedSel = QColor::fromRgb(0x283042);
 const QColor kColBadgePlayingBg = QColor::fromRgb(0xE50914);
+const QColor kColBadgeMixingBg = QColor::fromRgb(0x7C3AED);
 const QColor kColBadgeNextBg = QColor::fromRgb(0xF59E0B);
 const QColor kColBlack = QColor::fromRgb(0x000000);
-
 const QPen kPenLine(kColListBg, 2);
 const QPen kPenSelection(kColWhite, 1.5);
 const QPen kPenClock(kColWhite, 1.2);
+const QPen kPenMixPoint(QColor(0xEA, 0xB3, 0x08, 165), 1);
+
+void drawMixPointMarker(QPainter *p, const QRect &cardRect, int x) {
+  if (cardRect.width() < 16) {
+    return;
+  }
+  const int clampedX = qBound(cardRect.left() + 4, x, cardRect.right() - 4);
+  p->setRenderHint(QPainter::Antialiasing, false);
+  p->setPen(kPenMixPoint);
+  p->drawLine(clampedX, cardRect.top(), clampedX, cardRect.bottom());
+}
 
 QBrush makeVerticalBrush(const QColor &top, const QColor &bottom) {
   QLinearGradient g(0.0, 0.0, 0.0, 1.0);
@@ -54,13 +67,15 @@ PlaylistItemDelegate::Fonts::Fonts(const QFont &base)
       marker(base, 9, true), mediaFinished(base, 10, false),
       mediaTitle(base, 10, true), mediaPos(base, 10, true),
       mediaDur(base, 9, false), badge(base, 7, true), est(base, 9, false),
+      badgePlayingText(PlaylistItemDelegate::tr("NO AR")),
+      badgeMixingText(PlaylistItemDelegate::tr("MIXANDO")),
+      badgeNextText(PlaylistItemDelegate::tr("PRÓXIMO")),
       timeColWidth(
           qMax(mediaPos.fm.horizontalAdvance(QStringLiteral("00:00:000")),
                mediaDur.fm.horizontalAdvance(QStringLiteral("00:00:000")))),
-      badgePlayingWidth(
-          badge.fm.horizontalAdvance(QStringLiteral("NO AR")) + 12),
-      badgeNextWidth(
-          badge.fm.horizontalAdvance(QStringLiteral("PRÓXIMO")) + 12),
+      badgePlayingWidth(badge.fm.horizontalAdvance(badgePlayingText) + 12),
+      badgeMixingWidth(badge.fm.horizontalAdvance(badgeMixingText) + 12),
+      badgeNextWidth(badge.fm.horizontalAdvance(badgeNextText) + 12),
       estTimeWidth(est.fm.horizontalAdvance(QStringLiteral("00:00:00"))) {}
 
 const PlaylistItemDelegate::Fonts &
@@ -77,6 +92,8 @@ PlaylistItemDelegate::PlaylistItemDelegate(QObject *parent)
       m_iconJingle(":/images/catalog/jingle.svg"),
       m_iconCommercial(":/images/catalog/commercial.svg"),
       m_iconOther(":/images/catalog/other.svg"),
+      m_iconCommand(":/images/catalog/command.svg"),
+      m_iconCommandPause(":/images/catalog/command-pause.svg"),
       m_brushMusic(makeVerticalBrush(QColor::fromRgb(0x418DB4),
                                      QColor::fromRgb(0x0066A5))),
       m_brushJingle(makeVerticalBrush(QColor::fromRgb(0x68B127),
@@ -85,6 +102,8 @@ PlaylistItemDelegate::PlaylistItemDelegate(QObject *parent)
                                           QColor::fromRgb(0xB45309))),
       m_brushOther(makeVerticalBrush(QColor::fromRgb(0x475569),
                                      QColor::fromRgb(0x334155))),
+      m_brushCommand(makeVerticalBrush(QColor::fromRgb(0x6D28D9),
+                                       QColor::fromRgb(0x4C1D95))),
       m_brushProgress(makeVerticalBrush(QColor::fromRgb(0xCF3B6B),
                                         QColor::fromRgb(0xAC073C))) {}
 
@@ -98,8 +117,20 @@ const QIcon &PlaylistItemDelegate::iconForType(MediaType type) const {
     return m_iconJingle;
   case MediaType::Commercial:
     return m_iconCommercial;
+  case MediaType::Command:
+    return m_iconCommand;
   default:
     return m_iconOther;
+  }
+}
+
+const QIcon &
+PlaylistItemDelegate::iconForCommand(CommandType commandType) const {
+  switch (commandType) {
+  case CommandType::Pause:
+    return m_iconCommandPause;
+  default:
+    return m_iconCommand;
   }
 }
 
@@ -111,6 +142,8 @@ const QBrush &PlaylistItemDelegate::brushForType(MediaType type) const {
     return m_brushJingle;
   case MediaType::Commercial:
     return m_brushCommercial;
+  case MediaType::Command:
+    return m_brushCommand;
   default:
     return m_brushOther;
   }
@@ -219,8 +252,20 @@ QSize PlaylistItemDelegate::sizeHint(const QStyleOptionViewItem &option,
             : static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
     if (status == PlaylistItemStatus::Finished)
       h = 32;
-    else if (status == PlaylistItemStatus::Playing)
+    else if (status == PlaylistItemStatus::Playing ||
+             status == PlaylistItemStatus::Mixing)
       h = 50;
+    break;
+  }
+  case ItemType::Command: {
+    const PlaylistItemStatus status =
+        directItem
+            ? directItem->status
+            : static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
+    if (status == PlaylistItemStatus::Finished)
+      h = 32;
+    else
+      h = 48;
     break;
   }
   }
@@ -291,6 +336,9 @@ void PlaylistItemDelegate::paint(QPainter *p,
     break;
   case ItemType::Media:
     paintMediaItem(p, itemOpt, index, f, plistModel);
+    break;
+  case ItemType::Command:
+    paintCommandItem(p, itemOpt, index, f, plistModel);
     break;
   }
 
@@ -424,6 +472,8 @@ void PlaylistItemDelegate::paintMediaItem(
   }
 
   const bool isPlaying = (status == PlaylistItemStatus::Playing);
+  const bool isMixing = (status == PlaylistItemStatus::Mixing);
+  const bool isActivePlayback = isPlaying || isMixing;
   const bool isNext = (status == PlaylistItemStatus::Next);
   const bool isSelected = opt.state & QStyle::State_Selected;
 
@@ -467,12 +517,17 @@ void PlaylistItemDelegate::paintMediaItem(
   const qint64 endPt = (rawEndPt > startPt) ? rawEndPt : durationMs;
   const qint64 playableDur = qMax<qint64>(0, endPt - startPt);
 
+  const qint64 mixStart =
+      directItem ? directItem->mixStart : index.data(MixStartRole).toLongLong();
+  const qint64 mixEnd =
+      directItem ? directItem->mixEnd : index.data(MixEndRole).toLongLong();
+
   const qint64 rawPosMs =
-      isPlaying ? (directItem ? directItem->positionMs
-                              : index.data(PositionRole).toLongLong())
-                : 0;
+      isActivePlayback ? (directItem ? directItem->positionMs
+                                     : index.data(PositionRole).toLongLong())
+                       : 0;
   const qint64 relativePosMs =
-      isPlaying ? qBound<qint64>(0, rawPosMs - startPt, playableDur) : 0;
+      isActivePlayback ? qBound<qint64>(0, rawPosMs - startPt, playableDur) : 0;
 
   const QRect cardRect = r.adjusted(14, 1, -14, -1);
 
@@ -482,19 +537,46 @@ void PlaylistItemDelegate::paintMediaItem(
 
   p->fillPath(cardPath, brushForType(mType));
 
-  if (isPlaying && playableDur > 0) {
-    const qreal ratio =
-        qBound(0.0, static_cast<qreal>(relativePosMs) / playableDur, 1.0);
-    const int progWidth = static_cast<int>(cardRect.width() * ratio);
-    if (progWidth > 0) {
-      // Clip the progress fill to the rounded card shape.
-      p->save();
-      p->setClipPath(cardPath);
-      p->fillRect(
-          QRect(cardRect.left(), cardRect.top(), progWidth, cardRect.height()),
-          m_brushProgress);
-      p->restore();
+  const bool hasMixStart =
+      (playableDur > 0 && mixStart > startPt && mixStart < endPt);
+  const bool hasMixEnd =
+      (playableDur > 0 && mixEnd > startPt && mixEnd < endPt);
+
+  if ((isActivePlayback && playableDur > 0) || hasMixStart || hasMixEnd) {
+    // Clip progress fill and mix markers to the rounded card shape.
+    p->save();
+    p->setClipPath(cardPath);
+
+    if (isActivePlayback && playableDur > 0) {
+      const qreal ratio =
+          qBound(0.0, static_cast<qreal>(relativePosMs) / playableDur, 1.0);
+      const int progWidth = static_cast<int>(cardRect.width() * ratio);
+      if (progWidth > 0) {
+        p->fillRect(QRect(cardRect.left(), cardRect.top(), progWidth,
+                          cardRect.height()),
+                    m_brushProgress);
+      }
     }
+
+    if (hasMixStart) {
+      const qreal ratio = qBound(
+          0.0, static_cast<qreal>(mixStart - startPt) / playableDur, 1.0);
+      const int mixStartX =
+          cardRect.left() +
+          static_cast<int>(std::llround(cardRect.width() * ratio));
+      drawMixPointMarker(p, cardRect, mixStartX);
+    }
+
+    if (hasMixEnd) {
+      const qreal ratio =
+          qBound(0.0, static_cast<qreal>(mixEnd - startPt) / playableDur, 1.0);
+      const int mixEndX =
+          cardRect.left() +
+          static_cast<int>(std::llround(cardRect.width() * ratio));
+      drawMixPointMarker(p, cardRect, mixEndX);
+    }
+
+    p->restore();
   }
 
   if (isSelected) {
@@ -508,15 +590,14 @@ void PlaylistItemDelegate::paintMediaItem(
                        cardRect.top() + (cardRect.height() - 24) / 2, 24, 24);
   drawTypeIcon(p, iconRect, mType);
 
-  const QString posStr =
-      isPlaying ? msec2string(relativePosMs) : QStringLiteral("00:00:000");
+  const QString posStr = isActivePlayback ? msec2string(relativePosMs)
+                                          : QStringLiteral("00:00:000");
   const QString durStr = msec2string(playableDur);
 
-  const int timeColW =
-      (playableDur >= 3600000 || relativePosMs >= 3600000)
-          ? qMax(f.mediaPos.fm.horizontalAdvance(posStr),
-                 f.mediaDur.fm.horizontalAdvance(durStr))
-          : f.timeColWidth;
+  const int timeColW = (playableDur >= 3600000 || relativePosMs >= 3600000)
+                           ? qMax(f.mediaPos.fm.horizontalAdvance(posStr),
+                                  f.mediaDur.fm.horizontalAdvance(durStr))
+                           : f.timeColWidth;
   const int timeRightX = cardRect.right() - 12;
 
   const QRect posRect(timeRightX - timeColW, cardRect.top() + 5, timeColW, 18);
@@ -532,11 +613,18 @@ void PlaylistItemDelegate::paintMediaItem(
 
   int rightBoundary = timeRightX - timeColW - 12;
 
-  if (isPlaying || isNext) {
-    const QString sbText =
-        isPlaying ? QStringLiteral("NO AR") : QStringLiteral("PRÓXIMO");
+  if (isPlaying || isMixing || isNext) {
+    const QString &sbText = isPlaying  ? f.badgePlayingText
+                            : isMixing ? f.badgeMixingText
+                                       : f.badgeNextText;
+    const int sbW = isPlaying  ? f.badgePlayingWidth
+                    : isMixing ? f.badgeMixingWidth
+                               : f.badgeNextWidth;
+    const QColor &sbBg = isPlaying  ? kColBadgePlayingBg
+                         : isMixing ? kColBadgeMixingBg
+                                    : kColBadgeNextBg;
+    const QColor &sbFg = isNext ? kColBlack : kColWhite;
 
-    const int sbW = isPlaying ? f.badgePlayingWidth : f.badgeNextWidth;
     const int sbH = 16;
     const int sbX = (timeRightX - timeColW) - 10 - sbW;
     const int sbY = posRect.top() + (posRect.height() - sbH) / 2;
@@ -544,13 +632,155 @@ void PlaylistItemDelegate::paintMediaItem(
 
     p->setRenderHint(QPainter::Antialiasing, true);
     p->setPen(Qt::NoPen);
-    p->setBrush(isPlaying ? kColBadgePlayingBg : kColBadgeNextBg);
+    p->setBrush(sbBg);
     p->drawRoundedRect(QRectF(sbRect), 3.5, 3.5);
     p->setRenderHint(QPainter::Antialiasing, false);
 
     p->setFont(f.badge.font);
-    p->setPen(isPlaying ? kColWhite : kColBlack);
+    p->setPen(sbFg);
     p->drawText(sbRect, Qt::AlignCenter, sbText);
+
+    rightBoundary = sbX - 10;
+  }
+
+  int currentX = iconRect.right() + 10;
+  const int maxCenterW = rightBoundary - currentX;
+
+  if (maxCenterW > 30) {
+    p->setFont(f.mediaTitle.font);
+    p->setPen(kColWhite);
+    p->drawText(QRect(currentX, cardRect.top() + 5, maxCenterW, 18),
+                Qt::AlignVCenter | Qt::AlignLeft,
+                f.mediaTitle.fm.elidedText(title, Qt::ElideRight, maxCenterW));
+
+    const int bottomY = cardRect.top() + 24;
+
+    const int clockSize = 11;
+    const int clockY = bottomY + (16 - clockSize) / 2;
+
+    p->setRenderHint(QPainter::Antialiasing, true);
+    p->setPen(kPenClock);
+    p->setBrush(Qt::NoBrush);
+    p->drawEllipse(currentX, clockY, clockSize, clockSize);
+
+    const QPointF center(currentX + clockSize / 2.0, clockY + clockSize / 2.0);
+    p->drawLine(center, center + QPointF(0, -3.0));
+    p->drawLine(center, center + QPointF(2.2, 0));
+    p->setRenderHint(QPainter::Antialiasing, false);
+
+    currentX += clockSize + 5;
+
+    if (!estTime.isEmpty()) {
+      p->setFont(f.est.font);
+      p->setPen(kColWhite);
+      const int estW = (estTime.size() == 8)
+                           ? f.estTimeWidth
+                           : f.est.fm.horizontalAdvance(estTime);
+      p->drawText(QRect(currentX, bottomY, estW, 16),
+                  Qt::AlignVCenter | Qt::AlignLeft, estTime);
+    }
+  }
+}
+
+void PlaylistItemDelegate::paintCommandItem(
+    QPainter *p, const QStyleOptionViewItem &opt, const QModelIndex &index,
+    const Fonts &f, const PlaylistListModel *plistModel) const {
+  const QRect r = opt.rect;
+
+  const PlaylistItem *directItem =
+      plistModel ? plistModel->itemAt(index.row()) : nullptr;
+
+  const PlaylistItemStatus status =
+      directItem
+          ? directItem->status
+          : static_cast<PlaylistItemStatus>(index.data(StatusRole).toInt());
+  const CommandType cmdType =
+      directItem
+          ? directItem->commandType
+          : static_cast<CommandType>(index.data(CommandTypeRole).toInt());
+  const BlockType bType =
+      directItem ? directItem->blockType
+                 : static_cast<BlockType>(index.data(BlockTypeRole).toInt());
+  const QString title =
+      directItem ? directItem->title : index.data(TitleRole).toString();
+
+  if (bType == BlockType::Commercial) {
+    const int lineX = r.left() + 7;
+    p->setPen(kPenLine);
+    p->drawLine(lineX, r.top(), lineX, r.bottom());
+  }
+
+  const bool isNext = (status == PlaylistItemStatus::Next);
+  const bool isSelected = opt.state & QStyle::State_Selected;
+
+  if (status == PlaylistItemStatus::Finished) {
+    const int iconLeft = r.left() + 22;
+
+    if (isSelected) {
+      p->save();
+      p->setRenderHint(QPainter::Antialiasing, true);
+      p->setPen(Qt::NoPen);
+      p->setBrush(kColFinishedSel);
+      p->drawRoundedRect(QRectF(r.adjusted(14, 0, -14, 0)), 7, 7);
+      p->restore();
+    }
+
+    const QRect iconRect(iconLeft, r.top() + (r.height() - 20) / 2, 20, 20);
+    iconForCommand(cmdType).paint(p, iconRect);
+
+    const int textLeft = iconRect.right() + 10;
+    const int textWidth = r.right() - 16 - textLeft;
+    if (textWidth > 20) {
+      p->setFont(f.mediaFinished.font);
+      p->setPen(kColWhite);
+      p->drawText(
+          QRect(textLeft, r.top(), textWidth, r.height()),
+          Qt::AlignVCenter | Qt::AlignLeft,
+          f.mediaFinished.fm.elidedText(title, Qt::ElideRight, textWidth));
+    }
+    return;
+  }
+
+  const QString estTime = directItem ? directItem->estimatedTime
+                                     : index.data(EstimatedTimeRole).toString();
+
+  const QRect cardRect = r.adjusted(14, 1, -14, -1);
+
+  p->setRenderHint(QPainter::Antialiasing, true);
+  QPainterPath cardPath;
+  cardPath.addRoundedRect(QRectF(cardRect), 7, 7);
+
+  p->fillPath(cardPath, m_brushCommand);
+
+  if (isSelected) {
+    p->setPen(kPenSelection);
+    p->setBrush(Qt::NoBrush);
+    p->drawPath(cardPath);
+  }
+  p->setRenderHint(QPainter::Antialiasing, false);
+
+  const QRect iconRect(cardRect.left() + 10,
+                       cardRect.top() + (cardRect.height() - 24) / 2, 24, 24);
+  iconForCommand(cmdType).paint(p, iconRect);
+
+  int rightBoundary = cardRect.right() - 12;
+
+  if (isNext) {
+    const int sbH = 16;
+    const int sbW = f.badgeNextWidth;
+    const int sbX = cardRect.right() - 12 - sbW;
+    const int sbY = cardRect.top() + 5 + (18 - sbH) / 2;
+    const QRect sbRect(sbX, sbY, sbW, sbH);
+
+    p->setRenderHint(QPainter::Antialiasing, true);
+    p->setPen(Qt::NoPen);
+    p->setBrush(kColBadgeNextBg);
+    p->drawRoundedRect(QRectF(sbRect), 3.5, 3.5);
+    p->setRenderHint(QPainter::Antialiasing, false);
+
+    p->setFont(f.badge.font);
+    p->setPen(kColBlack);
+    p->drawText(sbRect, Qt::AlignCenter, f.badgeNextText);
 
     rightBoundary = sbX - 10;
   }
