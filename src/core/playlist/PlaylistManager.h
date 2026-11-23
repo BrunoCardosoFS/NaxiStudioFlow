@@ -22,7 +22,7 @@ public:
   static constexpr int kMonitorIntervalMs = 30;
   static constexpr qint64 kUiPositionMinDeltaMs = 33;
 
-  enum class SlotRole { Free, Active, Tail, PreloadNext, PreloadExt };
+  enum class SlotRole { Free, Active, Tail, PreloadNext, PreloadExt, PendingOverlay };
 
   explicit PlaylistManager(QObject *parent = nullptr);
   explicit PlaylistManager(std::array<PlayerManager *, kPlayerCount> players,
@@ -64,6 +64,7 @@ public:
 signals:
   void statusChanged(PlaylistStatus status);
   void currentItemChanged(int row, const QUuid &uuid);
+  void commandExecuted(int row, const QUuid &uuid, CommandType commandType);
   void blockChanged(int blockRow, const QString &blockTime,
                     const QString &blockTitle);
   void blockFinished(int blockRow);
@@ -76,6 +77,22 @@ private:
     SlotRole role = SlotRole::Free;
     QUuid itemUuid;
     QString loadedPath;
+    qint64 lastUiPositionMs = -1;
+  };
+
+  struct PendingOverlayTrigger {
+    QUuid skippedItemUuid;
+    QUuid sourceItemUuid;
+    int sourceSlot = -1;
+    qint64 triggerPosMs = -1;
+
+    bool active() const { return !skippedItemUuid.isNull(); }
+    void clear() {
+      skippedItemUuid = QUuid();
+      sourceItemUuid = QUuid();
+      sourceSlot = -1;
+      triggerPosMs = -1;
+    }
   };
 
   PlaylistListModel *m_model = nullptr;
@@ -89,7 +106,9 @@ private:
   int m_cachedActiveRow = -1;
   int m_cachedNextRow = -1;
   qint64 m_cachedTriggerPos = -1;
-  qint64 m_lastUiPositionMs = -1;
+  int m_cachedEarlyAfterRow = -1;
+  qint64 m_cachedEarlyAfterTriggerPos = -1;
+  PendingOverlayTrigger m_pendingOverlay;
   qint64 m_minPreloadWindowMs = kDefaultMinPreloadWindowMs;
   qint64 m_manualNextFadeMs = kDefaultManualNextFadeMs;
   qint64 m_stopFadeMs = kDefaultStopFadeMs;
@@ -108,8 +127,11 @@ private:
   void preloadSlot(int slotIndex, int targetRow, SlotRole role);
   void refreshMixTriggerCache(int knownActiveRow = -1, int knownNextRow = -2);
   void resetMixTriggerCache();
-  void updateUiPosition(int row, qint64 pos, bool force = false);
+  void updateSlotUiPosition(int slotIndex, int row, qint64 pos,
+                            bool force = false);
   void checkMixTrigger(qint64 pos);
+  void triggerPendingOverlay();
+  void clearPendingOverlay(bool markFinished);
   void emitBlockTransitionIfNeeded(int mediaRow);
 
 private slots:

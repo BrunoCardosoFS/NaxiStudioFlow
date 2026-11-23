@@ -255,8 +255,9 @@ void PlaylistManager::pause() {
 
 void PlaylistManager::next() {
   if (m_status == PlaylistStatus::Playing) {
+    clearPendingOverlay(true);
     const int currRow = activeRow();
-    const int nextRow = (currRow >= 0) ? m_model->findNextMediaRow(currRow)
+    const int nextRow = (currRow >= 0) ? m_model->findNextEntryRow(currRow)
                                        : m_model->findNextPlayableRow();
     if (nextRow >= 0) {
       startPlaybackFromRow(nextRow, true);
@@ -267,8 +268,9 @@ void PlaylistManager::next() {
   }
 
   if (m_status == PlaylistStatus::Paused) {
+    clearPendingOverlay(true);
     const int currRow = activeRow();
-    const int nextRow = (currRow >= 0) ? m_model->findNextMediaRow(currRow)
+    const int nextRow = (currRow >= 0) ? m_model->findNextEntryRow(currRow)
                                        : m_model->findNextPlayableRow();
     for (int i = 0; i < kPlayerCount; ++i) {
       if (m_slots[i].role == SlotRole::Tail) {
@@ -286,10 +288,10 @@ void PlaylistManager::next() {
   const int playingRow = m_model->currentPlayingRow();
   int nextRow = -1;
   if (playingRow >= 0) {
-    nextRow = m_model->findNextMediaRow(playingRow);
+    nextRow = m_model->findNextEntryRow(playingRow);
   } else {
     const int cued = m_model->findNextPlayableRow();
-    nextRow = (cued >= 0) ? m_model->findNextMediaRow(cued) : -1;
+    nextRow = (cued >= 0) ? m_model->findNextEntryRow(cued) : -1;
   }
   if (nextRow >= 0) {
     startPlaybackFromRow(nextRow, false);
@@ -298,6 +300,7 @@ void PlaylistManager::next() {
 
 void PlaylistManager::stop() {
   m_timer->stop();
+  clearPendingOverlay(false);
   const PlaylistStatus previousStatus = m_status;
   m_activeSlot = -1;
   m_transitionTriggeredForActive = false;
@@ -321,6 +324,7 @@ void PlaylistManager::stop() {
       }
       slot.role = SlotRole::Tail;
       slot.itemUuid = QUuid();
+      slot.lastUiPositionMs = -1;
       slot.player->triggerFadeOut(m_stopFadeMs);
       if (slot.role != SlotRole::Free &&
           slot.player->status() != PlayerStatus::Playing) {
@@ -343,6 +347,7 @@ void PlaylistManager::stop() {
 
 void PlaylistManager::stopImmediate() {
   m_timer->stop();
+  clearPendingOverlay(false);
   unloadAllSlots();
   m_activeSlot = -1;
   m_transitionTriggeredForActive = false;
@@ -389,22 +394,37 @@ void PlaylistManager::freeSlot(int slotIndex) {
   }
 
   PlayerSlot &slot = m_slots[slotIndex];
-  if (!slot.itemUuid.isNull()) {
-    const int row = m_model->rowForUuid(slot.itemUuid);
-    if (row >= 0) {
-      const PlaylistItem *it = m_model->itemAt(row);
-      if (it && it->playerId == slotIndex) {
-        ScopedFlag guard(m_updatingModelMetadata);
-        m_model->setItemPlayerId(row, -1);
-      }
+  const bool wasTail = (slot.role == SlotRole::Tail);
+  const QUuid prevUuid = slot.itemUuid;
+
+  if (!prevUuid.isNull() && prevUuid == m_pendingOverlay.skippedItemUuid) {
+    m_pendingOverlay.clear();
+    if (m_model) {
+      ScopedFlag guard(m_updatingModelMetadata);
+      m_model->setPendingOverlayUuid(QUuid());
     }
   }
 
   slot.role = SlotRole::Free;
   slot.itemUuid = QUuid();
   slot.loadedPath.clear();
+  slot.lastUiPositionMs = -1;
   if (slot.player && slot.player->status() != PlayerStatus::Idle) {
     slot.player->unload();
+  }
+
+  if (!prevUuid.isNull()) {
+    const int row = m_model->rowForUuid(prevUuid);
+    if (row >= 0) {
+      const PlaylistItem *it = m_model->itemAt(row);
+      ScopedFlag guard(m_updatingModelMetadata);
+      if (it && it->playerId == slotIndex) {
+        m_model->setItemPlayerId(row, -1);
+      }
+      if (wasTail && it && it->status == PlaylistItemStatus::Mixing) {
+        m_model->markRowFinished(row);
+      }
+    }
   }
 }
 
@@ -416,6 +436,7 @@ void PlaylistManager::unloadAllSlots() {
 
 void PlaylistManager::finishPlaylist() {
   m_timer->stop();
+  clearPendingOverlay(true);
   unloadAllSlots();
   m_activeSlot = -1;
   m_transitionTriggeredForActive = false;
@@ -469,11 +490,6 @@ void PlaylistManager::emitBlockTransitionIfNeeded(int mediaRow) {
 void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
   ScopedFlag advanceGuard(m_inAdvance);
 
-  if (m_status != PlaylistStatus::Playing) {
-    m_status = PlaylistStatus::Playing;
-    emit statusChanged(m_status);
-  }
-
   const int previousActiveSlot = m_activeSlot;
   if (previousActiveSlot >= 0 && previousActiveSlot < kPlayerCount) {
     PlayerSlot &outgoing = m_slots[previousActiveSlot];
@@ -491,44 +507,122 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
     }
   }
 
-  int targetSlot = -1;
-  if (previousActiveSlot >= 0) {
-    targetSlot = (previousActiveSlot + 1) % kPlayerCount;
-  } else {
-    const PlaylistItem *firstItem = m_model->itemAt(startRow);
-    if (firstItem && firstItem->type == ItemType::Media) {
+  auto outgoingMixingRowForMedia = [&]() -> int {
+    if (previousActiveSlot >= 0 && previousActiveSlot < kPlayerCount &&
+        m_slots[previousActiveSlot].role == SlotRole::Tail &&
+        !m_slots[previousActiveSlot].itemUuid.isNull()) {
+      return m_model->rowForUuid(m_slots[previousActiveSlot].itemUuid);
+    }
+    return -1;
+  };
+
+  auto selectTargetSlotForMedia = [&](const PlaylistItem *mediaItem) -> int {
+    int slotIdx = -1;
+    if (mediaItem && mediaItem->type == ItemType::Media) {
       const int preloadedSlot =
-          findSlotForItem(firstItem->uuid, firstItem->path);
-      if (preloadedSlot >= 0) {
+          findSlotForItem(mediaItem->uuid, mediaItem->path);
+      if (preloadedSlot >= 0 && m_slots[preloadedSlot].player &&
+          (m_slots[preloadedSlot].role == SlotRole::PreloadNext ||
+           m_slots[preloadedSlot].role == SlotRole::PreloadExt)) {
         const PlayerStatus st = m_slots[preloadedSlot].player->status();
         if (st == PlayerStatus::Loaded || st == PlayerStatus::Loading) {
-          targetSlot = preloadedSlot;
+          slotIdx = preloadedSlot;
         }
       }
     }
-    if (targetSlot < 0) {
+    if (slotIdx < 0 && previousActiveSlot >= 0) {
+      const int candidate = (previousActiveSlot + 1) % kPlayerCount;
+      if (m_slots[candidate].role != SlotRole::PendingOverlay &&
+          m_slots[candidate].role != SlotRole::Tail) {
+        slotIdx = candidate;
+      }
+    }
+    if (slotIdx < 0) {
       for (int i = 0; i < kPlayerCount; ++i) {
         if (m_slots[i].role == SlotRole::Free) {
-          targetSlot = i;
+          slotIdx = i;
           break;
         }
       }
     }
-    if (targetSlot < 0) {
-      targetSlot = 0;
+    if (slotIdx < 0) {
+      slotIdx = (previousActiveSlot >= 0)
+                    ? (previousActiveSlot + 1) % kPlayerCount
+                    : 0;
     }
-  }
+    return slotIdx;
+  };
 
   int candidateRow = startRow;
   bool started = false;
 
   while (candidateRow >= 0) {
     const PlaylistItem *item = m_model->itemAt(candidateRow);
-    if (!item || item->type != ItemType::Media) {
+    if (!item || !item->isEntry()) {
       candidateRow = -1;
       break;
     }
 
+    if (item->type == ItemType::Command) {
+      if (item->commandType == CommandType::Pause) {
+        m_timer->stop();
+        clearPendingOverlay(false);
+        const PlaylistStatus previousStatus = m_status;
+        m_activeSlot = -1;
+        m_transitionTriggeredForActive = false;
+        m_currentBlockUuid = QUuid();
+        resetMixTriggerCache();
+        m_status = PlaylistStatus::Stopped;
+
+        for (int i = 0; i < kPlayerCount; ++i) {
+          PlayerSlot &slot = m_slots[i];
+          if (slot.role == SlotRole::Tail && slot.player &&
+              slot.player->status() == PlayerStatus::Playing) {
+            if (!slot.itemUuid.isNull()) {
+              const int row = m_model->rowForUuid(slot.itemUuid);
+              if (row >= 0) {
+                const PlaylistItem *it = m_model->itemAt(row);
+                if (it && it->playerId == i) {
+                  ScopedFlag guard(m_updatingModelMetadata);
+                  m_model->setItemPlayerId(row, -1);
+                }
+              }
+            }
+            slot.itemUuid = QUuid();
+            slot.lastUiPositionMs = -1;
+          } else {
+            freeSlot(i);
+          }
+        }
+
+        {
+          ScopedFlag modelGuard(m_updatingModelMetadata);
+          m_model->finishThroughRow(candidateRow);
+        }
+
+        emit commandExecuted(candidateRow, item->uuid, item->commandType);
+        if (previousStatus != PlaylistStatus::Stopped) {
+          emit statusChanged(m_status);
+        }
+        return;
+      }
+
+      qWarning() << "Skipping unsupported command at row" << candidateRow << ":"
+                 << item->commandId;
+      {
+        ScopedFlag modelGuard(m_updatingModelMetadata);
+        m_model->markRowFinished(candidateRow);
+      }
+      candidateRow = m_model->findNextEntryRow(candidateRow);
+      continue;
+    }
+
+    if (m_status != PlaylistStatus::Playing) {
+      m_status = PlaylistStatus::Playing;
+      emit statusChanged(m_status);
+    }
+
+    const int targetSlot = selectTargetSlotForMedia(item);
     PlayerSlot &slot = m_slots[targetSlot];
     const bool alreadyPreloaded =
         (slot.itemUuid == item->uuid && slot.loadedPath == item->path &&
@@ -543,12 +637,14 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
     slot.role = SlotRole::Active;
     slot.itemUuid = item->uuid;
     slot.loadedPath = item->path;
+    slot.lastUiPositionMs = -1;
     m_activeSlot = targetSlot;
     m_transitionTriggeredForActive = false;
 
+    int outgoingMixingRow = outgoingMixingRowForMedia();
     {
       ScopedFlag modelGuard(m_updatingModelMetadata);
-      m_model->setPlayingRow(candidateRow);
+      m_model->setPlayingRow(candidateRow, outgoingMixingRow);
       m_model->setItemPlayerId(candidateRow, targetSlot);
     }
 
@@ -577,19 +673,7 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
       }
       freeSlot(targetSlot);
       m_activeSlot = -1;
-      candidateRow = m_model->findNextMediaRow(candidateRow);
-      if (candidateRow >= 0) {
-        const PlaylistItem *nextCand = m_model->itemAt(candidateRow);
-        if (nextCand && nextCand->type == ItemType::Media) {
-          const int preloaded = findSlotForItem(nextCand->uuid, nextCand->path);
-          if (preloaded >= 0 && m_slots[preloaded].player) {
-            const PlayerStatus st = m_slots[preloaded].player->status();
-            if (st == PlayerStatus::Loaded || st == PlayerStatus::Loading) {
-              targetSlot = preloaded;
-            }
-          }
-        }
-      }
+      candidateRow = m_model->findNextEntryRow(candidateRow);
       continue;
     }
 
@@ -602,7 +686,6 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
     return;
   }
 
-  m_lastUiPositionMs = -1;
   m_timer->start(kMonitorIntervalMs);
   syncPreloads();
 
@@ -610,7 +693,7 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
   if (activePlayer && activePlayer->status() == PlayerStatus::Playing) {
     const qint64 pos = activePlayer->position();
     m_model->setItemPosition(candidateRow, pos);
-    m_lastUiPositionMs = pos;
+    m_slots[m_activeSlot].lastUiPositionMs = pos;
     checkMixTrigger(pos);
   }
 }
@@ -621,7 +704,8 @@ void PlaylistManager::preloadSlot(int slotIndex, int targetRow, SlotRole role) {
   }
 
   PlayerSlot &slot = m_slots[slotIndex];
-  if (slot.role == SlotRole::Tail || slot.role == SlotRole::Active) {
+  if (slot.role == SlotRole::Tail || slot.role == SlotRole::Active ||
+      slot.role == SlotRole::PendingOverlay) {
     return;
   }
 
@@ -686,17 +770,47 @@ void PlaylistManager::syncPreloads() {
     return;
   }
 
-  const int nextRow = m_model->findNextMediaRow(currRow);
-  const int afterNextRow =
-      (nextRow >= 0) ? m_model->findNextMediaRow(nextRow) : -1;
+  const auto isPreloadable = [](SlotRole r) {
+    return r == SlotRole::Free || r == SlotRole::PreloadNext ||
+           r == SlotRole::PreloadExt;
+  };
 
+  const int nextEntryRow = m_model->findNextEntryRow(currRow);
   const int nextSlotIdx = (m_activeSlot + 1) % kPlayerCount;
   const int extSlotIdx = (m_activeSlot + 2) % kPlayerCount;
 
-  preloadSlot(nextSlotIdx, nextRow, SlotRole::PreloadNext);
+  const int actualNextSlot =
+      isPreloadable(m_slots[nextSlotIdx].role)
+          ? nextSlotIdx
+          : (isPreloadable(m_slots[extSlotIdx].role) ? extSlotIdx : nextSlotIdx);
+
+  const PlaylistItem *nextEntryItem =
+      (nextEntryRow >= 0) ? m_model->itemAt(nextEntryRow) : nullptr;
+  if (nextEntryItem && nextEntryItem->type == ItemType::Command) {
+    preloadSlot(actualNextSlot, -1, SlotRole::PreloadNext);
+    if (actualNextSlot != extSlotIdx) {
+      preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    }
+    refreshMixTriggerCache(currRow, nextEntryRow);
+    return;
+  }
+
+  const int nextRow = nextEntryRow;
+  const int afterNextEntryRow =
+      (nextRow >= 0) ? m_model->findNextEntryRow(nextRow) : -1;
+  const PlaylistItem *afterEntryItem =
+      (afterNextEntryRow >= 0) ? m_model->itemAt(afterNextEntryRow) : nullptr;
+  const int afterNextRow =
+      (afterEntryItem && afterEntryItem->type == ItemType::Media)
+          ? afterNextEntryRow
+          : -1;
+
+  preloadSlot(actualNextSlot, nextRow, SlotRole::PreloadNext);
 
   if (nextRow < 0 || afterNextRow < 0) {
-    preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    if (actualNextSlot != extSlotIdx) {
+      preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    }
     refreshMixTriggerCache(currRow, nextRow);
     return;
   }
@@ -705,7 +819,9 @@ void PlaylistManager::syncPreloads() {
   const PlaylistItem *nextItem = m_model->itemAt(nextRow);
   const PlaylistItem *afterNextItem = m_model->itemAt(afterNextRow);
   if (!currItem || !nextItem || !afterNextItem) {
-    preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    if (actualNextSlot != extSlotIdx) {
+      preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    }
     refreshMixTriggerCache(currRow, nextRow);
     return;
   }
@@ -719,19 +835,21 @@ void PlaylistManager::syncPreloads() {
   }
 
   PlayerMetadata nextMeta = metadataFromItem(*nextItem);
-  if (m_slots[nextSlotIdx].role == SlotRole::PreloadNext &&
-      m_slots[nextSlotIdx].itemUuid == nextItem->uuid &&
-      m_slots[nextSlotIdx].player &&
-      m_slots[nextSlotIdx].player->status() == PlayerStatus::Loaded) {
-    nextMeta = m_slots[nextSlotIdx].player->currentMetadata();
+  if (m_slots[actualNextSlot].role == SlotRole::PreloadNext &&
+      m_slots[actualNextSlot].itemUuid == nextItem->uuid &&
+      m_slots[actualNextSlot].player &&
+      m_slots[actualNextSlot].player->status() == PlayerStatus::Loaded) {
+    nextMeta = m_slots[actualNextSlot].player->currentMetadata();
   }
 
   const PlayerMetadata afterNextMeta = metadataFromItem(*afterNextItem);
-  if (shouldPreloadExtended(currMeta, nextMeta, afterNextMeta,
-                            m_minPreloadWindowMs)) {
-    preloadSlot(extSlotIdx, afterNextRow, SlotRole::PreloadExt);
-  } else {
-    preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+  if (actualNextSlot != extSlotIdx) {
+    if (shouldPreloadExtended(currMeta, nextMeta, afterNextMeta,
+                              m_minPreloadWindowMs)) {
+      preloadSlot(extSlotIdx, afterNextRow, SlotRole::PreloadExt);
+    } else {
+      preloadSlot(extSlotIdx, -1, SlotRole::PreloadExt);
+    }
   }
 
   refreshMixTriggerCache(currRow, nextRow);
@@ -741,7 +859,8 @@ void PlaylistManager::resetMixTriggerCache() {
   m_cachedActiveRow = -1;
   m_cachedNextRow = -1;
   m_cachedTriggerPos = -1;
-  m_lastUiPositionMs = -1;
+  m_cachedEarlyAfterRow = -1;
+  m_cachedEarlyAfterTriggerPos = -1;
 }
 
 void PlaylistManager::refreshMixTriggerCache(int knownActiveRow,
@@ -749,6 +868,8 @@ void PlaylistManager::refreshMixTriggerCache(int knownActiveRow,
   m_cachedActiveRow = (knownActiveRow >= 0) ? knownActiveRow : activeRow();
   m_cachedNextRow = -1;
   m_cachedTriggerPos = -1;
+  m_cachedEarlyAfterRow = -1;
+  m_cachedEarlyAfterTriggerPos = -1;
 
   if (m_status == PlaylistStatus::Stopped || m_activeSlot < 0 ||
       m_cachedActiveRow < 0) {
@@ -767,27 +888,75 @@ void PlaylistManager::refreshMixTriggerCache(int knownActiveRow,
 
   const int nextRow = (knownNextRow != -2)
                           ? knownNextRow
-                          : m_model->findNextMediaRow(m_cachedActiveRow);
+                          : m_model->findNextEntryRow(m_cachedActiveRow);
   if (nextRow < 0) {
     return;
   }
 
   const PlaylistItem *nextItem = m_model->itemAt(nextRow);
-  if (!nextItem) {
+  if (!nextItem || nextItem->type != ItemType::Media) {
     return;
   }
 
-  PlayerMetadata nextMeta = metadataFromItem(*nextItem);
-  const int nextSlotIdx = (m_activeSlot + 1) % kPlayerCount;
-  if (m_slots[nextSlotIdx].role == SlotRole::PreloadNext &&
-      m_slots[nextSlotIdx].itemUuid == nextItem->uuid &&
-      m_slots[nextSlotIdx].player &&
-      m_slots[nextSlotIdx].player->status() == PlayerStatus::Loaded) {
-    nextMeta = m_slots[nextSlotIdx].player->currentMetadata();
-  }
+  auto loadedMetaForRow = [this](const PlaylistItem *item,
+                                 const PlayerMetadata &fallback) {
+    for (int i = 0; i < kPlayerCount; ++i) {
+      if ((m_slots[i].role == SlotRole::PreloadNext ||
+           m_slots[i].role == SlotRole::PreloadExt) &&
+          m_slots[i].itemUuid == item->uuid && m_slots[i].player &&
+          m_slots[i].player->status() == PlayerStatus::Loaded) {
+        return m_slots[i].player->currentMetadata();
+      }
+    }
+    return fallback;
+  };
+
+  const PlayerMetadata nextMeta =
+      loadedMetaForRow(nextItem, metadataFromItem(*nextItem));
 
   m_cachedNextRow = nextRow;
   m_cachedTriggerPos = computeMixTriggerPosition(currMeta, nextMeta);
+
+  const int afterNextRow = m_model->findNextEntryRow(nextRow);
+  if (afterNextRow >= 0) {
+    const PlaylistItem *afterItem = m_model->itemAt(afterNextRow);
+    if (afterItem && afterItem->type == ItemType::Media) {
+      const PlayerMetadata afterMeta =
+          loadedMetaForRow(afterItem, metadataFromItem(*afterItem));
+
+      const qint64 nextStart = qMax<qint64>(0, nextMeta.startPoint);
+      const qint64 nextEnd =
+          (nextMeta.endPoint > 0) ? nextMeta.endPoint : nextMeta.duration;
+      const qint64 nextMixEnd =
+          (nextMeta.mixEnd > nextStart &&
+           (nextEnd <= 0 || nextMeta.mixEnd <= nextEnd))
+              ? nextMeta.mixEnd
+              : nextEnd;
+      const qint64 nextPlayToMixEnd = qMax<qint64>(0, nextMixEnd - nextStart);
+
+      const qint64 afterStart = qMax<qint64>(0, afterMeta.startPoint);
+      const qint64 afterEnd =
+          (afterMeta.endPoint > 0) ? afterMeta.endPoint : afterMeta.duration;
+      const qint64 afterMixStart =
+          (afterMeta.mixStart > afterStart &&
+           (afterEnd <= 0 || afterMeta.mixStart <= afterEnd))
+              ? afterMeta.mixStart
+              : afterStart;
+      const qint64 afterIntro = qMax<qint64>(0, afterMixStart - afterStart);
+
+      if (nextPlayToMixEnd > 0 && afterIntro > nextPlayToMixEnd) {
+        const qint64 earlyLeadMs = afterIntro - nextPlayToMixEnd;
+        const qint64 currStart = qMax<qint64>(0, currMeta.startPoint);
+        const qint64 currEnd =
+            (currMeta.endPoint > 0) ? currMeta.endPoint : currMeta.duration;
+        const qint64 rawEarlyTrigger = m_cachedTriggerPos - earlyLeadMs;
+        m_cachedEarlyAfterRow = afterNextRow;
+        m_cachedEarlyAfterTriggerPos =
+            (currEnd > 0) ? qBound<qint64>(currStart, rawEarlyTrigger, currEnd)
+                          : qMax<qint64>(currStart, rawEarlyTrigger);
+      }
+    }
+  }
 }
 
 void PlaylistManager::checkMixTrigger(qint64 pos) {
@@ -805,26 +974,195 @@ void PlaylistManager::checkMixTrigger(qint64 pos) {
     return;
   }
 
+  if (m_cachedEarlyAfterRow >= 0 && m_cachedEarlyAfterTriggerPos >= 0 &&
+      pos >= m_cachedEarlyAfterTriggerPos && !m_pendingOverlay.active()) {
+    const PlaylistItem *skippedItem = m_model->itemAt(m_cachedNextRow);
+    if (skippedItem && skippedItem->type == ItemType::Media) {
+      m_pendingOverlay.skippedItemUuid = skippedItem->uuid;
+      m_pendingOverlay.sourceItemUuid = active.itemUuid;
+      m_pendingOverlay.sourceSlot = m_activeSlot;
+      m_pendingOverlay.triggerPosMs = m_cachedTriggerPos;
+
+      const int skippedSlot =
+          findSlotForItem(skippedItem->uuid, skippedItem->path);
+      if (skippedSlot >= 0) {
+        m_slots[skippedSlot].role = SlotRole::PendingOverlay;
+      }
+
+      {
+        ScopedFlag guard(m_updatingModelMetadata);
+        m_model->setPendingOverlayUuid(m_pendingOverlay.skippedItemUuid);
+      }
+
+      m_transitionTriggeredForActive = true;
+      startPlaybackFromRow(m_cachedEarlyAfterRow, false);
+      return;
+    }
+  }
+
   if (pos >= m_cachedTriggerPos) {
     m_transitionTriggeredForActive = true;
     startPlaybackFromRow(m_cachedNextRow, false);
   }
 }
 
-void PlaylistManager::updateUiPosition(int row, qint64 pos, bool force) {
-  if (row < 0 || pos == m_lastUiPositionMs) {
+void PlaylistManager::clearPendingOverlay(bool markFinished) {
+  if (!m_pendingOverlay.active()) {
     return;
   }
-  if (!force && m_lastUiPositionMs >= 0 &&
-      std::abs(pos - m_lastUiPositionMs) < kUiPositionMinDeltaMs) {
+
+  const QUuid skippedUuid = m_pendingOverlay.skippedItemUuid;
+  m_pendingOverlay.clear();
+
+  for (int i = 0; i < kPlayerCount; ++i) {
+    if (m_slots[i].role == SlotRole::PendingOverlay &&
+        m_slots[i].itemUuid == skippedUuid) {
+      freeSlot(i);
+      break;
+    }
+  }
+
+  if (m_model) {
+    ScopedFlag guard(m_updatingModelMetadata);
+    m_model->setPendingOverlayUuid(QUuid());
+    if (markFinished && !skippedUuid.isNull()) {
+      const int row = m_model->rowForUuid(skippedUuid);
+      if (row >= 0) {
+        m_model->markRowFinished(row);
+      }
+    }
+  }
+}
+
+void PlaylistManager::triggerPendingOverlay() {
+  if (!m_pendingOverlay.active()) {
     return;
   }
-  m_lastUiPositionMs = pos;
+
+  const QUuid skippedUuid = m_pendingOverlay.skippedItemUuid;
+  m_pendingOverlay.clear();
+
+  if (!m_model || skippedUuid.isNull()) {
+    return;
+  }
+
+  const int row = m_model->rowForUuid(skippedUuid);
+  const PlaylistItem *item = m_model->itemAt(row);
+  if (!item || item->type != ItemType::Media) {
+    ScopedFlag guard(m_updatingModelMetadata);
+    m_model->setPendingOverlayUuid(QUuid());
+    return;
+  }
+
+  int targetSlot = -1;
+  for (int i = 0; i < kPlayerCount; ++i) {
+    if (m_slots[i].itemUuid == skippedUuid &&
+        m_slots[i].role != SlotRole::Free) {
+      targetSlot = i;
+      break;
+    }
+  }
+  if (targetSlot < 0) {
+    for (int i = 0; i < kPlayerCount; ++i) {
+      if (m_slots[i].role == SlotRole::Free) {
+        targetSlot = i;
+        break;
+      }
+    }
+  }
+
+  if (targetSlot < 0) {
+    ScopedFlag guard(m_updatingModelMetadata);
+    m_model->setPendingOverlayUuid(QUuid());
+    m_model->markRowFinished(row);
+    return;
+  }
+
+  PlayerSlot &slot = m_slots[targetSlot];
+  const bool alreadyLoaded =
+      (slot.itemUuid == item->uuid && slot.loadedPath == item->path &&
+       slot.player &&
+       (slot.player->status() == PlayerStatus::Loaded ||
+        slot.player->status() == PlayerStatus::Loading));
+
+  slot.role = SlotRole::Tail;
+  slot.itemUuid = item->uuid;
+  slot.loadedPath = item->path;
+  slot.lastUiPositionMs = -1;
+
+  {
+    ScopedFlag guard(m_updatingModelMetadata);
+    m_model->setPendingOverlayUuid(QUuid());
+    m_model->setItemPlayerId(row, targetSlot);
+    m_model->markRowMixing(row);
+  }
+
+  if (slot.player) {
+    if (alreadyLoaded) {
+      const PlayerMetadata desiredMeta = metadataFromItem(*item);
+      if (slot.player->status() == PlayerStatus::Loaded &&
+          metadataDiffers(slot.player->currentMetadata(), desiredMeta)) {
+        slot.player->setMetadata(desiredMeta);
+      }
+      slot.player->play();
+    } else {
+      slot.player->load(QUrl::fromLocalFile(item->path), metadataFromItem(*item),
+                        true);
+    }
+
+    if (slot.player->status() == PlayerStatus::Error) {
+      emit playbackError(row, item->path);
+      freeSlot(targetSlot);
+      return;
+    }
+
+    if (slot.player->status() == PlayerStatus::Playing) {
+      updateSlotUiPosition(targetSlot, row, slot.player->position(), true);
+    }
+  }
+}
+
+void PlaylistManager::updateSlotUiPosition(int slotIndex, int row, qint64 pos,
+                                           bool force) {
+  if (slotIndex < 0 || slotIndex >= kPlayerCount || row < 0) {
+    return;
+  }
+  PlayerSlot &slot = m_slots[slotIndex];
+  if (pos == slot.lastUiPositionMs) {
+    return;
+  }
+  if (!force && slot.lastUiPositionMs >= 0 &&
+      std::abs(pos - slot.lastUiPositionMs) < kUiPositionMinDeltaMs) {
+    return;
+  }
+  slot.lastUiPositionMs = pos;
   m_model->setItemPosition(row, pos);
 }
 
 void PlaylistManager::onMonitorTimeout() {
-  if (m_status != PlaylistStatus::Playing || m_activeSlot < 0 || m_inAdvance) {
+  if (m_status != PlaylistStatus::Playing || m_inAdvance) {
+    return;
+  }
+
+  for (int i = 0; i < kPlayerCount; ++i) {
+    if (i == m_activeSlot) {
+      continue;
+    }
+    const PlayerSlot &slot = m_slots[i];
+    if (slot.role == SlotRole::Tail && !slot.itemUuid.isNull() && slot.player &&
+        slot.player->status() == PlayerStatus::Playing) {
+      const qint64 tailPos = slot.player->position();
+      const int tailRow = m_model->rowForUuid(slot.itemUuid);
+      updateSlotUiPosition(i, tailRow, tailPos);
+      if (m_pendingOverlay.active() && i == m_pendingOverlay.sourceSlot &&
+          slot.itemUuid == m_pendingOverlay.sourceItemUuid &&
+          tailPos >= m_pendingOverlay.triggerPosMs) {
+        triggerPendingOverlay();
+      }
+    }
+  }
+
+  if (m_activeSlot < 0) {
     return;
   }
 
@@ -835,19 +1173,33 @@ void PlaylistManager::onMonitorTimeout() {
 
   const qint64 pos = activePlayer->position();
   const int row = (m_cachedActiveRow >= 0) ? m_cachedActiveRow : activeRow();
-  updateUiPosition(row, pos);
+  updateSlotUiPosition(m_activeSlot, row, pos);
   checkMixTrigger(pos);
 }
 
 void PlaylistManager::onPlayerPositionChanged(int slotIndex, qint64 pos) {
-  if (m_status != PlaylistStatus::Playing || slotIndex != m_activeSlot ||
-      m_inAdvance) {
+  if (m_status != PlaylistStatus::Playing || m_inAdvance || slotIndex < 0 ||
+      slotIndex >= kPlayerCount) {
     return;
   }
 
-  const int row = (m_cachedActiveRow >= 0) ? m_cachedActiveRow : activeRow();
-  updateUiPosition(row, pos);
-  checkMixTrigger(pos);
+  if (slotIndex == m_activeSlot) {
+    const int row = (m_cachedActiveRow >= 0) ? m_cachedActiveRow : activeRow();
+    updateSlotUiPosition(slotIndex, row, pos);
+    checkMixTrigger(pos);
+    return;
+  }
+
+  const PlayerSlot &slot = m_slots[slotIndex];
+  if (slot.role == SlotRole::Tail && !slot.itemUuid.isNull()) {
+    const int tailRow = m_model->rowForUuid(slot.itemUuid);
+    updateSlotUiPosition(slotIndex, tailRow, pos);
+    if (m_pendingOverlay.active() && slotIndex == m_pendingOverlay.sourceSlot &&
+        slot.itemUuid == m_pendingOverlay.sourceItemUuid &&
+        pos >= m_pendingOverlay.triggerPosMs) {
+      triggerPendingOverlay();
+    }
+  }
 }
 
 void PlaylistManager::onPlayerStatusChanged(int slotIndex,
@@ -863,11 +1215,19 @@ void PlaylistManager::onPlayerStatusChanged(int slotIndex,
 
   if (slot.role == SlotRole::Tail) {
     if (newStatus == PlayerStatus::End || newStatus == PlayerStatus::Error) {
+      if (m_pendingOverlay.active() &&
+          slotIndex == m_pendingOverlay.sourceSlot) {
+        triggerPendingOverlay();
+      }
       freeSlot(slotIndex);
       if (m_status != PlaylistStatus::Stopped) {
         syncPreloads();
       }
     }
+    return;
+  }
+
+  if (slot.role == SlotRole::PendingOverlay) {
     return;
   }
 
@@ -896,7 +1256,7 @@ void PlaylistManager::onPlayerStatusChanged(int slotIndex,
       return;
     }
     const int currRow = activeRow();
-    const int nextRow = (currRow >= 0) ? m_model->findNextMediaRow(currRow)
+    const int nextRow = (currRow >= 0) ? m_model->findNextEntryRow(currRow)
                                        : m_model->findNextPlayableRow();
     freeSlot(slotIndex);
     m_activeSlot = -1;
@@ -916,7 +1276,7 @@ void PlaylistManager::onPlayerStatusChanged(int slotIndex,
     }
     const int currRow = activeRow();
     const QString failedPath = slot.loadedPath;
-    const int nextRow = (currRow >= 0) ? m_model->findNextMediaRow(currRow)
+    const int nextRow = (currRow >= 0) ? m_model->findNextEntryRow(currRow)
                                        : m_model->findNextPlayableRow();
 
     if (currRow >= 0) {

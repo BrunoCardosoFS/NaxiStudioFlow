@@ -36,6 +36,7 @@ public:
 
   int rowForUuid(const QUuid &uuid) const;
   int findNextMediaRow(int afterRow) const;
+  int findNextEntryRow(int afterRow) const;
   int findNextPlayableRow() const;
   int blockMarkerRowForRow(int row) const;
 
@@ -48,6 +49,8 @@ public:
   void insertItem(int row, const PlaylistItem &item);
   bool insertCatalogItem(int row, const QString &title, const QString &path,
                          MediaType mediaType, qint64 durationMs = 0);
+  bool insertCommandItem(int row, const QString &title, CommandType commandType,
+                         const QString &commandId = QString());
   bool removeItem(int row);
   void clear();
   void cancelDurationProbes();
@@ -55,9 +58,12 @@ public:
   void setDurationResolver(DurationResolver resolver);
   void cacheDuration(const QString &path, qint64 durationMs);
 
-  void setPlayingRow(int row);
+  void setPlayingRow(int row, int mixingOutgoingRow = -1);
   void stopPlayingRow(bool markAsFinished);
+  void finishThroughRow(int row);
+  void markRowMixing(int row);
   void markRowFinished(int row);
+  void setPendingOverlayUuid(const QUuid &uuid);
   void setItemPosition(int row, qint64 positionMs);
   void setItemPlayerId(int row, int playerId);
   void updateItemAudioMetadata(int row, qint64 durationMs, qint64 startPoint,
@@ -92,11 +98,13 @@ private:
   QTimer *m_probeTimeoutTimer = nullptr;
   QList<QUuid> m_pendingDurationProbes;
   QUuid m_activeProbeUuid;
+  QUuid m_pendingOverlayUuid;
   DurationResolver m_durationResolver;
 
   void rebuildUuidMap();
   void updateUuidMapFrom(int startRow);
-  void recalculateBlockMetadataInternal(int overridePlayingRow);
+  void recalculateBlockMetadataInternal(int overridePlayingRow,
+                                        int mixingOutgoingRow = -1);
   void enqueueDurationProbe(const QUuid &uuid);
   void processNextDurationProbe();
   void finalizeActiveDurationProbe(qint64 durationMs);

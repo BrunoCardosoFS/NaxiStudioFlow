@@ -97,6 +97,10 @@ QVariant PlaylistListModel::data(const QModelIndex &index, int role) const {
     return item.itemsCount;
   case MarkerTextRole:
     return item.markerText;
+  case CommandTypeRole:
+    return static_cast<int>(item.commandType);
+  case CommandIdRole:
+    return item.commandId;
   default:
     return QVariant();
   }
@@ -113,7 +117,7 @@ Qt::ItemFlags PlaylistListModel::flags(const QModelIndex &index) const {
 
   const PlaylistItem &item = m_items.at(index.row());
 
-  if (item.type != ItemType::Media) {
+  if (!item.isEntry()) {
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
   }
 
@@ -151,18 +155,26 @@ int PlaylistListModel::findNextMediaRow(int afterRow) const {
   return -1;
 }
 
+int PlaylistListModel::findNextEntryRow(int afterRow) const {
+  const int start = qMax(0, afterRow + 1);
+  for (int i = start; i < m_items.size(); ++i) {
+    if (m_items.at(i).isEntry()) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 int PlaylistListModel::findNextPlayableRow() const {
   for (int i = 0; i < m_items.size(); ++i) {
     const PlaylistItem &item = m_items.at(i);
-    if (item.type == ItemType::Media &&
-        item.status == PlaylistItemStatus::Next) {
+    if (item.isEntry() && item.status == PlaylistItemStatus::Next) {
       return i;
     }
   }
   for (int i = 0; i < m_items.size(); ++i) {
     const PlaylistItem &item = m_items.at(i);
-    if (item.type == ItemType::Media &&
-        item.status == PlaylistItemStatus::Default) {
+    if (item.isEntry() && item.status == PlaylistItemStatus::Default) {
       return i;
     }
   }
@@ -200,9 +212,9 @@ bool PlaylistListModel::isDropRowBetweenMarkers(int row) const {
   const PlaylistItem &next = m_items.at(row);
 
   bool prevValid =
-      (prev.type == ItemType::StartMarker || prev.type == ItemType::Media);
+      (prev.type == ItemType::StartMarker || prev.isEntry());
   bool nextValid =
-      (next.type == ItemType::EndMarker || next.type == ItemType::Media);
+      (next.type == ItemType::EndMarker || next.isEntry());
 
   return prevValid && nextValid;
 }
@@ -211,7 +223,7 @@ bool PlaylistListModel::canRemoveRow(int row) const {
   if (row < 0 || row >= m_items.size()) {
     return false;
   }
-  if (m_items.at(row).type != ItemType::Media) {
+  if (!m_items.at(row).isEntry()) {
     return false;
   }
   const int lockedRow = lastLockedRow();
@@ -261,7 +273,7 @@ void PlaylistListModel::insertItem(int row, const PlaylistItem &item) {
   if (copy.uuid.isNull()) {
     copy.uuid = QUuid::createUuid();
   }
-  if (copy.type == ItemType::Media && !isDropRowBetweenMarkers(row)) {
+  if (copy.isEntry() && !isDropRowBetweenMarkers(row)) {
     return;
   }
   if (copy.type == ItemType::Media && copy.durationMs > 0) {
@@ -315,6 +327,40 @@ bool PlaylistListModel::insertCatalogItem(int row, const QString &title,
   return true;
 }
 
+bool PlaylistListModel::insertCommandItem(int row, const QString &title,
+                                            CommandType commandType,
+                                            const QString &commandId) {
+  if (commandType == CommandType::None) {
+    return false;
+  }
+  const int lockedRow = lastLockedRow();
+  if (lockedRow >= 0 && row <= lockedRow) {
+    return false;
+  }
+  if (!isDropRowBetweenMarkers(row)) {
+    return false;
+  }
+
+  PlaylistItem item;
+  item.uuid = QUuid::createUuid();
+  item.type = ItemType::Command;
+  item.mediaType = MediaType::Command;
+  item.commandType = commandType;
+  item.commandId = commandId.trimmed().isEmpty()
+                       ? commandTypeToString(commandType)
+                       : commandId.trimmed().toLower();
+  item.title = title.trimmed().isEmpty()
+                   ? ((commandType == CommandType::Pause)
+                          ? QStringLiteral("Pausa")
+                          : item.commandId)
+                   : title.trimmed();
+  item.durationMs = 0;
+  item.status = PlaylistItemStatus::Default;
+
+  insertItem(row, item);
+  return true;
+}
+
 bool PlaylistListModel::removeItem(int row) {
   if (!canRemoveRow(row)) {
     return false;
@@ -352,6 +398,7 @@ void PlaylistListModel::clear() {
   m_uuidRowMap.clear();
   m_playingRow = -1;
   m_lastLockedRow = -1;
+  m_pendingOverlayUuid = QUuid();
   endResetModel();
 }
 
@@ -371,67 +418,121 @@ void PlaylistListModel::cacheDuration(const QString &path, qint64 durationMs) {
   }
 }
 
-void PlaylistListModel::setPlayingRow(int row) {
-  if (row < 0 || row >= m_items.size() ||
-      m_items.at(row).type != ItemType::Media) {
+void PlaylistListModel::setPlayingRow(int row, int mixingOutgoingRow) {
+  if (row < 0 || row >= m_items.size() || !m_items.at(row).isEntry()) {
     return;
   }
 
   // Single-pass status + metadata recalculation avoids emitting StatusRole twice.
-  recalculateBlockMetadataInternal(row);
+  recalculateBlockMetadataInternal(row, mixingOutgoingRow);
 }
 
 void PlaylistListModel::stopPlayingRow(bool markAsFinished) {
-  int targetRow = m_playingRow;
-  if (targetRow < 0 || targetRow >= m_items.size()) {
-    for (int i = 0; i < m_items.size(); ++i) {
-      if (m_items.at(i).type == ItemType::Media &&
-          m_items.at(i).status == PlaylistItemStatus::Playing) {
-        targetRow = i;
-        break;
+  m_pendingOverlayUuid = QUuid();
+  bool anyChanged = false;
+  for (int i = 0; i < m_items.size(); ++i) {
+    PlaylistItem &item = m_items[i];
+    if (!item.isEntry()) {
+      continue;
+    }
+
+    if (item.status == PlaylistItemStatus::Mixing) {
+      item.playerId = -1;
+      item.status = PlaylistItemStatus::Finished;
+      const QModelIndex idx = index(i, 0);
+      emit dataChanged(idx, idx, {StatusRole});
+      anyChanged = true;
+    } else if (item.status == PlaylistItemStatus::Playing ||
+               i == m_playingRow) {
+      item.playerId = -1;
+
+      QList<int> changedRoles;
+      const PlaylistItemStatus newStatus = markAsFinished
+                                               ? PlaylistItemStatus::Finished
+                                               : PlaylistItemStatus::Next;
+      if (item.status != newStatus) {
+        item.status = newStatus;
+        changedRoles.append(StatusRole);
+      }
+      if (!markAsFinished && item.positionMs != 0) {
+        item.positionMs = 0;
+        changedRoles.append(PositionRole);
+      }
+
+      if (!changedRoles.isEmpty()) {
+        const QModelIndex idx = index(i, 0);
+        emit dataChanged(idx, idx, changedRoles);
+        anyChanged = true;
       }
     }
   }
 
-  if (targetRow < 0 || targetRow >= m_items.size()) {
+  if (anyChanged || m_playingRow >= 0) {
+    recalculateBlockMetadata();
+  }
+}
+
+void PlaylistListModel::finishThroughRow(int row) {
+  if (row < 0 || row >= m_items.size()) {
     return;
   }
 
-  PlaylistItem &item = m_items[targetRow];
-  item.playerId = -1;
+  m_pendingOverlayUuid = QUuid();
+  for (int i = 0; i < m_items.size(); ++i) {
+    PlaylistItem &item = m_items[i];
+    if (!item.isEntry()) {
+      continue;
+    }
 
-  QList<int> changedRoles;
-  const PlaylistItemStatus newStatus =
-      markAsFinished ? PlaylistItemStatus::Finished : PlaylistItemStatus::Next;
-  if (item.status != newStatus) {
-    item.status = newStatus;
-    changedRoles.append(StatusRole);
-  }
-  if (!markAsFinished && item.positionMs != 0) {
-    item.positionMs = 0;
-    changedRoles.append(PositionRole);
-  }
-
-  if (!changedRoles.isEmpty()) {
-    const QModelIndex idx = index(targetRow, 0);
-    emit dataChanged(idx, idx, changedRoles);
+    if (i <= row) {
+      item.playerId = -1;
+      item.status = PlaylistItemStatus::Finished;
+    } else if (item.status == PlaylistItemStatus::Playing ||
+               item.status == PlaylistItemStatus::Mixing) {
+      item.playerId = -1;
+      item.status = PlaylistItemStatus::Finished;
+    }
   }
 
   recalculateBlockMetadata();
 }
 
-void PlaylistListModel::markRowFinished(int row) {
+void PlaylistListModel::markRowMixing(int row) {
   if (row < 0 || row >= m_items.size() ||
       m_items.at(row).type != ItemType::Media) {
     return;
   }
 
+  if (m_items[row].status != PlaylistItemStatus::Mixing) {
+    m_items[row].status = PlaylistItemStatus::Mixing;
+    const QModelIndex idx = index(row, 0);
+    emit dataChanged(idx, idx, {StatusRole});
+  }
+  recalculateBlockMetadata();
+}
+
+void PlaylistListModel::markRowFinished(int row) {
+  if (row < 0 || row >= m_items.size() || !m_items.at(row).isEntry()) {
+    return;
+  }
+
   m_items[row].playerId = -1;
+  if (m_items[row].uuid == m_pendingOverlayUuid) {
+    m_pendingOverlayUuid = QUuid();
+  }
   if (m_items[row].status != PlaylistItemStatus::Finished) {
     m_items[row].status = PlaylistItemStatus::Finished;
     const QModelIndex idx = index(row, 0);
     emit dataChanged(idx, idx, {StatusRole});
   }
+  recalculateBlockMetadata();
+}
+
+void PlaylistListModel::setPendingOverlayUuid(const QUuid &uuid) {
+  if (m_pendingOverlayUuid == uuid) {
+    return;
+  }
+  m_pendingOverlayUuid = uuid;
   recalculateBlockMetadata();
 }
 
@@ -569,7 +670,7 @@ bool PlaylistListModel::moveItem(int fromRow, int toRow) {
   if (fromRow == toRow)
     return false;
 
-  if (m_items.at(fromRow).type != ItemType::Media) {
+  if (!m_items.at(fromRow).isEntry()) {
     return false;
   }
 
@@ -598,11 +699,11 @@ bool PlaylistListModel::moveItem(int fromRow, int toRow) {
 }
 
 void PlaylistListModel::recalculateBlockMetadata() {
-  recalculateBlockMetadataInternal(-2);
+  recalculateBlockMetadataInternal(-2, -1);
 }
 
 void PlaylistListModel::recalculateBlockMetadataInternal(
-    int overridePlayingRow) {
+    int overridePlayingRow, int mixingOutgoingRow) {
   if (m_items.isEmpty()) {
     m_playingRow = -1;
     m_lastLockedRow = -1;
@@ -628,7 +729,7 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
   if (overridePlayingRow >= 0 && overridePlayingRow < m_items.size()) {
     m_playingRow = overridePlayingRow;
     for (int i = 0; i < m_items.size(); ++i) {
-      if (i != overridePlayingRow &&
+      if (i != overridePlayingRow && i != mixingOutgoingRow &&
           m_items.at(i).status == PlaylistItemStatus::Playing) {
         m_items[i].playerId = -1;
       }
@@ -637,8 +738,7 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
     m_playingRow = -1;
     for (int i = 0; i < m_items.size(); ++i) {
       const PlaylistItem &it = m_items.at(i);
-      if (it.type == ItemType::Media &&
-          it.status == PlaylistItemStatus::Playing) {
+      if (it.isEntry() && it.status == PlaylistItemStatus::Playing) {
         m_playingRow = i;
         break;
       }
@@ -700,22 +800,30 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
                               accumulatedTime.second());
       }
 
-      const qint64 effectiveEnd =
-          (item.mixEnd > item.startPoint)
-              ? item.mixEnd
-              : ((item.endPoint > item.startPoint) ? item.endPoint
-                                                   : item.durationMs);
-      qint64 effectiveDuration = effectiveEnd - item.startPoint;
+      bool nextIsPauseCommand = false;
+      const PlaylistItem *nextEntry = nullptr;
       for (int j = i + 1; j < m_items.size(); ++j) {
         if (m_items.at(j).type == ItemType::BlockMarker) {
           break;
         }
-        if (m_items.at(j).type == ItemType::Media) {
-          const PlaylistItem &nextItem = m_items.at(j);
-          if (nextItem.mixStart > nextItem.startPoint) {
-            effectiveDuration -= (nextItem.mixStart - nextItem.startPoint);
-          }
+        if (m_items.at(j).isEntry()) {
+          nextEntry = &m_items.at(j);
+          nextIsPauseCommand =
+              (nextEntry->type == ItemType::Command &&
+               nextEntry->commandType == CommandType::Pause);
           break;
+        }
+      }
+
+      const qint64 endPtOrDur =
+          (item.endPoint > item.startPoint) ? item.endPoint : item.durationMs;
+      const qint64 effectiveEnd =
+          (!nextIsPauseCommand && item.mixEnd > item.startPoint) ? item.mixEnd
+                                                                 : endPtOrDur;
+      qint64 effectiveDuration = effectiveEnd - item.startPoint;
+      if (nextEntry && nextEntry->type == ItemType::Media) {
+        if (nextEntry->mixStart > nextEntry->startPoint) {
+          effectiveDuration -= (nextEntry->mixStart - nextEntry->startPoint);
         }
       }
       if (effectiveDuration < 0)
@@ -732,6 +840,23 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
       } else {
         musicCount++;
         musicDurationMs += effectiveDuration;
+      }
+    } else if (item.type == ItemType::Command) {
+      item.blockType = activeBlockType;
+      const qint64 estSecMs =
+          static_cast<qint64>(accumulatedTime.msecsSinceStartOfDay() / 1000) *
+          1000;
+      if (item.estimatedTimeMs != estSecMs || item.estimatedTime.isEmpty()) {
+        item.estimatedTimeMs = estSecMs;
+        item.estimatedTime =
+            QString::asprintf("%02d:%02d:%02d", accumulatedTime.hour(),
+                              accumulatedTime.minute(),
+                              accumulatedTime.second());
+      }
+      if (activeBlockType == BlockType::Commercial) {
+        commercialCount++;
+      } else {
+        musicCount++;
       }
     } else if (item.type == ItemType::EndMarker) {
       if (item.blockType == BlockType::Commercial) {
@@ -756,12 +881,20 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
 
   for (int i = 0; i < m_items.size(); ++i) {
     PlaylistItem &item = m_items[i];
-    if (item.type != ItemType::Media)
+    if (!item.isEntry())
       continue;
 
     if (playingRow >= 0) {
       if (i < playingRow) {
-        item.status = PlaylistItemStatus::Finished;
+        if (i == mixingOutgoingRow ||
+            item.status == PlaylistItemStatus::Mixing) {
+          item.status = PlaylistItemStatus::Mixing;
+        } else if (!m_pendingOverlayUuid.isNull() &&
+                   item.uuid == m_pendingOverlayUuid) {
+          item.status = PlaylistItemStatus::Default;
+        } else {
+          item.status = PlaylistItemStatus::Finished;
+        }
       } else if (i == playingRow) {
         item.status = PlaylistItemStatus::Playing;
       } else if (!foundNext) {
@@ -771,7 +904,8 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
         item.status = PlaylistItemStatus::Default;
       }
     } else {
-      if (item.status == PlaylistItemStatus::Finished) {
+      if (item.status == PlaylistItemStatus::Finished ||
+          item.status == PlaylistItemStatus::Mixing) {
         m_lastLockedRow = qMax(m_lastLockedRow, i);
         continue;
       }
@@ -784,6 +918,7 @@ void PlaylistListModel::recalculateBlockMetadataInternal(
     }
 
     if (item.status == PlaylistItemStatus::Playing ||
+        item.status == PlaylistItemStatus::Mixing ||
         item.status == PlaylistItemStatus::Finished) {
       m_lastLockedRow = qMax(m_lastLockedRow, i);
     }
