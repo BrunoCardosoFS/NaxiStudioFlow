@@ -579,6 +579,13 @@ void TestMixEditor::testMixEditorRemovedOrFinishedItemDoesNotCrash() {
   QVERIFY(editor.loadPlaylistItem(&model, finItem.uuid));
   model.markRowFinished(model.rowForUuid(finItem.uuid));
   QVERIFY(!editor.saveToPlaylist());
+
+  // Re-add, mark Mixing, verify saveToPlaylist() returns false cleanly
+  PlaylistItem mixItem = makeMedia(QStringLiteral("Mixing Track"), QStringLiteral("Z:/missing3.mp3"), 12000);
+  model.insertItem(row + 1, mixItem);
+  QVERIFY(editor.loadPlaylistItem(&model, mixItem.uuid));
+  model.markRowMixing(model.rowForUuid(mixItem.uuid));
+  QVERIFY(!editor.saveToPlaylist());
 }
 
 void TestMixEditor::testWaveformWidgetCoordinateMappingAndZoom() {
@@ -621,13 +628,16 @@ void TestMixEditor::testPlaylistViewContextMenu() {
   model.addItem(makeMarker(ItemType::BlockMarker, BlockType::Music, QStringLiteral("18:00")));
   model.addItem(makeMarker(ItemType::StartMarker, BlockType::Music));
   PlaylistItem finItem = makeMedia(QStringLiteral("Finished"), QString(), 10000);
+  PlaylistItem mixItem = makeMedia(QStringLiteral("Mixing"), QString(), 10000);
   PlaylistItem playingItem = makeMedia(QStringLiteral("Playing"), QString(), 10000);
   PlaylistItem futureItem = makeMedia(QStringLiteral("Future"), QString(), 10000);
   model.addItem(finItem);
+  model.addItem(mixItem);
   model.addItem(playingItem);
   model.addItem(futureItem);
   model.addItem(makeMarker(ItemType::EndMarker, BlockType::Music));
-  model.setPlayingRow(model.rowForUuid(playingItem.uuid));
+  model.setPlayingRow(model.rowForUuid(playingItem.uuid),
+                      model.rowForUuid(mixItem.uuid));
 
   PlaylistView view;
   view.setModel(&model);
@@ -641,6 +651,13 @@ void TestMixEditor::testPlaylistViewContextMenu() {
   QVERIFY(finMenu != nullptr);
   QVERIFY(!finMenu->actions().isEmpty());
   QVERIFY(!finMenu->actions().first()->isEnabled());
+
+  // Mixing item -> MixEditor action and Remover both disabled
+  std::unique_ptr<QMenu> mixMenu(
+      view.createContextMenu(model.index(model.rowForUuid(mixItem.uuid), 0)));
+  QVERIFY(mixMenu != nullptr);
+  QVERIFY(!mixMenu->actions().first()->isEnabled());
+  QVERIFY(!mixMenu->actions().last()->isEnabled());
 
   // Playing item -> MixEditor enabled, Remover disabled
   std::unique_ptr<QMenu> playMenu(

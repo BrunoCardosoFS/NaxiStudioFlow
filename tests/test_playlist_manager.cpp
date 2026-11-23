@@ -7,8 +7,11 @@
 #include <QFile>
 #include <QHash>
 #include <QMimeData>
+#include <QPainter>
+#include <QPixmap>
 #include <QSet>
 #include <QSignalSpy>
+#include <QStyleOptionViewItem>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -87,10 +90,9 @@ public:
   void completeLoad() {
     const QString local =
         m_source.isLocalFile() ? m_source.toLocalFile() : m_source.toString();
-    const qint64 realDur = m_registry
-                               ? m_registry->durationByPath.value(
-                                     local, metadata.duration)
-                               : metadata.duration;
+    const qint64 realDur =
+        m_registry ? m_registry->durationByPath.value(local, metadata.duration)
+                   : metadata.duration;
     normalizeMetadata(realDur);
     m_pos = metadata.startPoint;
     applyVolume(0.0f);
@@ -243,9 +245,8 @@ bool writeTestWavFile(const QString &filePath, int durationMs) {
   constexpr quint32 sampleRate = 44100;
   constexpr quint16 channels = 1;
   constexpr quint16 bitsPerSample = 16;
-  const quint32 totalSamples =
-      static_cast<quint32>((static_cast<quint64>(sampleRate) * durationMs) /
-                           1000ULL);
+  const quint32 totalSamples = static_cast<quint32>(
+      (static_cast<quint64>(sampleRate) * durationMs) / 1000ULL);
   const quint32 dataBytes = totalSamples * channels * (bitsPerSample / 8);
   const quint32 byteRate = sampleRate * channels * (bitsPerSample / 8);
   const quint16 blockAlign = channels * (bitsPerSample / 8);
@@ -305,6 +306,12 @@ private slots:
   void testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume();
   void testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTimeout();
   void testRecalculateBlockMetadataEmitsExactRoles();
+  void testMixingStatusLifecycleAndTailProgressUpdates();
+  void testTripleOverlapKeepsBothTailsMixingUntilEndPoint();
+  void testMixingManualNextAndSlotStealTransitionToFinished();
+  void testDelegatePaintsMixingStateAndMixMarkers();
+  void testLongMixStartOnM3StartsBeforeShortM2AndSyncsMixPoints();
+  void testPendingOverlayCancelledByStopAndManualNext();
 };
 
 void TestPlaylistManager::initTestCase() {
@@ -371,8 +378,8 @@ void TestPlaylistManager::testDynamicExtendedPreloadDecision() {
   song3.mixStart = 3000;
 
   // Long next track without triple overlap -> false (saves RAM)
-  QVERIFY(!PlaylistManager::shouldPreloadExtended(song1, longSong2, song3,
-                                                  3000));
+  QVERIFY(
+      !PlaylistManager::shouldPreloadExtended(song1, longSong2, song3, 3000));
 
   // Short next jingle -> windowInNextMs <= minPreloadWindowMs -> true
   PlayerMetadata shortJingle;
@@ -381,50 +388,48 @@ void TestPlaylistManager::testDynamicExtendedPreloadDecision() {
   shortJingle.endPoint = 4000;
   shortJingle.mixStart = 0;
   shortJingle.mixEnd = 3500; // triggerNextToAfter = 3500 - 3000 = 500ms <= 3000
-  QVERIFY(PlaylistManager::shouldPreloadExtended(song1, shortJingle, song3,
-                                                 3000));
+  QVERIFY(
+      PlaylistManager::shouldPreloadExtended(song1, shortJingle, song3, 3000));
 
   // Triple overlap even when windowInNextMs > minPreloadWindowMs
-  song1.mixEnd = 191000; // with jingle mixStart=1000 -> trigger=190000 -> tail=10000ms
+  song1.mixEnd =
+      191000; // with jingle mixStart=1000 -> trigger=190000 -> tail=10000ms
   PlayerMetadata mediumJingle;
   mediumJingle.duration = 7000;
   mediumJingle.startPoint = 0;
   mediumJingle.endPoint = 7000;
   mediumJingle.mixStart = 1000;
   mediumJingle.mixEnd = 6500;
-  song3.mixStart = 1500; // triggerNextToAfter = 6500 - 1500 = 5000ms (>3000ms, <10000ms)
-  QVERIFY(PlaylistManager::shouldPreloadExtended(song1, mediumJingle, song3,
-                                                 3000));
+  song3.mixStart =
+      1500; // triggerNextToAfter = 6500 - 1500 = 5000ms (>3000ms, <10000ms)
+  QVERIFY(
+      PlaylistManager::shouldPreloadExtended(song1, mediumJingle, song3, 3000));
 
   // Unknown duration for next track -> false
   PlayerMetadata unknownNext;
-  QVERIFY(!PlaylistManager::shouldPreloadExtended(song1, unknownNext, song3,
-                                                  3000));
+  QVERIFY(
+      !PlaylistManager::shouldPreloadExtended(song1, unknownNext, song3, 3000));
 }
 
 void TestPlaylistManager::testThreePlayerRoundRobinAndEarlyMixSync() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
   model->clear();
   model->addItem(makeBlockMarker("14:00", "Block 1"));
   model->addItem(makeStartMarker(BlockType::Music));
-  const auto item1 =
-      makeMediaItem("Track 1", "C:/audio/t1.mp3", 20000, 0, 20000, 0, 18000,
-                    500, 18000);
-  const auto item2 =
-      makeMediaItem("Track 2", "C:/audio/t2.mp3", 20000, 0, 20000, 2000, 18000,
-                    500, 18000);
-  const auto item3 =
-      makeMediaItem("Track 3", "C:/audio/t3.mp3", 20000, 0, 20000, 1000, 18000,
-                    500, 18000);
-  const auto item4 =
-      makeMediaItem("Track 4", "C:/audio/t4.mp3", 20000, 0, 20000, 1000, 18000,
-                    500, 18000);
+  const auto item1 = makeMediaItem("Track 1", "C:/audio/t1.mp3", 20000, 0,
+                                   20000, 0, 18000, 500, 18000);
+  const auto item2 = makeMediaItem("Track 2", "C:/audio/t2.mp3", 20000, 0,
+                                   20000, 2000, 18000, 500, 18000);
+  const auto item3 = makeMediaItem("Track 3", "C:/audio/t3.mp3", 20000, 0,
+                                   20000, 1000, 18000, 500, 18000);
+  const auto item4 = makeMediaItem("Track 4", "C:/audio/t4.mp3", 20000, 0,
+                                   20000, 1000, 18000, 500, 18000);
   model->addItem(item1);
   model->addItem(item2);
   model->addItem(item3);
@@ -463,7 +468,8 @@ void TestPlaylistManager::testThreePlayerRoundRobinAndEarlyMixSync() {
   QCOMPARE(fakes[0]->status(), PlayerStatus::Idle);
   QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::Free);
 
-  // Track 2 triggers Track 3 at 18000 - 1000 = 17000ms -> P2 active, P0 preloads Track 4
+  // Track 2 triggers Track 3 at 18000 - 1000 = 17000ms -> P2 active, P0
+  // preloads Track 4
   fakes[1]->advanceTo(17000);
   QCOMPARE(manager.activePlayerIndex(), 2);
   QCOMPARE(manager.slotRole(2), PlaylistManager::SlotRole::Active);
@@ -472,7 +478,8 @@ void TestPlaylistManager::testThreePlayerRoundRobinAndEarlyMixSync() {
   QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::PreloadNext);
   QCOMPARE(manager.slotItemUuid(0), item4.uuid);
 
-  // P1 finishes tail, then Track 3 triggers Track 4 on P0 -> full 0 -> 1 -> 2 -> 0 ring
+  // P1 finishes tail, then Track 3 triggers Track 4 on P0 -> full 0 -> 1 -> 2
+  // -> 0 ring
   fakes[1]->advanceTo(20000);
   fakes[2]->advanceTo(17000);
   QCOMPARE(manager.activePlayerIndex(), 0);
@@ -482,30 +489,28 @@ void TestPlaylistManager::testThreePlayerRoundRobinAndEarlyMixSync() {
 
 void TestPlaylistManager::testTripleOverlapWithExtendedPreload() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
   model->clear();
   model->addItem(makeBlockMarker("15:00", "Triple Overlap"));
   model->addItem(makeStartMarker(BlockType::Music));
-  // Song 1: mixEnd=192000, endPoint=200000 -> tail=8000ms (with jingle mixStart=0)
-  const auto song1 =
-      makeMediaItem("Song 1", "C:/audio/s1.mp3", 200000, 0, 200000, 0, 192000,
-                    500, 192000);
+  // Song 1: mixEnd=192000, endPoint=200000 -> tail=8000ms (with jingle
+  // mixStart=0)
+  const auto song1 = makeMediaItem("Song 1", "C:/audio/s1.mp3", 200000, 0,
+                                   200000, 0, 192000, 500, 192000);
   // Short Jingle: duration=4000ms, mixEnd=3500ms
-  const auto jingle =
-      makeMediaItem("Jingle", "C:/audio/j.mp3", 4000, 0, 4000, 0, 3500, 0, 3500,
-                    MediaType::Jingle);
-  // Song 2: mixStart=1500ms -> jingle trigger at 3500-1500 = 2000ms (< 8000ms tail!)
-  const auto song2 =
-      makeMediaItem("Song 2", "C:/audio/s2.mp3", 180000, 0, 180000, 1500,
-                    175000, 500, 175000);
-  const auto song3 =
-      makeMediaItem("Song 3", "C:/audio/s3.mp3", 180000, 0, 180000, 2000,
-                    175000, 500, 175000);
+  const auto jingle = makeMediaItem("Jingle", "C:/audio/j.mp3", 4000, 0, 4000,
+                                    0, 3500, 0, 3500, MediaType::Jingle);
+  // Song 2: mixStart=1500ms -> jingle trigger at 3500-1500 = 2000ms (< 8000ms
+  // tail!)
+  const auto song2 = makeMediaItem("Song 2", "C:/audio/s2.mp3", 180000, 0,
+                                   180000, 1500, 175000, 500, 175000);
+  const auto song3 = makeMediaItem("Song 3", "C:/audio/s3.mp3", 180000, 0,
+                                   180000, 2000, 175000, 500, 175000);
 
   model->addItem(song1);
   model->addItem(jingle);
@@ -547,7 +552,8 @@ void TestPlaylistManager::testTripleOverlapWithExtendedPreload() {
   QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::Tail);
   QCOMPARE(manager.slotRole(2), PlaylistManager::SlotRole::Active);
 
-  // Once P0 finishes Song 1 tail at 200000ms, P0 is freed and immediately preloads Song 3!
+  // Once P0 finishes Song 1 tail at 200000ms, P0 is freed and immediately
+  // preloads Song 3!
   fakes[0]->advanceTo(200000);
   QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::PreloadNext);
   QCOMPARE(manager.slotItemUuid(0), song3.uuid);
@@ -556,9 +562,9 @@ void TestPlaylistManager::testTripleOverlapWithExtendedPreload() {
 
 void TestPlaylistManager::testBlockTransitionsAndEmptySections() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -567,9 +573,8 @@ void TestPlaylistManager::testBlockTransitionsAndEmptySections() {
   // Block 1: Commercial (1 item) + Music (1 item)
   model->addItem(makeBlockMarker("14:00", "Morning Show"));
   model->addItem(makeStartMarker(BlockType::Commercial));
-  const auto comm1 =
-      makeMediaItem("Spot 1", "C:/audio/c1.mp3", 10000, 0, 10000, 0, 10000, 0,
-                    10000, MediaType::Commercial);
+  const auto comm1 = makeMediaItem("Spot 1", "C:/audio/c1.mp3", 10000, 0, 10000,
+                                   0, 10000, 0, 10000, MediaType::Commercial);
   model->addItem(comm1);
   model->addItem(makeEndMarker(BlockType::Commercial));
   model->addItem(makeStartMarker(BlockType::Music));
@@ -599,13 +604,15 @@ void TestPlaylistManager::testBlockTransitionsAndEmptySections() {
   QCOMPARE(blockChangedSpy.at(0).at(2).toString(), QString("Morning Show"));
   QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), comm1.uuid);
 
-  // Finish Spot 1 -> transitions across EndMarker/StartMarker to Music 1 in same block
+  // Finish Spot 1 -> transitions across EndMarker/StartMarker to Music 1 in
+  // same block
   fakes[manager.activePlayerIndex()]->advanceTo(10000);
   QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), mus1.uuid);
   QCOMPARE(blockChangedSpy.count(), 1);
   QCOMPARE(blockFinishedSpy.count(), 0);
 
-  // Finish Music 1 -> skips EndMarker, BlockMarker, empty Commercial section -> Music 2
+  // Finish Music 1 -> skips EndMarker, BlockMarker, empty Commercial section ->
+  // Music 2
   fakes[manager.activePlayerIndex()]->advanceTo(10000);
   QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), mus2.uuid);
   QCOMPARE(blockFinishedSpy.count(), 1);
@@ -633,9 +640,9 @@ void TestPlaylistManager::testBlockTransitionsAndEmptySections() {
 
 void TestPlaylistManager::testTransportPlayPauseStopNext() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
   manager.setManualNextFadeMs(500);
   manager.setStopFadeMs(1500);
@@ -688,7 +695,8 @@ void TestPlaylistManager::testTransportPlayPauseStopNext() {
   QCOMPARE(fakes[0]->status(), PlayerStatus::Playing);
   QCOMPARE(fakes[1]->status(), PlayerStatus::Playing);
 
-  // Finish P0 tail cleanly, then trigger Next while Playing -> fade-out on P1, P2 active on T3
+  // Finish P0 tail cleanly, then trigger Next while Playing -> fade-out on P1,
+  // P2 active on T3
   fakes[0]->advanceTo(10000);
   fakes[1]->advanceTo(2000);
   manager.next();
@@ -700,7 +708,8 @@ void TestPlaylistManager::testTransportPlayPauseStopNext() {
   QCOMPARE(fakes[1]->lastFadeOutDuration, qint64(500));
   QCOMPARE(fakes[1]->status(), PlayerStatus::Playing);
 
-  // Pause while T3 plays, then Next while Paused -> stops paused player and plays T4 immediately
+  // Pause while T3 plays, then Next while Paused -> stops paused player and
+  // plays T4 immediately
   manager.pause();
   QCOMPARE(fakes[2]->status(), PlayerStatus::Paused);
   manager.next();
@@ -711,7 +720,8 @@ void TestPlaylistManager::testTransportPlayPauseStopNext() {
   QCOMPARE(manager.slotItemUuid(1), t5.uuid);
   QCOMPARE(fakes[2]->status(), PlayerStatus::Idle);
 
-  // Advance T4 partway, then Stop -> fades out P0 as Tail, marks T4 Finished, promotes T5 to Next
+  // Advance T4 partway, then Stop -> fades out P0 as Tail, marks T4 Finished,
+  // promotes T5 to Next
   fakes[manager.activePlayerIndex()]->advanceTo(3500);
   QCOMPARE(model->itemAt(model->rowForUuid(t4.uuid))->positionMs, qint64(3500));
 
@@ -739,7 +749,8 @@ void TestPlaylistManager::testTransportPlayPauseStopNext() {
   QCOMPARE(model->itemAt(model->rowForUuid(t5.uuid))->status,
            PlaylistItemStatus::Next);
 
-  // Pressing Play while P0 is still fading out starts T5 cleanly on a Free slot (P1)
+  // Pressing Play while P0 is still fading out starts T5 cleanly on a Free slot
+  // (P1)
   manager.play();
   QCOMPARE(manager.status(), PlaylistStatus::Playing);
   QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), t5.uuid);
@@ -754,9 +765,9 @@ void TestPlaylistManager::testTransportPlayPauseStopNext() {
 
 void TestPlaylistManager::testModelReorderUpdatesPreloads() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -766,11 +777,10 @@ void TestPlaylistManager::testModelReorderUpdatesPreloads() {
   const auto t1 =
       makeMediaItem("T1", "C:/audio/1.mp3", 100000, 0, 100000, 0, 95000);
   const auto shortJingle =
-      makeMediaItem("Jingle", "C:/audio/j.mp3", 2000, 0, 2000, 0, 1500, 0,
-                    1500, MediaType::Jingle);
-  const auto longSong =
-      makeMediaItem("Long Song", "C:/audio/long.mp3", 180000, 0, 180000, 0,
-                    175000);
+      makeMediaItem("Jingle", "C:/audio/j.mp3", 2000, 0, 2000, 0, 1500, 0, 1500,
+                    MediaType::Jingle);
+  const auto longSong = makeMediaItem("Long Song", "C:/audio/long.mp3", 180000,
+                                      0, 180000, 0, 175000);
   const auto t4 =
       makeMediaItem("T4", "C:/audio/4.mp3", 180000, 0, 180000, 0, 175000);
 
@@ -798,9 +808,9 @@ void TestPlaylistManager::testModelReorderUpdatesPreloads() {
 
 void TestPlaylistManager::testProgressBarPositionRoleUpdates() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -830,9 +840,9 @@ void TestPlaylistManager::testMissingFileErrorSkipsGracefully() {
   registry.missingPaths.insert("C:/audio/missing1.mp3");
   registry.missingPaths.insert("C:/audio/missing2.mp3");
 
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -861,7 +871,8 @@ void TestPlaylistManager::testMissingFileErrorSkipsGracefully() {
   QCOMPARE(model->itemAt(model->rowForUuid(bad2.uuid))->status,
            PlaylistItemStatus::Finished);
 
-  // Now test playlist with only missing tracks -> cleanly stops + playlistFinished
+  // Now test playlist with only missing tracks -> cleanly stops +
+  // playlistFinished
   model->clear();
   model->addItem(makeBlockMarker("08:30", "All Broken"));
   model->addItem(makeStartMarker(BlockType::Music));
@@ -881,8 +892,7 @@ void TestPlaylistManager::testPlaylistListModelEstimatedTimeWithMixPoints() {
   model.addItem(makeBlockMarker("14:00", "Mix Schedule"));
   model.addItem(makeStartMarker(BlockType::Music));
   // Track 1: duration 200s, start=0, mixEnd=195s
-  const auto t1 =
-      makeMediaItem("T1", "C:/1.mp3", 200000, 0, 200000, 0, 195000);
+  const auto t1 = makeMediaItem("T1", "C:/1.mp3", 200000, 0, 200000, 0, 195000);
   // Track 2: duration 180s, start=0, mixStart=2s, mixEnd=176s
   // Starts at 14:00:00 + (195000 - 2000) = 14:00:00 + 193s = 14:03:13
   const auto t2 =
@@ -927,7 +937,8 @@ void TestPlaylistManager::testInsertCatalogItemAndMarkerBoundaries() {
   QVERIFY(!model.insertCatalogItem(model.rowCount(), "Invalid", "C:/a.mp3",
                                    MediaType::Music));
 
-  // Valid insertion into empty commercial section (row 2 = EndMarker Commercial)
+  // Valid insertion into empty commercial section (row 2 = EndMarker
+  // Commercial)
   QVERIFY(model.insertCatalogItem(2, "Spot", "C:/audio/spot.mp3",
                                   MediaType::Commercial, 15000));
   QCOMPARE(model.itemAt(2)->title, QString("Spot"));
@@ -980,8 +991,9 @@ void TestPlaylistManager::testRealAudioDurationProbeFromWavFile() {
   QTRY_COMPARE_WITH_TIMEOUT(durationSpy.count(), 1, 5000);
 
   const qint64 loadedDuration = durationSpy.at(0).at(2).toLongLong();
-  QVERIFY2(qAbs(loadedDuration - 2400) <= 50,
-           qPrintable(QString("Unexpected WAV duration: %1").arg(loadedDuration)));
+  QVERIFY2(
+      qAbs(loadedDuration - 2400) <= 50,
+      qPrintable(QString("Unexpected WAV duration: %1").arg(loadedDuration)));
 
   const PlaylistItem *probedItem = model.itemAt(2);
   QVERIFY(probedItem != nullptr);
@@ -994,7 +1006,9 @@ void TestPlaylistManager::testRealAudioDurationProbeFromWavFile() {
   const PlaylistItem *afterItem = model.itemAt(3);
   QVERIFY(afterItem != nullptr);
   QCOMPARE(afterItem->estimatedTime,
-           QTime(16, 0, 0).addMSecs(static_cast<int>(loadedDuration)).toString("hh:mm:ss"));
+           QTime(16, 0, 0)
+               .addMSecs(static_cast<int>(loadedDuration))
+               .toString("hh:mm:ss"));
 
   // EndMarker (row 4) and BlockMarker (row 0) totals updated
   QCOMPARE(model.itemAt(4)->itemsCount, 2);
@@ -1004,9 +1018,9 @@ void TestPlaylistManager::testRealAudioDurationProbeFromWavFile() {
 
 void TestPlaylistManager::testRemoveFutureItemsAndLockProtection() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -1021,10 +1035,10 @@ void TestPlaylistManager::testRemoveFutureItemsAndLockProtection() {
       makeMediaItem("T3", "C:/audio/3.mp3", 20000, 0, 20000, 0, 19000);
   const auto t4 =
       makeMediaItem("T4", "C:/audio/4.mp3", 12000, 0, 12000, 0, 11000);
-  model->addItem(t1); // row 2
-  model->addItem(t2); // row 3
-  model->addItem(t3); // row 4
-  model->addItem(t4); // row 5
+  model->addItem(t1);                              // row 2
+  model->addItem(t2);                              // row 3
+  model->addItem(t3);                              // row 4
+  model->addItem(t4);                              // row 5
   model->addItem(makeEndMarker(BlockType::Music)); // row 6
 
   // Markers cannot be removed
@@ -1040,7 +1054,8 @@ void TestPlaylistManager::testRemoveFutureItemsAndLockProtection() {
   QVERIFY(!model->canRemoveRow(2));
   QVERIFY(!model->removeItem(2));
 
-  // Future Next item (t2 at row 3) CAN be removed; t3 upgrades to Next & PreloadNext
+  // Future Next item (t2 at row 3) CAN be removed; t3 upgrades to Next &
+  // PreloadNext
   QVERIFY(model->canRemoveRow(3));
   QVERIFY(model->removeItem(3));
   QCOMPARE(model->rowForUuid(t2.uuid), -1);
@@ -1050,14 +1065,16 @@ void TestPlaylistManager::testRemoveFutureItemsAndLockProtection() {
   QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::PreloadNext);
   QCOMPARE(manager.slotItemUuid(1), t3.uuid);
   QCOMPARE(model->itemAt(5)->itemsCount, 3);
-  // Effective total with mixEnd points: T1(9000) + T3(19000) + T4(11000) = 39000
+  // Effective total with mixEnd points: T1(9000) + T3(19000) + T4(11000) =
+  // 39000
   QCOMPARE(model->itemAt(5)->totalDurationMs, qint64(39000));
 
   // Advance T1 to finish -> T3 plays, T1 is Finished
   fakes[0]->advanceTo(9000);
   QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), t3.uuid);
 
-  // Stop playlist -> T1 and T3 remain Finished (locked), T4 advances to Next (unlocked)
+  // Stop playlist -> T1 and T3 remain Finished (locked), T4 advances to Next
+  // (unlocked)
   manager.stop();
   QCOMPARE(model->itemAt(model->rowForUuid(t1.uuid))->status,
            PlaylistItemStatus::Finished);
@@ -1086,8 +1103,8 @@ void TestPlaylistManager::testPlaylistViewCatalogDropAndDeleteKey() {
       makeMediaItem("Playing Song", "C:/audio/playing.mp3", 20000, 0, 20000);
   const auto t2 =
       makeMediaItem("Future Song", "C:/audio/future.mp3", 18000, 0, 18000);
-  model.addItem(t1); // row 2
-  model.addItem(t2); // row 3
+  model.addItem(t1);                              // row 2
+  model.addItem(t2);                              // row 3
   model.addItem(makeEndMarker(BlockType::Music)); // row 4
   model.setPlayingRow(2);
 
@@ -1126,8 +1143,8 @@ void TestPlaylistManager::testPlaylistViewCatalogDropAndDeleteKey() {
   QVERIFY(endRect.isValid());
   const QPoint validPos(endRect.center().x(), endRect.top() + 2);
 
-  QDragEnterEvent enterEvt(validPos, Qt::CopyAction, mime.get(),
-                           Qt::LeftButton, Qt::NoModifier);
+  QDragEnterEvent enterEvt(validPos, Qt::CopyAction, mime.get(), Qt::LeftButton,
+                           Qt::NoModifier);
   QCoreApplication::sendEvent(view.viewport(), &enterEvt);
   QVERIFY(enterEvt.isAccepted());
 
@@ -1161,9 +1178,9 @@ void TestPlaylistManager::testPlaylistViewCatalogDropAndDeleteKey() {
 
 void TestPlaylistManager::testStopFadeOutAndRemainingAudioClamp() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
   manager.setStopFadeMs(1500);
 
@@ -1202,7 +1219,8 @@ void TestPlaylistManager::testStopFadeOutAndRemainingAudioClamp() {
   QCOMPARE(fakes[0]->status(), PlayerStatus::Idle);
   QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::Free);
 
-  // Case 2: Remaining audio (800ms) < stopFadeMs (1500ms) -> clamp endPoint to audio end (10000ms)
+  // Case 2: Remaining audio (800ms) < stopFadeMs (1500ms) -> clamp endPoint to
+  // audio end (10000ms)
   manager.play();
   const int track2Slot = manager.activePlayerIndex();
   QCOMPARE(manager.slotItemUuid(track2Slot), track2.uuid);
@@ -1227,9 +1245,9 @@ void TestPlaylistManager::testStopFadeOutAndRemainingAudioClamp() {
 
 void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
   FakeAudioRegistry registry;
-  std::array<FakePlayerManager *, 3> fakes = {
-      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
-      new FakePlayerManager(&registry)};
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
   PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
 
   auto *model = manager.model();
@@ -1240,8 +1258,8 @@ void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
       makeMediaItem("Track 1", "C:/audio/1.mp3", 10000, 0, 10000, 0, 10000);
   const auto t2 =
       makeMediaItem("Track 2", "C:/audio/2.mp3", 10000, 0, 10000, 0, 10000);
-  model->addItem(t1); // row 2
-  model->addItem(t2); // row 3
+  model->addItem(t1);                              // row 2
+  model->addItem(t2);                              // row 3
   model->addItem(makeEndMarker(BlockType::Music)); // row 4
 
   PlaylistView view;
@@ -1259,7 +1277,8 @@ void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
   QCOMPARE(playingRect1.height(), 50);
   QCOMPARE(nextRectBefore.top(), playingRect1.bottom() + 1);
 
-  // Stop Track 1 -> row 2 becomes Finished (32px), row 3 shifts up cleanly with no gap
+  // Stop Track 1 -> row 2 becomes Finished (32px), row 3 shifts up cleanly with
+  // no gap
   manager.stop();
   QCoreApplication::processEvents();
   const QRect finishedRect1 = view.visualRect(model->index(2, 0));
@@ -1267,7 +1286,8 @@ void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
   QCOMPARE(finishedRect1.height(), 32);
   QCOMPARE(nextRectAfter.top(), finishedRect1.bottom() + 1);
 
-  // Play last track (Track 2 at row 3) then Stop -> row 3 shrinks from 50px to 32px and EndMarker (row 4) shifts up
+  // Play last track (Track 2 at row 3) then Stop -> row 3 shrinks from 50px to
+  // 32px and EndMarker (row 4) shifts up
   manager.play();
   QCoreApplication::processEvents();
   const QRect playingRect2 = view.visualRect(model->index(3, 0));
@@ -1283,7 +1303,8 @@ void TestPlaylistManager::testPlaylistViewRowHeightUpdatesOnStopAndFinish() {
   QCOMPARE(endAfter.top(), finishedRect2.bottom() + 1);
 }
 
-void TestPlaylistManager::testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume() {
+void TestPlaylistManager::
+    testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume() {
   FakeAudioRegistry registry;
   FakePlayerManager player(&registry);
 
@@ -1316,8 +1337,8 @@ void TestPlaylistManager::testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume
   const float volMid = player.currentVolume();
   QVERIFY(volMid > 0.0f && volMid < volAtTrigger);
 
-  // Calling triggerFadeOut with a longer duration (2000ms) while only 250ms remain
-  // must keep existing shorter fade-out without jumping volume
+  // Calling triggerFadeOut with a longer duration (2000ms) while only 250ms
+  // remain must keep existing shorter fade-out without jumping volume
   player.triggerFadeOut(2000);
   QCOMPARE(player.currentMetadata().endPoint, qint64(8500));
   QVERIFY(player.currentVolume() <= volMid + 0.003f);
@@ -1328,7 +1349,8 @@ void TestPlaylistManager::testTriggerFadeOutDuringActiveFadeOutDoesNotJumpVolume
   QCOMPARE(player.currentVolume(), 0.0f);
 }
 
-void TestPlaylistManager::testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTimeout() {
+void TestPlaylistManager::
+    testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTimeout() {
   QTemporaryDir tempDir;
   QVERIFY(tempDir.isValid());
   const QString wavPath = tempDir.filePath("dup_probe.wav");
@@ -1345,9 +1367,9 @@ void TestPlaylistManager::testConsecutiveDuplicateFileProbeUsesCacheAndDoesNotTi
   QVERIFY(model.insertCatalogItem(3, "Dup 2", wavPath, MediaType::Jingle, 0));
 
   // Both must resolve quickly (well under the 5000ms probe timeout)
-  QTRY_VERIFY_WITH_TIMEOUT(
-      model.itemAt(2)->durationMs >= 800 && model.itemAt(3)->durationMs >= 800,
-      4000);
+  QTRY_VERIFY_WITH_TIMEOUT(model.itemAt(2)->durationMs >= 800 &&
+                               model.itemAt(3)->durationMs >= 800,
+                           4000);
 
   // A third drop of the same file must resolve synchronously from cache!
   QVERIFY(model.insertCatalogItem(4, "Dup 3", wavPath, MediaType::Jingle, 0));
@@ -1365,8 +1387,8 @@ void TestPlaylistManager::testRecalculateBlockMetadataEmitsExactRoles() {
 
   QSignalSpy dataSpy(&model, &QAbstractItemModel::dataChanged);
 
-  // Updating duration of row 2 shifts estimatedTime of row 3 & totalDuration of EndMarker/BlockMarker,
-  // but does NOT change any item's StatusRole!
+  // Updating duration of row 2 shifts estimatedTime of row 3 & totalDuration of
+  // EndMarker/BlockMarker, but does NOT change any item's StatusRole!
   model.updateItemAudioMetadata(2, 20000, 0, 20000, 0, 20000, 0, 20000);
 
   QVERIFY(dataSpy.count() >= 1);
@@ -1374,9 +1396,388 @@ void TestPlaylistManager::testRecalculateBlockMetadataEmitsExactRoles() {
     const QList<int> roles = dataSpy.at(i).at(2).value<QList<int>>();
     QVERIFY2(!roles.isEmpty(),
              "dataChanged must specify exact roles instead of empty list");
-    QVERIFY2(!roles.contains(StatusRole),
-             "StatusRole should not be emitted when only schedule/duration changed");
+    QVERIFY2(
+        !roles.contains(StatusRole),
+        "StatusRole should not be emitted when only schedule/duration changed");
   }
+}
+
+void TestPlaylistManager::testMixingStatusLifecycleAndTailProgressUpdates() {
+  FakeAudioRegistry registry;
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
+  PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
+
+  auto *model = manager.model();
+  model->clear();
+  model->addItem(makeBlockMarker("14:00", "Mixing Lifecycle"));
+  model->addItem(makeStartMarker(BlockType::Music));
+  const auto t1 = makeMediaItem("Track 1", "C:/audio/t1.mp3", 20000, 0, 20000,
+                                0, 18000, 500, 18000);
+  const auto t2 = makeMediaItem("Track 2", "C:/audio/t2.mp3", 20000, 0, 20000,
+                                2000, 18000, 500, 18000);
+  const auto t3 = makeMediaItem("Track 3", "C:/audio/t3.mp3", 20000, 0, 20000,
+                                0, 18000, 500, 18000);
+  model->addItem(t1); // row 2
+  model->addItem(t2); // row 3
+  model->addItem(t3); // row 4
+  model->addItem(makeEndMarker(BlockType::Music));
+
+  PlaylistView view;
+  PlaylistItemDelegate delegate;
+  view.setModel(model);
+  view.setItemDelegate(&delegate);
+  view.resize(500, 500);
+  view.doItemsLayout();
+
+  manager.play();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Next);
+
+  // Trigger crossfade at 16000ms (mixEnd_1=18000 - mixStart_2=2000):
+  // Track 1 enters Mixing (still fading out until 20000ms), Track 2 enters
+  // Playing!
+  fakes[0]->advanceTo(16000);
+  QCoreApplication::processEvents();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Next);
+
+  // Mixing item remains locked (cannot be removed or moved) and retains 50px
+  // height
+  QVERIFY(!model->canRemoveRow(2));
+  QVERIFY(!model->removeItem(2));
+  QCOMPARE(view.visualRect(model->index(2, 0)).height(), 50);
+  QCOMPARE(view.visualRect(model->index(3, 0)).height(), 50);
+
+  // While Track 1 continues fading out, its PositionRole keeps advancing!
+  fakes[0]->advanceTo(17500);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(2)->positionMs, qint64(17500));
+
+  fakes[0]->advanceTo(19200);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(2)->positionMs, qint64(19200));
+
+  // Track 2 also advances independently
+  fakes[1]->advanceTo(3200);
+  QCOMPARE(model->itemAt(3)->positionMs, qint64(3200));
+
+  // Reordering/inserting future items must NOT prematurely finish Track 1
+  QVERIFY(model->insertCatalogItem(4, "Inserted", "C:/audio/ins.mp3",
+                                   MediaType::Jingle, 5000));
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+
+  // When Track 1 finally reaches endPoint (20000ms), it becomes Finished and
+  // shrinks to 32px
+  fakes[0]->advanceTo(20000);
+  QCoreApplication::processEvents();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(view.visualRect(model->index(2, 0)).height(), 32);
+  QCOMPARE(view.visualRect(model->index(3, 0)).top(),
+           view.visualRect(model->index(2, 0)).bottom() + 1);
+}
+
+void TestPlaylistManager::testTripleOverlapKeepsBothTailsMixingUntilEndPoint() {
+  FakeAudioRegistry registry;
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
+  PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
+
+  auto *model = manager.model();
+  model->clear();
+  model->addItem(makeBlockMarker("15:00", "Triple Mixing"));
+  model->addItem(makeStartMarker(BlockType::Music));
+  const auto song1 = makeMediaItem("Song 1", "C:/audio/s1.mp3", 200000, 0,
+                                   200000, 0, 192000, 500, 192000);
+  const auto jingle = makeMediaItem("Jingle", "C:/audio/j.mp3", 4000, 0, 4000,
+                                    0, 3500, 0, 3500, MediaType::Jingle);
+  const auto song2 = makeMediaItem("Song 2", "C:/audio/s2.mp3", 180000, 0,
+                                   180000, 1500, 175000, 500, 175000);
+  model->addItem(song1);  // row 2
+  model->addItem(jingle); // row 3
+  model->addItem(song2);  // row 4
+  model->addItem(makeEndMarker(BlockType::Music));
+
+  manager.play();
+
+  // Song 1 triggers Jingle -> Song 1 is Mixing, Jingle is Playing
+  fakes[0]->advanceTo(192000);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Playing);
+
+  // Jingle triggers Song 2 while Song 1 is STILL fading out -> BOTH Song 1 &
+  // Jingle are Mixing!
+  fakes[0]->advanceTo(194000);
+  fakes[1]->advanceTo(2000);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+
+  // Both mixing tracks update positions independently
+  fakes[0]->advanceTo(196000);
+  fakes[1]->advanceTo(3000);
+  QCOMPARE(model->itemAt(2)->positionMs, qint64(196000));
+  QCOMPARE(model->itemAt(3)->positionMs, qint64(3000));
+
+  // Jingle finishes first (at 4000ms) -> Jingle becomes Finished, Song 1 stays
+  // Mixing!
+  fakes[1]->advanceTo(4000);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+
+  // Song 1 finishes at 200000ms -> Song 1 becomes Finished!
+  fakes[0]->advanceTo(200000);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+}
+
+void TestPlaylistManager::
+    testMixingManualNextAndSlotStealTransitionToFinished() {
+  FakeAudioRegistry registry;
+  std::array<FakePlayerManager *, 3> fakes = {new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry),
+                                              new FakePlayerManager(&registry)};
+  PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
+  manager.setManualNextFadeMs(500);
+
+  auto *model = manager.model();
+  model->clear();
+  model->addItem(makeBlockMarker("16:00", "Manual Next"));
+  model->addItem(makeStartMarker(BlockType::Music));
+  const auto t1 =
+      makeMediaItem("T1", "C:/audio/1.mp3", 20000, 0, 20000, 0, 19000);
+  const auto t2 =
+      makeMediaItem("T2", "C:/audio/2.mp3", 20000, 0, 20000, 0, 19000);
+  const auto t3 =
+      makeMediaItem("T3", "C:/audio/3.mp3", 20000, 0, 20000, 0, 19000);
+  const auto t4 =
+      makeMediaItem("T4", "C:/audio/4.mp3", 20000, 0, 20000, 0, 19000);
+  model->addItem(t1); // row 2
+  model->addItem(t2); // row 3
+  model->addItem(t3); // row 4
+  model->addItem(t4); // row 5
+  model->addItem(makeEndMarker(BlockType::Music));
+
+  manager.play();
+  fakes[0]->advanceTo(5000);
+
+  // Manual next #1 -> T1 fades out in Mixing state while T2 plays
+  manager.next();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Playing);
+
+  // Manual next #2 -> T1 & T2 both Mixing while T3 plays
+  fakes[1]->advanceTo(2000);
+  manager.next();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+
+  // Manual next #3 steals slot 0 from T1 -> T1 must immediately become Finished
+  // (never stuck!)
+  fakes[2]->advanceTo(2000);
+  manager.next();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(5)->status, PlaylistItemStatus::Playing);
+
+  // Stop clears all remaining Mixing & Playing rows to Finished
+  manager.stop();
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(5)->status, PlaylistItemStatus::Finished);
+}
+
+void TestPlaylistManager::testDelegatePaintsMixingStateAndMixMarkers() {
+  PlaylistListModel model;
+  model.clear();
+  model.addItem(makeBlockMarker("19:00", "Paint Test"));
+  model.addItem(makeStartMarker(BlockType::Music));
+  const auto plainTrack =
+      makeMediaItem("Plain", "C:/audio/plain.mp3", 10000, 0, 10000, 0, 10000);
+  const auto markedTrack = makeMediaItem("Marked", "C:/audio/marked.mp3", 10000,
+                                         0, 10000, 2000, 8000);
+  model.addItem(plainTrack);  // row 2
+  model.addItem(markedTrack); // row 3
+  model.addItem(makeEndMarker(BlockType::Music));
+
+  PlaylistItemDelegate delegate;
+
+  auto renderRow = [&](int row) {
+    QPixmap pm(500, 50);
+    pm.fill(Qt::transparent);
+    QPainter painter(&pm);
+    QStyleOptionViewItem opt;
+    opt.rect = QRect(0, 0, 500, 50);
+    delegate.paint(&painter, opt, model.index(row, 0));
+    painter.end();
+    return pm.toImage();
+  };
+
+  // Marked track has distinct visual pixels at mixStart (20%) & mixEnd (80%)
+  // compared to unmarked
+  const QImage plainImg = renderRow(2);
+  const QImage markedImg = renderRow(3);
+  const int cardLeft = 12 + 14;
+  const int cardWidth = 500 - 2 * 12 - 2 * 14;
+  const int mixStartX =
+      cardLeft + static_cast<int>(std::llround(cardWidth * 0.2));
+  const int mixEndX =
+      cardLeft + static_cast<int>(std::llround(cardWidth * 0.8));
+  QVERIFY(plainImg.pixel(mixStartX, 2) != markedImg.pixel(mixStartX, 2));
+  QVERIFY(plainImg.pixel(mixEndX, 2) != markedImg.pixel(mixEndX, 2));
+
+  // Mixing state renders with 50px sizeHint and distinct visual output (MIXANDO
+  // badge)
+  model.setPlayingRow(3, 2);
+  model.setItemPosition(2, 8500);
+  QStyleOptionViewItem opt;
+  opt.rect = QRect(0, 0, 500, 50);
+  QCOMPARE(delegate.sizeHint(opt, model.index(2, 0)).height(), 50);
+  const QImage mixingImg = renderRow(2);
+  QVERIFY(mixingImg != plainImg);
+}
+
+void TestPlaylistManager::testLongMixStartOnM3StartsBeforeShortM2AndSyncsMixPoints() {
+  FakeAudioRegistry registry;
+  std::array<FakePlayerManager *, 3> fakes = {
+      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
+      new FakePlayerManager(&registry)};
+  PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
+
+  auto *model = manager.model();
+  model->clear();
+  model->addItem(makeBlockMarker("17:00", "B5 Early M3"));
+  model->addItem(makeStartMarker(BlockType::Music));
+  // M1: 20s, mixEnd = 18000ms
+  const auto m1 =
+      makeMediaItem("M1", "C:/audio/m1.mp3", 20000, 0, 20000, 0, 18000, 0, 18000);
+  // M2 (short): 3s, mixStart = 1000ms, mixEnd = 2500ms -> playToMixEnd = 2500ms
+  const auto m2 =
+      makeMediaItem("M2", "C:/audio/m2.mp3", 3000, 0, 3000, 1000, 2500, 0, 2500,
+                    MediaType::Jingle);
+  // M3: mixStart = 5000ms (> M2's 2500ms!) -> earlyLead = 5000 - 2500 = 2500ms
+  // trigger(M1->M2) = 18000 - 1000 = 17000ms
+  // trigger(M1->M3) = 17000 - 2500 = 14500ms
+  const auto m3 =
+      makeMediaItem("M3", "C:/audio/m3.mp3", 30000, 0, 30000, 5000, 28000, 0,
+                    28000);
+  const auto m4 =
+      makeMediaItem("M4", "C:/audio/m4.mp3", 20000, 0, 20000, 0, 19000, 0, 19000);
+  model->addItem(m1); // row 2
+  model->addItem(m2); // row 3
+  model->addItem(m3); // row 4
+  model->addItem(m4); // row 5
+  model->addItem(makeEndMarker(BlockType::Music));
+
+  manager.play();
+  QCOMPARE(manager.activePlayerIndex(), 0);
+  QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::PreloadNext);
+  QCOMPARE(manager.slotItemUuid(1), m2.uuid);
+  QCOMPARE(manager.slotRole(2), PlaylistManager::SlotRole::PreloadExt);
+  QCOMPARE(manager.slotItemUuid(2), m3.uuid);
+
+  // Before 14500ms, M1 is still the only track playing
+  fakes[0]->advanceTo(14499);
+  QCOMPARE(manager.activePlayerIndex(), 0);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Next);
+
+  // At 14500ms, M3 starts early on slot 2! NO AR jumps directly to M3, M1 is Mixing, M2 waits in PendingOverlay
+  fakes[0]->advanceTo(14500);
+  QCOMPARE(manager.activePlayerIndex(), 2);
+  QCOMPARE(manager.slotItemUuid(2), m3.uuid);
+  QCOMPARE(fakes[2]->status(), PlayerStatus::Playing);
+  QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::Tail);
+  QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::PendingOverlay);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Default);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(model->itemAt(5)->status, PlaylistItemStatus::Next);
+
+  // At 17000ms (2500ms later), M1 triggers M2! M2 enters Tail (Mixing), so BOTH M1 and M2 are MIXANDO while M3 stays NO AR
+  fakes[2]->advanceTo(2500);
+  fakes[0]->advanceTo(17000);
+  QCOMPARE(manager.activePlayerIndex(), 2);
+  QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::Tail);
+  QCOMPARE(fakes[1]->status(), PlayerStatus::Playing);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+
+  // At 19500ms (+2500ms from M2 start): M2 is at mixEnd(2500) and M3 is at 2500+2500 = 5000 = mixStart(M3)!
+  fakes[0]->advanceTo(19500);
+  fakes[1]->advanceTo(2500);
+  fakes[2]->advanceTo(5000);
+  QCOMPARE(model->itemAt(3)->positionMs, qint64(2500));
+  QCOMPARE(model->itemAt(4)->positionMs, qint64(5000));
+
+  // M1 finishes at 20000ms -> M1 becomes Finished, slot 0 preloads M4!
+  fakes[0]->advanceTo(20000);
+  QCOMPARE(model->itemAt(2)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(manager.slotRole(0), PlaylistManager::SlotRole::PreloadNext);
+  QCOMPARE(manager.slotItemUuid(0), m4.uuid);
+
+  // M2 finishes at 3000ms -> M2 becomes Finished, M3 continues NO AR
+  fakes[1]->advanceTo(3000);
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Playing);
+}
+
+void TestPlaylistManager::testPendingOverlayCancelledByStopAndManualNext() {
+  FakeAudioRegistry registry;
+  std::array<FakePlayerManager *, 3> fakes = {
+      new FakePlayerManager(&registry), new FakePlayerManager(&registry),
+      new FakePlayerManager(&registry)};
+  PlaylistManager manager({fakes[0], fakes[1], fakes[2]});
+  manager.setManualNextFadeMs(500);
+
+  auto *model = manager.model();
+  model->clear();
+  model->addItem(makeBlockMarker("18:00", "B5 Cancel"));
+  model->addItem(makeStartMarker(BlockType::Music));
+  const auto m1 =
+      makeMediaItem("M1", "C:/audio/m1.mp3", 20000, 0, 20000, 0, 18000, 0, 18000);
+  const auto m2 =
+      makeMediaItem("M2", "C:/audio/m2.mp3", 3000, 0, 3000, 0, 2500, 0, 2500,
+                    MediaType::Jingle);
+  const auto m3 =
+      makeMediaItem("M3", "C:/audio/m3.mp3", 30000, 0, 30000, 5000, 28000, 0,
+                    28000);
+  const auto m4 =
+      makeMediaItem("M4", "C:/audio/m4.mp3", 20000, 0, 20000, 0, 19000, 0, 19000);
+  model->addItem(m1); // row 2
+  model->addItem(m2); // row 3
+  model->addItem(m3); // row 4
+  model->addItem(m4); // row 5
+  model->addItem(makeEndMarker(BlockType::Music));
+
+  manager.play();
+  // Trigger M3 early at 18000 - (5000 - 2500) = 15500ms
+  fakes[0]->advanceTo(15500);
+  QCOMPARE(manager.slotItemUuid(2), m3.uuid);
+  QCOMPARE(manager.slotRole(1), PlaylistManager::SlotRole::PendingOverlay);
+
+  // Manual Next while M2 is still pending -> cancels M2 cleanly, marks M2 Finished, and plays M4
+  fakes[2]->advanceTo(1000);
+  manager.next();
+  QCOMPARE(model->itemAt(3)->status, PlaylistItemStatus::Finished);
+  QCOMPARE(model->itemAt(4)->status, PlaylistItemStatus::Mixing);
+  QCOMPARE(model->itemAt(5)->status, PlaylistItemStatus::Playing);
+  QCOMPARE(manager.slotItemUuid(manager.activePlayerIndex()), m4.uuid);
+
+  manager.stop();
+  QCOMPARE(manager.status(), PlaylistStatus::Stopped);
 }
 
 QTEST_MAIN(TestPlaylistManager)
