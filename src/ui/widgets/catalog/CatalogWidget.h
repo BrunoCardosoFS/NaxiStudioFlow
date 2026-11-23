@@ -31,14 +31,14 @@ public:
   FolderListModel *folderModel() const { return m_folderModel; }
 
   QString currentOpenFolder() const { return m_openFolder; }
-  int currentOpenFolderType() const { return m_openFolderType; }
+  MediaType currentOpenFolderType() const { return m_openFolderType; }
 
   QMenu *createFileContextMenu(const QModelIndex &index,
                                QWidget *parent = nullptr);
 
 signals:
   void fileDoubleClicked(const CatalogItem &item);
-  void folderSelected(const QString &path, int type);
+  void folderSelected(const QString &path, MediaType type);
 
 protected:
   bool eventFilter(QObject *watched, QEvent *event) override;
@@ -64,10 +64,12 @@ private:
 
   QString m_dbPath;
   QString m_openFolder;
-  int m_openFolderType = 0;
+  int m_openFolderRow = -1;
+  MediaType m_openFolderType = MediaType::Other;
   bool m_isGlobalView = false;
 
   QList<CatalogFolderTarget> getFolderTargets() const;
+  void loadOpenFolder(const QString &search);
   void initViews();
 };
 

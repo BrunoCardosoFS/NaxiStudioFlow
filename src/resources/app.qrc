@@ -22,6 +22,8 @@
         <file>icons/arrow-down.svg</file>
         <file>icons/arrow-up.svg</file>
         <file>catalog/commercial.svg</file>
+        <file>catalog/command.svg</file>
+        <file>catalog/command-pause.svg</file>
         <file>catalog/jingle.svg</file>
         <file>catalog/music.svg</file>
         <file>catalog/other.svg</file>

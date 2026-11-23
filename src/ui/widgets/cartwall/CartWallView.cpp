@@ -14,6 +14,20 @@
 
 namespace {
 const char *kCatalogMime = "application/x-catalog-item";
+
+bool isAudioCatalogMime(const QMimeData *mime) {
+  if (!mime || !mime->hasFormat(kCatalogMime)) {
+    return false;
+  }
+  QByteArray data = mime->data(kCatalogMime);
+  QDataStream stream(&data, QIODevice::ReadOnly);
+  QString title;
+  QString path;
+  qint8 rawMediaType = 0;
+  stream >> title >> path >> rawMediaType;
+  return stream.status() == QDataStream::Ok &&
+         rawMediaType != static_cast<qint8>(MediaType::Command);
+}
 }
 
 CartWallView::CartWallView(QWidget *parent) : QTableView(parent) {
@@ -185,7 +199,7 @@ void CartWallView::dragEnterEvent(QDragEnterEvent *event) {
   if (event->source() == this) {
     event->setDropAction(Qt::MoveAction);
     event->accept();
-  } else if (event->mimeData()->hasFormat(kCatalogMime)) {
+  } else if (isAudioCatalogMime(event->mimeData())) {
     event->setDropAction(Qt::CopyAction);
     event->accept();
   } else {
@@ -195,7 +209,7 @@ void CartWallView::dragEnterEvent(QDragEnterEvent *event) {
 
 void CartWallView::dragMoveEvent(QDragMoveEvent *event) {
   const bool internal = event->source() == this;
-  if (!internal && !event->mimeData()->hasFormat(kCatalogMime)) {
+  if (!internal && !isAudioCatalogMime(event->mimeData())) {
     setDropIndicatorSlot(-1);
     event->ignore();
     return;
@@ -238,7 +252,7 @@ void CartWallView::dropEvent(QDropEvent *event) {
     return;
   }
 
-  if (event->mimeData()->hasFormat(kCatalogMime)) {
+  if (isAudioCatalogMime(event->mimeData())) {
     QByteArray data = event->mimeData()->data(kCatalogMime);
     QDataStream stream(&data, QIODevice::ReadOnly);
     QString title, path;

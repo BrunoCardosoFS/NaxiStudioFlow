@@ -13,6 +13,7 @@ enum class PlaylistStatus {
 
 enum class ItemType {
   Media,
+  Command,
 
   BlockMarker,
   StartMarker,
@@ -24,7 +25,68 @@ enum class MediaType : qint8 {
   Music = 1,
   Commercial = 2,
   Other = 3,
+  Command = 4,
 };
+
+inline MediaType mediaTypeFromString(const QString &name,
+                                     MediaType fallback = MediaType::Other) {
+  const QString normalized = name.trimmed().toLower();
+  if (normalized == QStringLiteral("jingle")) {
+    return MediaType::Jingle;
+  }
+  if (normalized == QStringLiteral("music")) {
+    return MediaType::Music;
+  }
+  if (normalized == QStringLiteral("commercial")) {
+    return MediaType::Commercial;
+  }
+  if (normalized == QStringLiteral("other")) {
+    return MediaType::Other;
+  }
+  if (normalized == QStringLiteral("command")) {
+    return MediaType::Command;
+  }
+  return fallback;
+}
+
+inline QString mediaTypeToString(MediaType type) {
+  switch (type) {
+  case MediaType::Jingle:
+    return QStringLiteral("jingle");
+  case MediaType::Music:
+    return QStringLiteral("music");
+  case MediaType::Commercial:
+    return QStringLiteral("commercial");
+  case MediaType::Command:
+    return QStringLiteral("command");
+  case MediaType::Other:
+  default:
+    return QStringLiteral("other");
+  }
+}
+
+enum class CommandType : qint8 {
+  None = 0,
+  Pause = 1,
+};
+
+inline CommandType commandTypeFromString(const QString &name) {
+  const QString normalized = name.trimmed().toLower();
+  if (normalized == QStringLiteral("pause")) {
+    return CommandType::Pause;
+  }
+  return CommandType::None;
+}
+
+inline QString commandTypeToString(CommandType type) {
+  switch (type) {
+  case CommandType::Pause:
+    return QStringLiteral("pause");
+  case CommandType::None:
+  default:
+    return QString();
+  }
+}
 
 enum class BlockType {
   Music,
@@ -35,6 +97,7 @@ enum class PlaylistItemStatus {
   Default,
   Next,
   Playing,
+  Mixing,
   Finished,
 };
 
@@ -72,7 +135,10 @@ enum PlaylistItemRoles {
   EstimatedTimeRole,
   TotalDurationRole,
   ItemsCountRole,
-  MarkerTextRole
+  MarkerTextRole,
+
+  CommandTypeRole,
+  CommandIdRole
 };
 
 struct PlaylistItem {
@@ -106,12 +172,18 @@ struct PlaylistItem {
   BlockType blockType = BlockType::Music;
   ItemType type = ItemType::Media;
   MediaType mediaType = MediaType::Music;
+  CommandType commandType = CommandType::None;
+  QString commandId;
 
   QString estimatedTime;
   qint64 estimatedTimeMs = -1;
   qint64 totalDurationMs = 0;
   int itemsCount = 0;
   QString markerText;
+
+  bool isEntry() const {
+    return type == ItemType::Media || type == ItemType::Command;
+  }
 };
 
 #endif // MODELS_H

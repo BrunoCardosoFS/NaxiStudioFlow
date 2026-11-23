@@ -14,10 +14,12 @@
 struct CatalogFolderTarget {
   QString title;
   QString path;
-  int type = 0;
+  MediaType type = MediaType::Other;
+  bool isCommandFolder = false;
+  QVector<CatalogItem> inlineItems;
 
-  MediaType mediaType() const { return static_cast<MediaType>(type); }
-  void setMediaType(MediaType mt) { type = static_cast<int>(mt); }
+  MediaType mediaType() const { return type; }
+  void setMediaType(MediaType mt) { type = mt; }
 };
 
 class CatalogScannerWorker : public QObject {
@@ -48,7 +50,6 @@ public:
 
   void scanLocal(const QString &path, const QString &search,
                  MediaType mediaType = MediaType::Jingle);
-  void scanLocal(const QString &path, const QString &search, int mediaType);
   void scanGlobal(const QList<CatalogFolderTarget> &folders, const QString &search);
   void cancelCurrentScan();
 

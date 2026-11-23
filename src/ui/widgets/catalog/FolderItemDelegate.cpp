@@ -9,16 +9,19 @@ FolderItemDelegate::FolderItemDelegate(QObject *parent)
     : QStyledItemDelegate(parent), m_iconJingle(":/images/catalog/jingle.svg"),
       m_iconMusic(":/images/catalog/music.svg"),
       m_iconCommercial(":/images/catalog/commercial.svg"),
-      m_iconOther(":/images/catalog/other.svg") {}
+      m_iconOther(":/images/catalog/other.svg"),
+      m_iconCommand(":/images/catalog/command.svg") {}
 
-const QIcon &FolderItemDelegate::iconForType(int type) const {
-  switch (static_cast<MediaType>(type)) {
+const QIcon &FolderItemDelegate::iconForType(MediaType type) const {
+  switch (type) {
   case MediaType::Jingle:
     return m_iconJingle;
   case MediaType::Music:
     return m_iconMusic;
   case MediaType::Commercial:
     return m_iconCommercial;
+  case MediaType::Command:
+    return m_iconCommand;
   default:
     return m_iconOther;
   }
@@ -76,7 +79,7 @@ void FolderItemDelegate::paint(QPainter *painter,
     painter->drawRoundedRect(rect, 6, 6);
 
     // Ícone da pasta em cache baseado no tipo
-    int folderType = index.data(FolderTypeRole).toInt();
+    const auto folderType = static_cast<MediaType>(index.data(FolderTypeRole).toInt());
     const QIcon &folderIcon = iconForType(folderType);
     QRect iconRect(rect.left() + 6, rect.top() + (rect.height() - 16) / 2, 16,
                    16);

@@ -33,7 +33,8 @@ CatalogWidget::CatalogWidget(QWidget *parent)
           [this](const QModelIndex &index) {
             if (index.isValid()) {
               const CatalogItem *item = m_catalogModel->itemAt(index.row());
-              if (item && !item->isHeader()) {
+              if (item && !item->isHeader() && !item->isLoading() &&
+                  !item->isCommand()) {
                 emit fileDoubleClicked(*item);
               }
             }
@@ -77,7 +78,7 @@ QMenu *CatalogWidget::createFileContextMenu(const QModelIndex &index,
   }
 
   const CatalogItem *item = m_catalogModel->itemAt(index.row());
-  if (!item || item->isHeader() || item->isLoading()) {
+  if (!item || item->isHeader() || item->isLoading() || item->isCommand()) {
     return nullptr;
   }
 
@@ -129,13 +130,52 @@ void CatalogWidget::refreshFolders() {
   if (m_dbPath.isEmpty()) {
     return;
   }
+  m_openFolderRow = -1;
+  m_openFolder.clear();
   m_folderModel->loadFromDatabase(m_dbPath);
 
   QModelIndex firstIdx = m_folderModel->firstFolderIndex();
-  if (firstIdx.isValid() && m_openFolder.isEmpty()) {
+  if (firstIdx.isValid()) {
     ui->FoldersListView->setCurrentIndex(firstIdx);
     onFolderActivated(firstIdx);
+  } else {
+    m_catalogModel->clear();
   }
+}
+
+void CatalogWidget::loadOpenFolder(const QString &search) {
+  const FolderItem *folder = m_folderModel->itemAt(m_openFolderRow);
+  if (!folder || folder->isHeader()) {
+    m_catalogModel->clear();
+    return;
+  }
+
+  if (folder->isCommandFolder()) {
+    m_scanner->cancelCurrentScan();
+    const QString trimmedSearch = search.trimmed();
+    QVector<CatalogItem> items;
+    items.reserve(folder->items.size());
+    for (const CatalogItem &cmd : folder->items) {
+      if (trimmedSearch.isEmpty() ||
+          cmd.title.contains(trimmedSearch, Qt::CaseInsensitive) ||
+          cmd.commandId.contains(trimmedSearch, Qt::CaseInsensitive)) {
+        items.append(cmd);
+      }
+    }
+    onFilesLoaded(items, folder->path, false);
+    return;
+  }
+
+  if (folder->path.isEmpty()) {
+    m_scanner->cancelCurrentScan();
+    onFilesLoaded({}, QString(), false);
+    return;
+  }
+
+  // Exibe o item personalizado de Carregando imediatamente
+  m_catalogModel->showLoading("Carregando...");
+
+  m_scanner->scanLocal(folder->path, search, folder->type);
 }
 
 void CatalogWidget::onFolderActivated(const QModelIndex &index) {
@@ -148,34 +188,30 @@ void CatalogWidget::onFolderActivated(const QModelIndex &index) {
   }
 
   // Se já está carregando esta exata pasta, não reinicie nem cancele o scan em andamento
-  if (m_catalogModel->isLoading() && item->path == m_openFolder) {
+  if (m_catalogModel->isLoading() && index.row() == m_openFolderRow) {
     return;
   }
 
   // Se já estiver aberta com os mesmos critérios (busca vazia) e não for visão global, não precisa recarregar
-  if (!m_isGlobalView && item->path == m_openFolder &&
+  if (!m_isGlobalView && index.row() == m_openFolderRow &&
       ui->SearchLine->text().trimmed().isEmpty() &&
       !m_catalogModel->isLoading()) {
     return;
   }
 
   m_isGlobalView = false;
+  m_openFolderRow = index.row();
   m_openFolder = item->path;
   m_openFolderType = item->type;
   emit folderSelected(m_openFolder, m_openFolderType);
 
-  // Exibe o item personalizado de Carregando imediatamente
-  m_catalogModel->showLoading("Carregando...");
-
-  m_scanner->scanLocal(m_openFolder, ui->SearchLine->text(), m_openFolderType);
+  loadOpenFolder(ui->SearchLine->text());
 }
 
 void CatalogWidget::onSearchLocalClicked() {
-  if (!m_openFolder.isEmpty()) {
+  if (m_openFolderRow >= 0) {
     m_isGlobalView = false;
-    m_catalogModel->showLoading("Carregando...");
-    m_scanner->scanLocal(m_openFolder, ui->SearchLine->text(),
-                         m_openFolderType);
+    loadOpenFolder(ui->SearchLine->text());
   }
 }
 
@@ -188,17 +224,16 @@ void CatalogWidget::onSearchGlobalClicked() {
 
 void CatalogWidget::onSearchCleanClicked() {
   ui->SearchLine->clear();
-  if (!m_openFolder.isEmpty()) {
+  if (m_openFolderRow >= 0) {
     m_isGlobalView = false;
-    m_catalogModel->showLoading("Carregando...");
-    m_scanner->scanLocal(m_openFolder, QString(), m_openFolderType);
+    loadOpenFolder(QString());
   } else {
     m_catalogModel->clear();
   }
 }
 
 void CatalogWidget::onSearchReturnPressed() {
-  if (!m_openFolder.isEmpty()) {
+  if (m_openFolderRow >= 0) {
     onSearchLocalClicked();
   } else {
     onSearchGlobalClicked();
@@ -219,7 +254,18 @@ void CatalogWidget::onFilesLoaded(const QVector<CatalogItem> &list,
 QList<CatalogFolderTarget> CatalogWidget::getFolderTargets() const {
   QList<CatalogFolderTarget> targets;
   for (const FolderItem &item : m_folderModel->items()) {
-    if (!item.isHeader() && !item.path.isEmpty()) {
+    if (item.isHeader()) {
+      continue;
+    }
+    if (item.isCommandFolder()) {
+      CatalogFolderTarget target;
+      target.title = item.title;
+      target.path = item.path;
+      target.type = item.type;
+      target.isCommandFolder = true;
+      target.inlineItems = item.items;
+      targets.append(std::move(target));
+    } else if (!item.path.isEmpty()) {
       CatalogFolderTarget target;
       target.title = item.title;
       target.path = item.path;

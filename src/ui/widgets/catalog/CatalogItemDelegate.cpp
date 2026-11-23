@@ -10,19 +10,37 @@ CatalogItemDelegate::CatalogItemDelegate(QObject *parent)
       m_iconJingle(":/images/catalog/jingle.svg"),
       m_iconMusic(":/images/catalog/music.svg"),
       m_iconCommercial(":/images/catalog/commercial.svg"),
-      m_iconOther(":/images/catalog/other.svg") {}
+      m_iconOther(":/images/catalog/other.svg"),
+      m_iconCommand(":/images/catalog/command.svg"),
+      m_iconCommandPause(":/images/catalog/command-pause.svg") {}
 
-const QIcon &CatalogItemDelegate::iconForType(int mediaType) const {
-  switch (static_cast<MediaType>(mediaType)) {
+const QIcon &CatalogItemDelegate::iconForType(MediaType mediaType) const {
+  switch (mediaType) {
   case MediaType::Jingle:
     return m_iconJingle;
   case MediaType::Music:
     return m_iconMusic;
   case MediaType::Commercial:
     return m_iconCommercial;
+  case MediaType::Command:
+    return m_iconCommand;
   default:
     return m_iconOther;
   }
+}
+
+const QIcon &CatalogItemDelegate::iconForIndex(const QModelIndex &index) const {
+  const int itemType = index.data(CatalogItemTypeRole).toInt();
+  if (itemType == static_cast<int>(CatalogItemType::Command)) {
+    const auto cmdType =
+        static_cast<CommandType>(index.data(CatalogCommandTypeRole).toInt());
+    if (cmdType == CommandType::Pause) {
+      return m_iconCommandPause;
+    }
+    return m_iconCommand;
+  }
+  return iconForType(
+      static_cast<MediaType>(index.data(CatalogMediaTypeRole).toInt()));
 }
 
 QSize CatalogItemDelegate::sizeHint(const QStyleOptionViewItem &option,
@@ -95,8 +113,7 @@ void CatalogItemDelegate::paint(QPainter *painter,
     painter->setPen(Qt::NoPen);
     painter->drawRoundedRect(rect, 6, 6);
 
-    int mediaType = index.data(CatalogMediaTypeRole).toInt();
-    const QIcon &mediaIcon = iconForType(mediaType);
+    const QIcon &mediaIcon = iconForIndex(index);
     QRect iconRect(rect.left() + 8, rect.top() + (rect.height() - 20) / 2, 20,
                    20);
     mediaIcon.paint(painter, iconRect);

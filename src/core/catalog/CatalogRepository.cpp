@@ -16,11 +16,13 @@ QJsonArray CatalogRepository::getFoldersJson(const QString &dbPath) {
 
   QJsonParseError parseError;
   QJsonDocument jsonDocument = QJsonDocument::fromJson(data, &parseError);
-  if (parseError.error != QJsonParseError::NoError || !jsonDocument.isArray()) {
+  if (parseError.error != QJsonParseError::NoError || !jsonDocument.isObject()) {
     return QJsonArray();
   }
 
-  return jsonDocument.array();
+  const QJsonValue foldersVal =
+      jsonDocument.object().value(QStringLiteral("folders"));
+  return foldersVal.isArray() ? foldersVal.toArray() : QJsonArray();
 }
 
 QVector<FolderItem> CatalogRepository::loadFolders(const QString &dbPath) {
@@ -35,10 +37,43 @@ QVector<FolderItem> CatalogRepository::loadFolders(const QString &dbPath) {
     const QJsonObject obj = val.toObject();
     FolderItem item;
     item.itemType = FolderItemType::Folder;
-    item.id = obj.value("id").toString();
-    item.title = obj.value("title").toString();
-    item.path = obj.value("path").toString();
-    item.type = obj.value("type").toInt();
+    item.id = obj.value(QStringLiteral("id")).toString();
+    item.title = obj.value(QStringLiteral("title")).toString();
+    item.path = obj.value(QStringLiteral("path")).toString();
+    item.type = mediaTypeFromString(obj.value(QStringLiteral("type")).toString(),
+                                    MediaType::Other);
+
+    if (item.isCommandFolder() && obj.value("items").isArray()) {
+      const QJsonArray inlineItems = obj.value("items").toArray();
+      item.items.reserve(inlineItems.size());
+      for (const QJsonValue &itemVal : inlineItems) {
+        if (!itemVal.isObject()) {
+          continue;
+        }
+        const QJsonObject itemObj = itemVal.toObject();
+        const QString cmdStr =
+            itemObj.value("command").toString().trimmed().toLower();
+        const CommandType cmdType = commandTypeFromString(cmdStr);
+        if (cmdType == CommandType::None) {
+          continue;
+        }
+
+        CatalogItem ci;
+        ci.itemType = CatalogItemType::Command;
+        ci.mediaType = MediaType::Command;
+        ci.commandType = cmdType;
+        ci.commandId = cmdStr;
+        ci.title = itemObj.value("title").toString().trimmed();
+        if (ci.title.isEmpty()) {
+          ci.title = (cmdType == CommandType::Pause)
+                         ? QStringLiteral("Pausa")
+                         : cmdStr;
+        }
+        ci.folderName = item.title;
+        item.items.append(std::move(ci));
+      }
+    }
+
     items.append(std::move(item));
   }
 

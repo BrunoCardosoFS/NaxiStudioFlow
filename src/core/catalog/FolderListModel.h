@@ -20,6 +20,7 @@ public:
 
   const QVector<FolderItem> &items() const { return m_items; }
   const FolderItem *itemAt(int row) const;
+  QModelIndex indexForId(const QString &id) const;
   QModelIndex indexForPath(const QString &path) const;
   QModelIndex firstFolderIndex() const;
 

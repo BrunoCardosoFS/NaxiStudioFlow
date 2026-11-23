@@ -34,6 +34,10 @@ QVariant CatalogListModel::data(const QModelIndex &index, int role) const {
     return item.durationMs;
   case CatalogFolderNameRole:
     return item.folderName;
+  case CatalogCommandTypeRole:
+    return static_cast<int>(item.commandType);
+  case CatalogCommandIdRole:
+    return item.commandId;
   default:
     return QVariant();
   }
@@ -70,7 +74,9 @@ QMimeData *CatalogListModel::mimeData(const QModelIndexList &indexes) const {
 
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
-    stream << item.title << item.path << item.rawMediaType() << item.durationMs;
+    stream << item.title << item.path << item.rawMediaType() << item.durationMs
+           << static_cast<qint8>(item.itemType)
+           << static_cast<qint8>(item.commandType) << item.commandId;
     mime->setData("application/x-catalog-item", data);
     break; // Arrasto de item único
   }

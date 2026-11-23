@@ -23,6 +23,10 @@ void CatalogScannerWorker::cancel(int requestId) {
 void CatalogScannerWorker::scanLocal(int requestId, const QString &path,
                                      const QString &search, MediaType mediaType) {
   QVector<CatalogItem> result;
+  if (path.isEmpty()) {
+    emit scanFinished(requestId, result, path, false);
+    return;
+  }
   result.reserve(1024);
 
   const QString trimmedSearch = search.trimmed();
@@ -67,6 +71,40 @@ void CatalogScannerWorker::scanGlobal(int requestId,
   for (const CatalogFolderTarget &folder : folders) {
     if (m_cancelledRequestId.loadAcquire() >= requestId) {
       return;
+    }
+
+    if (folder.isCommandFolder) {
+      QVector<CatalogItem> matchingCommands;
+      matchingCommands.reserve(folder.inlineItems.size());
+
+      for (const CatalogItem &cmd : folder.inlineItems) {
+        if (m_cancelledRequestId.loadAcquire() >= requestId) {
+          return;
+        }
+        if (trimmedSearch.isEmpty() ||
+            cmd.title.contains(trimmedSearch, Qt::CaseInsensitive) ||
+            cmd.commandId.contains(trimmedSearch, Qt::CaseInsensitive)) {
+          CatalogItem copy = cmd;
+          copy.folderName = folder.title;
+          matchingCommands.append(std::move(copy));
+        }
+      }
+
+      if (!matchingCommands.isEmpty()) {
+        CatalogItem header;
+        header.itemType = CatalogItemType::FolderHeader;
+        header.title = folder.title;
+        header.folderName = folder.title;
+        header.mediaType = MediaType::Command;
+
+        result.append(std::move(header));
+        result.append(std::move(matchingCommands));
+      }
+      continue;
+    }
+
+    if (folder.path.isEmpty()) {
+      continue;
     }
 
     QDirIterator it(folder.path, audioExtensions(), QDir::Files | QDir::NoDotAndDotDot);
@@ -157,11 +195,6 @@ void CatalogScanner::scanLocal(const QString &path, const QString &search,
   cancelCurrentScan();
   const int reqId = m_currentRequestId.fetchAndAddRelaxed(1) + 1;
   emit requestScanLocal(reqId, path, search, mediaType);
-}
-
-void CatalogScanner::scanLocal(const QString &path, const QString &search,
-                               int mediaType) {
-  scanLocal(path, search, static_cast<MediaType>(mediaType));
 }
 
 void CatalogScanner::scanGlobal(const QList<CatalogFolderTarget> &folders,

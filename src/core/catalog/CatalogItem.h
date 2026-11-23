@@ -8,6 +8,7 @@
 
 enum class CatalogItemType {
   File,
+  Command,
   FolderHeader,
   Loading
 };
@@ -19,8 +20,11 @@ struct CatalogItem {
   MediaType mediaType = MediaType::Jingle;
   qint64 durationMs = 0;
   QString folderName;
+  CommandType commandType = CommandType::None;
+  QString commandId;
 
   qint8 rawMediaType() const { return static_cast<qint8>(mediaType); }
+  bool isCommand() const { return itemType == CatalogItemType::Command; }
   bool isHeader() const { return itemType == CatalogItemType::FolderHeader; }
   bool isLoading() const { return itemType == CatalogItemType::Loading; }
 };
@@ -30,7 +34,9 @@ enum CatalogRoles {
   CatalogPathRole,
   CatalogMediaTypeRole,
   CatalogDurationRole,
-  CatalogFolderNameRole
+  CatalogFolderNameRole,
+  CatalogCommandTypeRole,
+  CatalogCommandIdRole
 };
 
 #endif // CATALOGITEM_H

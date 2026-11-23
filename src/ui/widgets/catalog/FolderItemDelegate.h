@@ -4,6 +4,8 @@
 #include <QPainter>
 #include <QStyledItemDelegate>
 
+enum class MediaType : qint8;
+
 class FolderItemDelegate : public QStyledItemDelegate {
   Q_OBJECT
 public:
@@ -20,8 +22,9 @@ private:
   QIcon m_iconMusic;
   QIcon m_iconCommercial;
   QIcon m_iconOther;
+  QIcon m_iconCommand;
 
-  const QIcon &iconForType(int type) const;
+  const QIcon &iconForType(MediaType type) const;
 };
 
 #endif // FOLDERITEMDELEGATE_H

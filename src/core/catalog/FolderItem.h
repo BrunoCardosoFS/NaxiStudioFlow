@@ -2,8 +2,10 @@
 #define FOLDERITEM_H
 
 #include <QString>
+#include <QVector>
 #include <QtGlobal>
 
+#include "core/catalog/CatalogItem.h"
 #include "core/models.h"
 
 enum class FolderItemType {
@@ -16,12 +18,14 @@ struct FolderItem {
   QString id;
   QString title;
   QString path;
-  int type = 0; // 0: Jingle, 1: Music, 2: Commercial, etc.
+  MediaType type = MediaType::Other;
+  QVector<CatalogItem> items;
 
-  MediaType mediaType() const { return static_cast<MediaType>(type); }
-  void setMediaType(MediaType mt) { type = static_cast<int>(mt); }
+  MediaType mediaType() const { return type; }
+  void setMediaType(MediaType mt) { type = mt; }
 
   bool isHeader() const { return itemType == FolderItemType::CategoryHeader; }
+  bool isCommandFolder() const { return type == MediaType::Command; }
 };
 
 enum FolderRoles {

@@ -31,7 +31,7 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const {
   case FolderPathRole:
     return item.path;
   case FolderTypeRole:
-    return item.type;
+    return static_cast<int>(item.type);
   case FolderIdRole:
     return item.id;
   default:
@@ -59,33 +59,41 @@ void FolderListModel::loadFromDatabase(const QString &pathDB) {
   const QVector<FolderItem> loadedFolders = CatalogRepository::loadFolders(pathDB);
 
   // Agrupa as pastas por categoria (tipo)
-  QHash<int, QVector<FolderItem>> groupedFolders;
+  QHash<MediaType, QVector<FolderItem>> groupedFolders;
   for (const FolderItem &item : loadedFolders) {
     groupedFolders[item.type].append(item);
   }
 
   // Ordem padrão de exibição das categorias
-  QList<int> categoryOrder = {0, 1, 2};
+  QList<MediaType> categoryOrder = {
+      MediaType::Command,
+      MediaType::Jingle,
+      MediaType::Music,
+      MediaType::Commercial,
+      MediaType::Other,
+  };
   for (auto it = groupedFolders.constBegin(); it != groupedFolders.constEnd(); ++it) {
     if (!categoryOrder.contains(it.key())) {
       categoryOrder.append(it.key());
     }
   }
 
-  auto categoryTitle = [](int type) -> QString {
-    switch (static_cast<MediaType>(type)) {
+  auto categoryTitle = [](MediaType type) -> QString {
+    switch (type) {
     case MediaType::Jingle:
-      return "Vinhetas";
+      return tr("Vinhetas");
     case MediaType::Music:
-      return "Músicas";
+      return tr("Músicas");
     case MediaType::Commercial:
-      return "Comerciais";
+      return tr("Comerciais");
+    case MediaType::Command:
+      return tr("Comandos");
     default:
-      return "Outros";
+      return tr("Outros");
     }
   };
 
-  for (int cat : categoryOrder) {
+  for (MediaType cat : categoryOrder) {
     if (!groupedFolders.contains(cat) || groupedFolders[cat].isEmpty()) {
       continue;
     }
@@ -115,6 +123,18 @@ const FolderItem *FolderListModel::itemAt(int row) const {
     return nullptr;
   }
   return &m_items.at(row);
+}
+
+QModelIndex FolderListModel::indexForId(const QString &id) const {
+  if (id.isEmpty()) {
+    return QModelIndex();
+  }
+  for (int i = 0; i < m_items.size(); ++i) {
+    if (!m_items[i].isHeader() && m_items[i].id == id) {
+      return index(i, 0);
+    }
+  }
+  return QModelIndex();
 }
 
 QModelIndex FolderListModel::indexForPath(const QString &path) const {
