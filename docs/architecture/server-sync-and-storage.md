@@ -50,12 +50,13 @@ O `NaxServer` também atua como servidor de arquivos na rede local, permitindo q
 
 ### Estrutura das Pastas no `catalog.json`
 
-Cada pasta cadastrada no `catalog.json` contém:
+O arquivo `data/catalog.json` possui um objeto raiz `{ "version": 1, "folders": [ ... ] }`. Cada pasta cadastrada dentro de `folders` contém:
 - `id`: Identificador único da pasta na API do `NaxServer`.
 - `title`: Nome de exibição da pasta (ex.: `"Pop Nacional"`, `"Vinhetas Hora Certa"`).
-- `path`: Caminho primário no sistema de arquivos.
+- `path`: Caminho primário no sistema de arquivos (opcional em pastas virtuais do tipo `"command"`).
 - `mirrorPath` *(ou caminhos locais adicionais)*: Caminho alternativo configurável na máquina local caso o computador possua um espelho do acervo em outro disco/diretório.
-- `type`: Categoria da mídia (`0 = Jingle`, `1 = Music`, `2 = Commercial`, `3 = Other`).
+- `type`: Categoria semântica da mídia (`"jingle"`, `"music"`, `"commercial"`, `"other"`, `"command"`).
+- `items`: Array de itens inline *(utilizado por pastas virtuais `"type": "command"`)*.
 
 ### Ordem de Busca ao Carregar uma Mídia
 

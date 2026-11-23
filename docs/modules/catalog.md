@@ -6,39 +6,60 @@ O módulo de **Catálogo** permite ao operador navegar rapidamente pelas pastas 
 
 ## 🗂️ Organização de Pastas e `catalog.json`
 
-O arquivo `data/catalog.json` (sincronizado com o `NaxServer` ou mantido localmente) contém um array JSON com as pastas cadastradas:
+O arquivo `data/catalog.json` (sincronizado com o `NaxServer` ou mantido localmente) contém um objeto raiz com `version` e um array `folders` com as pastas cadastradas:
 
 ```json
-[
-  {
-    "id": "folder-uuid-01",
-    "title": "Vinhetas Padrão",
-    "path": "D:/Acervo/Vinhetas",
-    "type": 0
-  },
-  {
-    "id": "folder-uuid-02",
-    "title": "Pop Internacional",
-    "path": "D:/Acervo/Musicas/Pop",
-    "type": 1
-  }
-]
+{
+  "version": 1,
+  "folders": [
+    {
+      "id": "folder-uuid-01",
+      "title": "Vinhetas Padrão",
+      "type": "jingle",
+      "path": "D:/Acervo/Vinhetas"
+    },
+    {
+      "id": "folder-uuid-02",
+      "title": "Pop Internacional",
+      "type": "music",
+      "path": "D:/Acervo/Musicas/Pop"
+    }
+  ]
+}
 ```
 
 Ao carregar esse arquivo, o `FolderListModel::loadFromDatabase()` agrupa automaticamente as pastas por `MediaType` na seguinte ordem padrão:
-1. **Vinhetas** (`type = 0 / MediaType::Jingle`)
-2. **Músicas** (`type = 1 / MediaType::Music`)
-3. **Comerciais** (`type = 2 / MediaType::Commercial`)
-4. **Outros** (`type = 3 / MediaType::Other`)
+1. **Comandos** (`"type": "command"` / `MediaType::Command`)
+2. **Vinhetas** (`"type": "jingle"` / `MediaType::Jingle`)
+3. **Músicas** (`"type": "music"` / `MediaType::Music`)
+4. **Comerciais** (`"type": "commercial"` / `MediaType::Commercial`)
+5. **Outros** (`"type": "other"` / `MediaType::Other`)
 
 Para cada grupo não vazio, o modelo insere um item do tipo `FolderItemType::CategoryHeader` (não selecionável) seguido pelas pastas daquela categoria.
 
 ### Itens de Comando no Catálogo
 
-Além das pastas de arquivos de áudio, o Catálogo disponibiliza itens especiais do tipo **Comando**, que podem ser arrastados diretamente para dentro dos blocos da Playlist. Um comando não é necessariamente uma mídia sonora, mas sim uma instrução executada quando a playlist chega naquela posição:
-- **Pausa**: Pausa a reprodução automática da playlist naquele ponto, aguardando o comando `Next` do operador para prosseguir.
-- **Hora Certa**: Dispara a locução correspondente ao horário exato no momento da execução.
-- **Comandos do OBS Studio**: Enviam sinais via WebSocket para o OBS Studio (como alternar cenas ou fontes) no instante em que a programação atinge o item.
+Além das pastas de arquivos de áudio em disco, o Catálogo suporta pastas virtuais da categoria **Comandos** (`"type": "command"` / `MediaType::Command`) definidas diretamente dentro de `data/catalog.json` — sem necessidade de diretório físico no disco (o campo `"path"` é opcional e pode ser omitido). Os comandos dessa "pasta" são declarados no próprio array `"items"` do objeto da pasta no JSON:
+
+```json
+{
+  "id": "comandos-playlist",
+  "title": "Playlist",
+  "type": "command",
+  "items": [
+    {
+      "id": "pause",
+      "title": "Pausar Playlist",
+      "command": "pause"
+    }
+  ]
+}
+```
+
+Cada item de comando pode ser buscado normalmente (tanto na busca local quanto na busca global) e arrastado diretamente para dentro dos blocos da Playlist. Um comando não é uma mídia sonora, mas sim uma instrução executada quando a playlist chega naquela posição:
+- **Pausa (`"command": "pause"`)**: Interrompe a reprodução automática da playlist naquele ponto (equivalente a um `Stop`), deixando o próximo item pronto como `PRÓXIMO` até que o operador pressione `Play` (ou `Next`).
+- **Hora Certa** *(planejado)*: Dispara a locução correspondente ao horário exato no momento da execução.
+- **Comandos do OBS Studio** *(planejado)*: Enviam sinais via WebSocket para o OBS Studio (como alternar cenas ou fontes) no instante em que a programação atingem o item.
 
 ---
 
@@ -90,9 +111,11 @@ Quando o usuário arrasta um arquivo da `FilesListView`, o método `CatalogListM
 ```cpp
 QByteArray data;
 QDataStream stream(&data, QIODevice::WriteOnly);
-stream << item.title << item.path << item.rawMediaType();
+stream << item.title << item.path << item.rawMediaType() << item.durationMs
+       << static_cast<qint8>(item.itemType)
+       << static_cast<qint8>(item.commandType) << item.commandId;
 mime->setData("application/x-catalog-item", data);
 ```
 
-Tanto a **Cartucheira (`CartWallView`)** quanto a **Playlist (`PlaylistView`)** leem esse stream para criar o item correspondente com o título, caminho e cor/ícone da categoria correta.
+A **Playlist (`PlaylistView`)** aceita tanto arquivos de áudio quanto itens de Comando, enquanto a **Cartucheira (`CartWallView`)** aceita apenas arquivos de áudio (rejeitando itens com `MediaType::Command`).
 

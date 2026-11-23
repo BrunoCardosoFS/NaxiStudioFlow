@@ -6,7 +6,7 @@ O módulo de Playlist é o coração operacional do **NaxStudio Flow**. Ele exib
 
 ## 🧱 Anatomia de um Bloco na Playlist
 
-Diferente de players convencionais onde a lista contém apenas arquivos de áudio, o `PlaylistListModel` modela toda a estrutura da programação como uma sequência linear de quatro tipos de itens (`ItemType`):
+Diferente de players convencionais onde a lista contém apenas arquivos de áudio, o `PlaylistListModel` modela toda a estrutura da programação como uma sequência linear de cinco tipos de itens (`ItemType`):
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
@@ -28,10 +28,10 @@ Diferente de players convencionais onde a lista contém apenas arquivos de áudi
 2. **`ItemType::StartMarker`**: Abre uma seção interna dentro do bloco (`BlockType::Commercial` ou `BlockType::Music`).
 3. **`ItemType::Media`**: Representa uma inserção de áudio real (`Music`, `Jingle`, `Commercial` ou `Other`). Herda automaticamente o `BlockType` do `StartMarker` ativo.
 4. **`ItemType::EndMarker`**: Fecha a seção comercial ou musical, exibindo a quantidade total de itens (`itemsCount`) e a soma das durações (`totalDurationMs`) daquela subseção.
-5. **Itens de Comando (`Command`)**: Inserções especiais arrastadas do Catálogo que não são arquivos de áudio comuns, mas executam ações automatizadas ao serem atingidas pela reprodução:
-   - **Comando de Pausa**: Ao chegar nesta inserção, o `PlaylistManager` pausa automaticamente a sequência da programação e aguarda até que o operador acione o botão `Next`.
-   - **Comandos de Integração (ex.: OBS Studio)**: Disparam ações externas quando a fila passa pelo comando, como enviar um sinal via WebSocket para o OBS Studio trocar de cena ou acionar uma fonte.
-   - **Comando de Hora Certa**: Dispara dinamicamente o anúncio do horário atual naquele ponto do bloco.
+5. **`ItemType::Command` (Comandos)**: Inserções especiais arrastadas do Catálogo que não são arquivos de áudio comuns, mas executam ações automatizadas ao serem atingidas pela reprodução:
+   - **Comando de Pausa (`CommandType::Pause`)**: Ao chegar nesta inserção, a faixa anterior reproduz até o seu `endPoint` completo (sem *crossfade* sobre a pausa), e o `PlaylistManager` interrompe a playlist (`Stopped` / `stop()`), marcando o comando de pausa imediatamente como `Finished` e promovendo o item seguinte a `PRÓXIMO` até que o operador pressione `Play` (ou `Next`).
+   - **Comandos de Integração (ex.: OBS Studio)** *(planejado)*: Disparam ações externas quando a fila passa pelo comando, como enviar um sinal via WebSocket para o OBS Studio trocar de cena ou acionar uma fonte.
+   - **Comando de Hora Certa** *(planejado)*: Dispara dinamicamente o anúncio do horário atual naquele ponto do bloco.
 
 ---
 
@@ -45,10 +45,13 @@ Sempre que um item é adicionado, inserido, removido ou movido na playlist, `Pla
 2. **Contadores e Somas de Subseções**:
    - Soma separadamente a quantidade de itens e a duração total do segmento comercial e do segmento musical, gravando os totais nos respectivos `EndMarker` e no `BlockMarker`.
 3. **Derivação de Status (`PlaylistItemStatus`)**:
-   - Tudo acima de `m_playingRow` recebe `PlaylistItemStatus::Finished` (renderizado de forma compacta com 32px de altura).
+   - Itens acima de `m_playingRow` que ainda estão finalizando seu *fade-out* (cauda até `endPoint` em um slot `Tail`) permanecem no estado `PlaylistItemStatus::Mixing` (renderizados com 50px de altura, badge roxo `MIXANDO`, barra de progresso e contador de tempo continuando até `endPoint`), passando para `Finished` somente quando o áudio chega efetivamente ao `endPoint` (ou quando o player é encerrado/parado).
+   - Caso uma faixa $M_3$ possua `mixStart` maior que a duração até `mixEnd` da faixa curta $M_2$ anterior, $M_3$ entra antecipadamente (`Playing` / `NO AR`) enquanto $M_2$ aguarda o instante exato de sincronismo (`PendingOverlay`) e, ao entrar em reprodução, assume diretamente `Mixing` (`MIXANDO`) junto com $M_1$.
+   - Os demais itens já encerrados acima de `m_playingRow` recebem `PlaylistItemStatus::Finished` (renderizado de forma compacta com 32px de altura).
    - A linha `m_playingRow` permanece como `Playing` (renderizada com 50px de altura, badge vermelho `NO AR` e barra de progresso).
    - O primeiro item de mídia imediatamente após `m_playingRow` recebe `PlaylistItemStatus::Next` (badge amarelo `PRÓXIMO`).
    - Os demais itens futuros recebem `PlaylistItemStatus::Default`.
+   - Em todos os cards não finalizados (`Default`, `Next`, `Playing`, `Mixing`), uma linha vertical amarela sutil nas posições proporcionais de `mixStart` e `mixEnd` — quando distintos de `startPoint`/`endPoint` — permite acompanhar em tempo real o cruzamento dos pontos de mixagem.
 4. **Coalescência de `dataChanged`**:
    - Para evitar repintar a lista inteira desnecessariamente, o método tira um *snapshot* dos campos derivados antes do cálculo e emite `dataChanged` apenas para os intervalos contíguos de linhas que realmente sofreram alteração.
 

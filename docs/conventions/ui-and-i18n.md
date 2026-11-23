@@ -30,11 +30,14 @@ Tanto na **Playlist (`PlaylistItemDelegate`)** quanto na **Cartucheira (`CartWal
 | **Vinheta (`Jingle = 0`)** | `#68B127` (Verde claro) | `#3C8808` (Verde escuro) | `:/images/catalog/jingle.svg` |
 | **Comercial (`Commercial = 2`)** | `#D97706` (Âmbar claro) | `#B45309` (Âmbar escuro) | `:/images/catalog/commercial.svg` |
 | **Outros (`Other = 3`)** | `#475569` (Cinza ardósia) | `#334155` (Cinza escuro) | `:/images/catalog/other.svg` |
-| **Barra de Progresso (`Playing`)** | `#CF3B6B` (Magenta/Rosa) | `#AC073C` (Vermelho rubi) | Preenchimento da esquerda p/ direita |
+| **Comandos (`Command = 4`)** | `#6D28D9` (Violeta) | `#4C1D95` (Violeta escuro) | `:/images/catalog/command.svg` / `command-pause.svg` |
+| **Barra de Progresso (`Playing` / `Mixing`)** | `#CF3B6B` (Magenta/Rosa) | `#AC073C` (Vermelho rubi) | Preenchimento da esquerda p/ direita |
 
-### Badges de Status na Playlist
+### Badges de Status e Marcadores de Mixagem na Playlist
 - **`NO AR` (`Playing`)**: Fundo `#E50914` (vermelho vivo) com texto `#FFFFFF`.
+- **`MIXANDO` (`Mixing`)**: Fundo `#7C3AED` (roxo/violeta) com texto `#FFFFFF`.
 - **`PRÓXIMO` (`Next`)**: Fundo `#F59E0B` (amarelo/âmbar) com texto `#000000`.
+- **Marcadores `mixStart` e `mixEnd`**: Linha vertical sutil de 1px em amarelo `#EAB308` (semitransparente, sem borda) quando distintos de `startPoint` / `endPoint`.
 
 ---
 

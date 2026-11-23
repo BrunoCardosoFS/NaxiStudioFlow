@@ -54,6 +54,10 @@ Para economizar memória RAM sem atrasar nenhuma entrada antecipada, a decisão 
    - A posição dentro da faixa $i+1$ em que a faixa $i+2$ deverá começar a tocar é:
      $$\text{triggerPos}_{i+1 \to i+2} = \text{mixEnd}_{i+1} - (\text{mixStart}_{i+2} - \text{startPoint}_{i+2})$$
    - Se esse instante de disparo ocorrer enquanto a faixa $i$ ainda não tiver atingido seu $\text{endPoint}_i$ (tripla sobreposição) ou se a janela disponível entre o início de $i+1$ e $\text{triggerPos}_{i+1 \to i+2}$ for curta demais para carregar $i+2$ apenas depois que $i+1$ entrar no ar, o 3º player do rodízio pré-carrega dinamicamente a faixa $i+2$ com antecedência.
+3. **Entrada Antecipada de $i+2$ Antes de $i+1$ ($\text{intro}_{i+2} > \text{mixEnd}_{i+1} - \text{startPoint}_{i+1}$)**:
+   - Quando a introdução de $i+2$ até `mixStart` é maior que o trecho útil de $i+1$ até `mixEnd`, para que $\text{mixStart}_{i+2}$ coincida com $\text{mixEnd}_{i+1}$, a faixa $i+2$ precisa começar **antes** de $i+1$:
+     $$\text{triggerPos}_{i \to i+2} = \text{triggerPos}_{i \to i+1} - \big[(\text{mixStart}_{i+2} - \text{startPoint}_{i+2}) - (\text{mixEnd}_{i+1} - \text{startPoint}_{i+1})\big]$$
+   - Ao atingir $\text{triggerPos}_{i \to i+2}$ na faixa $i$, o `PlaylistManager` promove diretamente $i+2$ para `Active` (`NO AR`), mantém $i$ em `Tail` (`MIXANDO`) e agenda o disparo de $i+1$ (`PendingOverlay`) para quando $i$ atingir $\text{triggerPos}_{i \to i+1}$. Nesse instante, $i+1$ entra diretamente em `Tail` (`MIXANDO`), mantendo $i+2$ como `NO AR` enquanto $i$ e $i+1$ exibem `MIXANDO` até seus respectivos `endPoint`.
 
 ---
 
