@@ -101,6 +101,29 @@
     </message>
 </context>
 <context>
+    <name>FolderListModel</name>
+    <message>
+        <source>Vinhetas</source>
+        <translation>Jingles</translation>
+    </message>
+    <message>
+        <source>Músicas</source>
+        <translation>Musics</translation>
+    </message>
+    <message>
+        <source>Comerciais</source>
+        <translation>Commercials</translation>
+    </message>
+    <message>
+        <source>Comandos</source>
+        <translation>Commands</translation>
+    </message>
+    <message>
+        <source>Outros</source>
+        <translation>Others</translation>
+    </message>
+</context>
+<context>
     <name>MixEditor</name>
     <message>
         <source>NaxStudio Flow - Editor de Mixagem</source>
@@ -245,6 +268,21 @@
         <location filename="../../ui/widgets/playlist/PlaylistItem.ui" line="32"/>
         <source>Form</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PlaylistItemDelegate</name>
+    <message>
+        <source>NO AR</source>
+        <translation>ON AIR</translation>
+    </message>
+    <message>
+        <source>MIXANDO</source>
+        <translation>MIXING</translation>
+    </message>
+    <message>
+        <source>PRÓXIMO</source>
+        <translation>NEXT</translation>
     </message>
 </context>
 <context>
