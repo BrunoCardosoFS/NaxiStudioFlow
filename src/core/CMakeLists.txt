@@ -26,6 +26,11 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     playlist/player/PlayerManager.cpp
     playlist/player/PlayerManager.h
 
+    storage/AppPaths.cpp
+    storage/AppPaths.h
+    storage/MediaPathResolver.cpp
+    storage/MediaPathResolver.h
+
     utils/TimeUtils.cpp
     utils/TimeUtils.h
 )
