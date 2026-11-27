@@ -5,8 +5,11 @@
 #include <QJsonObject>
 #include <QJsonValue>
 
+#include "core/storage/AppPaths.h"
+#include "core/storage/MediaPathResolver.h"
+
 QJsonArray CatalogRepository::getFoldersJson(const QString &dbPath) {
-  QFile catalogFile(dbPath + "/catalog.json");
+  QFile catalogFile(AppPaths::catalogFilePath(dbPath));
   if (!catalogFile.open(QFile::ReadOnly)) {
     return QJsonArray();
   }
@@ -39,9 +42,41 @@ QVector<FolderItem> CatalogRepository::loadFolders(const QString &dbPath) {
     item.itemType = FolderItemType::Folder;
     item.id = obj.value(QStringLiteral("id")).toString();
     item.title = obj.value(QStringLiteral("title")).toString();
-    item.path = obj.value(QStringLiteral("path")).toString();
+    item.path = obj.value(QStringLiteral("path")).toString().trimmed();
     item.type = mediaTypeFromString(obj.value(QStringLiteral("type")).toString(),
                                     MediaType::Other);
+
+    auto appendMirror = [&item](const QString &candidate) {
+      const QString norm = MediaPathResolver::normalizePath(candidate);
+      if (norm.isEmpty()) {
+        return;
+      }
+      if (!item.path.isEmpty() &&
+          MediaPathResolver::pathsEqual(norm, item.path)) {
+        return;
+      }
+      for (const QString &existing : std::as_const(item.mirrorPaths)) {
+        if (MediaPathResolver::pathsEqual(existing, norm)) {
+          return;
+        }
+      }
+      item.mirrorPaths.append(norm);
+    };
+
+    const QJsonValue singleMirrorVal = obj.value(QStringLiteral("mirrorPath"));
+    if (singleMirrorVal.isString()) {
+      appendMirror(singleMirrorVal.toString());
+    }
+
+    const QJsonValue mirrorsArrayVal = obj.value(QStringLiteral("mirrorPaths"));
+    if (mirrorsArrayVal.isArray()) {
+      const QJsonArray arr = mirrorsArrayVal.toArray();
+      for (const QJsonValue &mirrorVal : arr) {
+        if (mirrorVal.isString()) {
+          appendMirror(mirrorVal.toString());
+        }
+      }
+    }
 
     if (item.isCommandFolder() && obj.value("items").isArray()) {
       const QJsonArray inlineItems = obj.value("items").toArray();

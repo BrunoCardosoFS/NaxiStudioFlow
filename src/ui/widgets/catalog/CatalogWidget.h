@@ -39,6 +39,7 @@ public:
 signals:
   void fileDoubleClicked(const CatalogItem &item);
   void folderSelected(const QString &path, MediaType type);
+  void foldersRefreshed();
 
 protected:
   bool eventFilter(QObject *watched, QEvent *event) override;

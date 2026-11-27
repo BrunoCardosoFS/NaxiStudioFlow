@@ -5,6 +5,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QThread>
 #include <QVector>
 
@@ -14,6 +15,7 @@
 struct CatalogFolderTarget {
   QString title;
   QString path;
+  QStringList mirrorPaths;
   MediaType type = MediaType::Other;
   bool isCommandFolder = false;
   QVector<CatalogItem> inlineItems;
@@ -28,7 +30,8 @@ public:
   explicit CatalogScannerWorker(QObject *parent = nullptr);
 
 public slots:
-  void scanLocal(int requestId, const QString &path, const QString &search,
+  void scanLocal(int requestId, const QString &path,
+                 const QStringList &mirrorPaths, const QString &search,
                  MediaType mediaType);
   void scanGlobal(int requestId, const QList<CatalogFolderTarget> &folders,
                   const QString &search);
@@ -50,11 +53,15 @@ public:
 
   void scanLocal(const QString &path, const QString &search,
                  MediaType mediaType = MediaType::Jingle);
+  void scanLocal(const QString &path, const QStringList &mirrorPaths,
+                 const QString &search,
+                 MediaType mediaType = MediaType::Jingle);
   void scanGlobal(const QList<CatalogFolderTarget> &folders, const QString &search);
   void cancelCurrentScan();
 
 signals:
-  void requestScanLocal(int requestId, const QString &path, const QString &search,
+  void requestScanLocal(int requestId, const QString &path,
+                        const QStringList &mirrorPaths, const QString &search,
                         MediaType mediaType);
   void requestScanGlobal(int requestId, const QList<CatalogFolderTarget> &folders,
                          const QString &search);

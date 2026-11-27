@@ -4,6 +4,8 @@
 #include <QHash>
 #include <QList>
 
+#include "core/storage/MediaPathResolver.h"
+
 FolderListModel::FolderListModel(QObject *parent)
     : QAbstractListModel(parent) {}
 
@@ -24,8 +26,20 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const {
   switch (role) {
   case Qt::DisplayRole:
     return item.title;
-  case Qt::ToolTipRole:
-    return item.isHeader() ? item.title : item.title;
+  case Qt::ToolTipRole: {
+    if (item.isHeader() || item.isCommandFolder()) {
+      return item.title;
+    }
+    if (!item.accessible) {
+      return QStringLiteral("%1\n%2").arg(item.title,
+                                          tr("Caminho indisponível"));
+    }
+    if (item.usingMirror) {
+      return QStringLiteral("%1\n%2 (%3)").arg(item.title, item.activePath,
+                                               tr("Espelho local"));
+    }
+    return QStringLiteral("%1\n%2").arg(item.title, item.activePath);
+  }
   case FolderItemTypeRole:
     return static_cast<int>(item.itemType);
   case FolderPathRole:
@@ -34,6 +48,14 @@ QVariant FolderListModel::data(const QModelIndex &index, int role) const {
     return static_cast<int>(item.type);
   case FolderIdRole:
     return item.id;
+  case FolderMirrorPathsRole:
+    return item.mirrorPaths;
+  case FolderActivePathRole:
+    return item.activePath;
+  case FolderUsingMirrorRole:
+    return item.usingMirror;
+  case FolderAccessibleRole:
+    return item.accessible;
   default:
     return QVariant();
   }
@@ -60,8 +82,19 @@ void FolderListModel::loadFromDatabase(const QString &pathDB) {
 
   // Agrupa as pastas por categoria (tipo)
   QHash<MediaType, QVector<FolderItem>> groupedFolders;
-  for (const FolderItem &item : loadedFolders) {
-    groupedFolders[item.type].append(item);
+  for (FolderItem item : loadedFolders) {
+    if (item.isCommandFolder()) {
+      item.activePath.clear();
+      item.usingMirror = false;
+      item.accessible = true;
+    } else {
+      const FolderDirectoryResolution res =
+          MediaPathResolver::resolveFolderDirectory(item);
+      item.activePath = res.resolvedDir;
+      item.usingMirror = res.usedMirror;
+      item.accessible = res.found;
+    }
+    groupedFolders[item.type].append(std::move(item));
   }
 
   // Ordem padrão de exibição das categorias
@@ -116,6 +149,17 @@ void FolderListModel::clear() {
   beginResetModel();
   m_items.clear();
   endResetModel();
+}
+
+QVector<FolderItem> FolderListModel::mediaFolders() const {
+  QVector<FolderItem> result;
+  result.reserve(m_items.size());
+  for (const FolderItem &item : std::as_const(m_items)) {
+    if (!item.isHeader() && !item.isCommandFolder()) {
+      result.append(item);
+    }
+  }
+  return result;
 }
 
 const FolderItem *FolderListModel::itemAt(int row) const {

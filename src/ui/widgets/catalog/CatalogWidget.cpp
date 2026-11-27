@@ -133,6 +133,7 @@ void CatalogWidget::refreshFolders() {
   m_openFolderRow = -1;
   m_openFolder.clear();
   m_folderModel->loadFromDatabase(m_dbPath);
+  emit foldersRefreshed();
 
   QModelIndex firstIdx = m_folderModel->firstFolderIndex();
   if (firstIdx.isValid()) {
@@ -166,7 +167,7 @@ void CatalogWidget::loadOpenFolder(const QString &search) {
     return;
   }
 
-  if (folder->path.isEmpty()) {
+  if (!folder->hasAnyPath()) {
     m_scanner->cancelCurrentScan();
     onFilesLoaded({}, QString(), false);
     return;
@@ -175,7 +176,7 @@ void CatalogWidget::loadOpenFolder(const QString &search) {
   // Exibe o item personalizado de Carregando imediatamente
   m_catalogModel->showLoading("Carregando...");
 
-  m_scanner->scanLocal(folder->path, search, folder->type);
+  m_scanner->scanLocal(folder->path, folder->mirrorPaths, search, folder->type);
 }
 
 void CatalogWidget::onFolderActivated(const QModelIndex &index) {
@@ -201,7 +202,7 @@ void CatalogWidget::onFolderActivated(const QModelIndex &index) {
 
   m_isGlobalView = false;
   m_openFolderRow = index.row();
-  m_openFolder = item->path;
+  m_openFolder = item->activePath.isEmpty() ? item->path : item->activePath;
   m_openFolderType = item->type;
   emit folderSelected(m_openFolder, m_openFolderType);
 
@@ -265,10 +266,11 @@ QList<CatalogFolderTarget> CatalogWidget::getFolderTargets() const {
       target.isCommandFolder = true;
       target.inlineItems = item.items;
       targets.append(std::move(target));
-    } else if (!item.path.isEmpty()) {
+    } else if (item.hasAnyPath()) {
       CatalogFolderTarget target;
       target.title = item.title;
       target.path = item.path;
+      target.mirrorPaths = item.mirrorPaths;
       target.type = item.type;
       targets.append(std::move(target));
     }

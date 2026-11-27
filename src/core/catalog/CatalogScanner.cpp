@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <algorithm>
 
+#include "core/storage/MediaPathResolver.h"
+
 namespace {
 const QStringList &audioExtensions() {
   static const QStringList filters = {
@@ -21,16 +23,21 @@ void CatalogScannerWorker::cancel(int requestId) {
 }
 
 void CatalogScannerWorker::scanLocal(int requestId, const QString &path,
+                                     const QStringList &mirrorPaths,
                                      const QString &search, MediaType mediaType) {
   QVector<CatalogItem> result;
-  if (path.isEmpty()) {
+  const FolderDirectoryResolution dirResolution =
+      MediaPathResolver::resolveFolderDirectory(path, mirrorPaths);
+  if (!dirResolution.found) {
     emit scanFinished(requestId, result, path, false);
     return;
   }
+  const QString targetDir = dirResolution.resolvedDir;
   result.reserve(1024);
 
   const QString trimmedSearch = search.trimmed();
-  QDirIterator it(path, audioExtensions(), QDir::Files | QDir::NoDotAndDotDot);
+  QDirIterator it(targetDir, audioExtensions(),
+                  QDir::Files | QDir::NoDotAndDotDot);
 
   while (it.hasNext()) {
     if (m_cancelledRequestId.loadAcquire() >= requestId) {
@@ -59,7 +66,7 @@ void CatalogScannerWorker::scanLocal(int requestId, const QString &path,
               return QString::compare(a.title, b.title, Qt::CaseInsensitive) < 0;
             });
 
-  emit scanFinished(requestId, result, path, false);
+  emit scanFinished(requestId, result, targetDir, false);
 }
 
 void CatalogScannerWorker::scanGlobal(int requestId,
@@ -103,11 +110,15 @@ void CatalogScannerWorker::scanGlobal(int requestId,
       continue;
     }
 
-    if (folder.path.isEmpty()) {
+    const FolderDirectoryResolution dirResolution =
+        MediaPathResolver::resolveFolderDirectory(folder.path,
+                                                  folder.mirrorPaths);
+    if (!dirResolution.found) {
       continue;
     }
 
-    QDirIterator it(folder.path, audioExtensions(), QDir::Files | QDir::NoDotAndDotDot);
+    QDirIterator it(dirResolution.resolvedDir, audioExtensions(),
+                    QDir::Files | QDir::NoDotAndDotDot);
     QVector<CatalogItem> folderFiles;
     folderFiles.reserve(64);
 
@@ -192,9 +203,15 @@ void CatalogScanner::cancelCurrentScan() {
 
 void CatalogScanner::scanLocal(const QString &path, const QString &search,
                                MediaType mediaType) {
+  scanLocal(path, QStringList(), search, mediaType);
+}
+
+void CatalogScanner::scanLocal(const QString &path,
+                               const QStringList &mirrorPaths,
+                               const QString &search, MediaType mediaType) {
   cancelCurrentScan();
   const int reqId = m_currentRequestId.fetchAndAddRelaxed(1) + 1;
-  emit requestScanLocal(reqId, path, search, mediaType);
+  emit requestScanLocal(reqId, path, mirrorPaths, search, mediaType);
 }
 
 void CatalogScanner::scanGlobal(const QList<CatalogFolderTarget> &folders,
