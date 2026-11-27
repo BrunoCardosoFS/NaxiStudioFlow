@@ -16,17 +16,24 @@ O arquivo `data/catalog.json` (sincronizado com o `NaxServer` ou mantido localme
       "id": "folder-uuid-01",
       "title": "Vinhetas Padrão",
       "type": "jingle",
-      "path": "D:/Acervo/Vinhetas"
+      "path": "//SERVIDOR/Acervo/Vinhetas",
+      "mirrorPath": "D:/BackupLocal/Vinhetas"
     },
     {
       "id": "folder-uuid-02",
       "title": "Pop Internacional",
       "type": "music",
-      "path": "D:/Acervo/Musicas/Pop"
+      "path": "//SERVIDOR/Acervo/Musicas/Pop",
+      "mirrorPaths": [
+        "D:/BackupLocal/Musicas/Pop",
+        "E:/Espelho/Musicas/Pop"
+      ]
     }
   ]
 }
 ```
+
+> **Nota sobre Caminhos Espelho (*Mirror Paths*)**: Cada pasta aceita opcionalmente `"mirrorPath"` (string) e/ou `"mirrorPaths"` (array de strings). Ao carregar o catálogo, o `CatalogRepository` normaliza e deduplica os caminhos mantendo a ordem de prioridade (`path` → `mirrorPaths[0]` → ...). O `FolderListModel` resolve o diretório ativo de cada pasta e exibe no `ToolTipRole` o caminho em uso — indicando `(Espelho local)` quando um espelho estiver ativo ou `Caminho indisponível` se nenhum caminho existir. Tanto a busca local quanto a busca global no `CatalogScanner` utilizam essa cascata automaticamente.
 
 Ao carregar esse arquivo, o `FolderListModel::loadFromDatabase()` agrupa automaticamente as pastas por `MediaType` na seguinte ordem padrão:
 1. **Comandos** (`"type": "command"` / `MediaType::Command`)

@@ -25,11 +25,12 @@ flowchart TD
         PlaylistCore["Playlist\nPlaylistManager / PlaylistListModel"]
         CartWallCore["Cartucheira\nCartWallTableModel"]
         AudioEngine["Motor de Áudio\nPlayerManager (QMediaPlayer + QAudioOutput)"]
+        StorageCore["Armazenamento & Caminhos\nAppPaths / MediaPathResolver"]
         Utils["Utilitários\nTimeUtils / Models (models.h)"]
     end
 
     subgraph Storage["Persistência Local & Rede"]
-        LocalData["Diretório data/\n(catalog.json, blocks/, profiles/, logs/)"]
+        LocalData["Diretório data/\n(catalog.json, blocks/, profiles/, logs/, config/)"]
         Sidecar["Metadados Sidecar\n(musica.mp3.json)"]
         NaxServer["NaxServer (API REST em Go)"]
     end
@@ -44,11 +45,14 @@ flowchart TD
     PlaylistUI --> PlaylistCore
     CartWallUI --> CartWallCore
     EditorUI --> Sidecar
+    EditorUI --> StorageCore
 
     PlaylistCore --> AudioEngine
+    PlaylistCore --> StorageCore
     CartWallCore --> AudioEngine
 
     CatalogCore --> LocalData
+    CatalogCore --> StorageCore
     PlaylistCore --> LocalData
     CartWallCore --> LocalData
     PlaylistCore --> Sidecar
@@ -75,6 +79,7 @@ flowchart TD
   - `catalog/`: Repositório de leitura de JSON (`CatalogRepository`), scanner multithread assíncrono (`CatalogScanner` e `CatalogScannerWorker`) e modelos de lista (`FolderListModel` e `CatalogListModel`).
   - `playlist/`: Gerenciador de execução contínua (`PlaylistManager`), modelo de dados e cálculo de blocos (`PlaylistListModel`) e controle individual de reprodução/fade (`player/PlayerManager`).
   - `cartwall/`: Estrutura de slot (`CartItem`) e modelo tabular linear mapeado em grade (`CartWallTableModel`).
+  - `storage/`: Resolução portátil do diretório de dados e bootstrap inicial (`AppPaths`), além da resolução em cascata de diretórios e arquivos de mídia entre caminho primário e espelhos locais (`MediaPathResolver`).
   - `utils/`: Funções puras de formatação de tempo (`TimeUtils`).
 
 ### 3. `src/ui/` - Interface Gráfica (Views, Delegates e Docks)
@@ -110,18 +115,32 @@ Essa separação traz três benefícios práticos:
 
 ## 🗂️ Estrutura de Instalação e Diretório `data/`
 
-Em ambiente de produção, a instalação do NaxStudio Flow é auto-contida e segue a separação entre binários e dados de operação:
+Em ambiente de produção (e nos pacotes portáteis gerados pelo GitHub Actions para Windows e Linux), a instalação do NaxStudio Flow é auto-contida e segue a separação estrita entre binários e dados de operação:
 
 ```text
 Flow/
-├── bin/                      # Executável principal (flow / flow.exe), DLLs/SOs e plugins Qt
-└── data/                     # Diretório raiz de persistência local
-    ├── catalog.json          # Espelho local das pastas do catálogo e mapeamento de paths
-    ├── blocks/               # Arquivos de blocos de programação salvos localmente
-    ├── profiles/             # Arquivos JSON de cada perfil (permissões + cartucheira)
-    ├── logs/                 # Histórico detalhado de reprodução (auditoria/ECAD)
-    └── config/               # Configurações locais da estação (placas de áudio, rede, etc.)
+├── bin/                      # Executável principal (flow / flow.exe), libs/DLLs e plugins Qt
+├── data/                     # Diretório raiz de persistência local (resolvido como ../data)
+│   ├── catalog.json          # Catálogo local das pastas, comandos e mirror paths
+│   ├── blocks/               # Arquivos de blocos de programação salvos localmente
+│   ├── profiles/             # Arquivos JSON de cada perfil (permissões + cartucheira)
+│   ├── logs/                 # Histórico detalhado de reprodução (auditoria/ECAD) e logs .txt
+│   └── config/               # Configurações locais da estação (placas de áudio, rede, etc.)
+└── COPYING                   # Licença GPLv3
 ```
+
+### Resolução Dinâmica (`../data`) e Bootstrap Automático (`AppPaths`)
+
+1. **Resolução Relativa ao Binário**:
+   - Por padrão, `AppPaths::resolveDataDir()` calcula dinamicamente `../data` a partir de `QCoreApplication::applicationDirPath()`, **sem gravar caminhos absolutos no `QSettings`**.
+   - Isso mantém a pasta portátil 100% relocável em produção (`Flow/bin/flow.exe` → `Flow/data/`) e alinha exatamente com o fluxo de desenvolvimento local (`build/flow.exe` → `<repo>/data/`).
+2. **Precedência de *Override***:
+   - `NAXFLOW_DATA_DIR` (variável de ambiente): maior prioridade, útil para ambientes automatizados ou múltiplas instâncias.
+   - `QSettings("NaxStudio", "Flow")` chave `"dataDir"`: *override* explícito opcional quando configurado. A chave legada `"db"` (`../db`) é ignorada.
+   - Padrão portátil: `<applicationDirPath>/../data`.
+3. **Bootstrap na Inicialização**:
+   - Na inicialização do `Flow`, `AppPaths::ensureDataStructure()` garante a criação automática de `data/` e de todas as subpastas (`blocks/`, `profiles/`, `logs/`, `config/`).
+   - Caso `data/catalog.json` ainda não exista, é gerado um arquivo inicial mínimo (`version: 1`) contendo a pasta virtual `Comandos` com o comando `Pausa` (`"command": "pause"`), sem jamais sobrescrever um `catalog.json` já existente.
 
 Essa organização permite fazer backup, migração ou atualização dos binários em `Flow/bin/` sem risco de sobrescrever as configurações, perfis, logs ou blocos locais em `Flow/data/`.
 

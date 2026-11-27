@@ -53,27 +53,32 @@ O `NaxServer` também atua como servidor de arquivos na rede local, permitindo q
 O arquivo `data/catalog.json` possui um objeto raiz `{ "version": 1, "folders": [ ... ] }`. Cada pasta cadastrada dentro de `folders` contém:
 - `id`: Identificador único da pasta na API do `NaxServer`.
 - `title`: Nome de exibição da pasta (ex.: `"Pop Nacional"`, `"Vinhetas Hora Certa"`).
-- `path`: Caminho primário no sistema de arquivos (opcional em pastas virtuais do tipo `"command"`).
-- `mirrorPath` *(ou caminhos locais adicionais)*: Caminho alternativo configurável na máquina local caso o computador possua um espelho do acervo em outro disco/diretório.
+- `path`: Caminho primário no sistema de arquivos (opcional em pastas virtuais do tipo `"command"` ou quando apenas caminhos espelho estão configurados).
+- `mirrorPath` *(string opcional)* e/ou `mirrorPaths` *(array de strings opcional)*: Caminhos alternativos inline na máquina local caso o computador possua um ou mais espelhos do acervo em outro disco ou diretório. O `CatalogRepository` lê ambos os campos em ordem, ignorando entradas vazias e removendo duplicatas.
 - `type`: Categoria semântica da mídia (`"jingle"`, `"music"`, `"commercial"`, `"other"`, `"command"`).
 - `items`: Array de itens inline *(utilizado por pastas virtuais `"type": "command"`)*.
 
 ### Ordem de Busca ao Carregar uma Mídia
 
-Quando o Flow precisa reproduzir ou analisar um arquivo de áudio pertencente a uma pasta do catálogo:
+A resolução em cascata atua em dois níveis complementares:
 
 ```mermaid
 flowchart LR
     A["Solicitação de Mídia"] --> B{"Existe no path primário?"}
     B -- Sim --> E["Carrega do disco local (path)"]
-    B -- Não --> C{"Existe no caminho espelho local?"}
-    C -- Sim --> F["Carrega do espelho local"]
-    C -- Não --> D["Carrega/Stream via NaxServer API (usando ID da pasta)"]
+    B -- Não --> C{"Existe nos mirrorPaths locais?"}
+    C -- Sim --> F["Carrega do primeiro espelho válido"]
+    C -- Não --> D["(M18) Carrega/Stream via NaxServer API"]
 ```
 
-1. **1ª Tentativa (`path` primário)**: Verifica se o arquivo existe no caminho padrão configurado na pasta.
-2. **2ª Tentativa (Caminho Espelho Local)**: Verifica se há um caminho local alternativo configurado para aquela pasta nesta máquina e se o arquivo existe lá.
-3. **3ª Tentativa (`NaxServer` via Rede)**: Se não for encontrado localmente, busca o arquivo diretamente na API do `NaxServer` utilizando o `id` da pasta + identificador/nome do arquivo.
+1. **No Catálogo (`FolderListModel` e `CatalogScanner`) — Cascata por Diretório**:
+   - O `MediaPathResolver::resolveFolderDirectory()` avalia o `path` primário e, caso não exista ou esteja inacessível, percorre `mirrorPaths[0]`, `mirrorPaths[1]`, ... até encontrar o primeiro diretório acessível para listagem local ou busca global.
+   - O caminho efetivo resolvido é refletido no `FolderListModel` (incluindo indicação de `(Espelho local)` ou `Caminho indisponível` no tooltip da pasta).
+2. **Na Reprodução e Edição (`MediaPathResolver` + `PlaylistManager` + `PlaylistListModel` + `MixEditor`) — Fallback por Arquivo**:
+   - Quando um item de mídia já está na Playlist ou é aberto no `MixEditor` e seu arquivo no `path` original não está acessível (por exemplo, queda de compartilhamento de rede), `MediaPathResolver::resolveMediaFile()` preserva o subcaminho relativo da pasta correspondente no catálogo e tenta os diretórios candidatos (`path` → `mirrorPaths[0]` → ...) em ordem de prioridade.
+   - Isso permite que `PlaylistManager` (reprodução e pré-carregamento), `PlaylistListModel` (probe de duração) e `MixEditor` (extração de forma de onda e pré-escuta) continuem operando transparentemente pelo espelho local.
+3. **3ª Tentativa (`NaxServer` via Rede — previsto no marco M18)**:
+   - Caso nenhum diretório local possua o arquivo (`found == false`), o fluxo ficará preparado para buscar o arquivo diretamente na API do `NaxServer` utilizando o `id` da pasta + identificador/nome do arquivo.
 
 ---
 
