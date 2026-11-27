@@ -81,18 +81,37 @@ O executável `flow` (ou `flow.exe` no Windows) será gerado dentro do diretóri
 
 ### 4. Estrutura de Execução Local (`data/`)
 
-Em produção e durante testes locais, o Flow utiliza uma pasta de dados persistentes para armazenar o catálogo, blocos de programação, perfis e configurações:
+O Flow resolve o diretório de dados automaticamente como `../data` a partir da localização do executável (`AppPaths::resolveDataDir()`):
+
+- Em **produção portátil**, `Flow/bin/flow` (ou `flow.exe`) lê e grava em `Flow/data/`.
+- Durante o **desenvolvimento local**, o executável compilado em `build/flow` (ou `build/flow.exe`) resolve automaticamente para `<raiz-do-repo>/data/`.
+- Caso precise apontar para outro diretório em testes ou múltiplas instâncias, utilize a variável de ambiente `NAXFLOW_DATA_DIR` (ou a chave `"dataDir"` no `QSettings`).
+
+Na inicialização, `AppPaths::ensureDataStructure()` cria automaticamente as subpastas necessárias e um `catalog.json` mínimo caso ainda não exista:
 
 ```text
 Flow/
-├── bin/          # Executável e bibliotecas dinâmicas
-└── data/         # Dados locais
-    ├── catalog.json
-    ├── blocks/
-    ├── profiles/
-    ├── logs/
-    └── config/
+├── bin/          # Executável e bibliotecas dinâmicas (em dev: build/)
+├── data/         # Dados locais (resolvido como ../data)
+│   ├── catalog.json
+│   ├── blocks/
+│   ├── profiles/
+│   ├── logs/
+│   └── config/
+└── COPYING
 ```
+
+### 5. Executando os Testes Automatizados (`CTest`)
+
+Para habilitar e executar a suíte de testes unitários e de integração em modo *headless*:
+
+```bash
+cmake -B build -S . -DBUILD_TESTING=ON
+cmake --build build --parallel
+QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
+```
+
+*(No PowerShell do Windows, defina `$env:QT_QPA_PLATFORM = "offscreen"` antes de rodar o `ctest`.)*
 
 ---
 

@@ -10,12 +10,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-release:
-    name: Build on ${{ matrix.os }}
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-          os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout code
@@ -28,60 +29,136 @@ jobs:
           $ProgramName = "NaxStudio Flow"
           $Version = "${{ github.ref_name }}"
 
-          $IsPreRelease = if ($Version -like "*-*") { "true" } else { "false" }
+          $IsPreRelease = if ($Version -like "*-*" -or $Version -match '^v?0\.') { "true" } else { "false" }
           "IS_PRERELEASE=$IsPreRelease" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           $CleanVersion = $Version -replace '^v', '' -replace '-.*$', ''
-          $VersionMajor, $VersionMinor, $VersionPatch = $CleanVersion.Split('.')
-          
+          $Parts = $CleanVersion.Split('.')
+          $VersionMajor = if ($Parts.Count -ge 1 -and $Parts[0] -match '^\d+$') { $Parts[0] } else { "0" }
+          $VersionMinor = if ($Parts.Count -ge 2 -and $Parts[1] -match '^\d+$') { $Parts[1] } else { "0" }
+          $VersionPatch = if ($Parts.Count -ge 3 -and $Parts[2] -match '^\d+$') { $Parts[2] } else { "0" }
+
           "PROGRAM_NAME=$ProgramName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VERSION=$Version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VERSION_MAJOR=$VersionMajor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VERSION_MINOR=$VersionMinor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "VERSION_PATCH=$VersionPatch" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          Write-Host "Is Pre-Release: $IsPreRelease"
+          Write-Host "Version: $Version ($VersionMajor.$VersionMinor.$VersionPatch) | Pre-Release: $IsPreRelease"
 
-        
           $DistDir = "out"
           if (Test-Path $DistDir) { Remove-Item -Recurse -Force $DistDir }
-          New-Item -ItemType Directory -Path $DistDir
-          New-Item -ItemType Directory -Path $DistDir\dist_files
-          New-Item -ItemType Directory -Path $DistDir\windows
-          New-Item -ItemType Directory -Path $DistDir\ubuntu
+          New-Item -ItemType Directory -Path $DistDir | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/dist_files" | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/windows" | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/ubuntu" | Out-Null
 
           "DIST_DIR=$DistDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "DIST_FILES_DIR=$DistDir/dist_files" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "DIST_WINDOWS_DIR=$DistDir/windows" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "DIST_UBUNTU_DIR=$DistDir/ubuntu" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          $ChangesFilePath = "dist/changes-v${CleanVersion}.md"
-          if(Test-Path $ChangesFilePath){
-            "BODY_PATH=$ChangesFilePath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          }else{
-            if(!(Test-Path "dist/release.md")){New-Item -ItemType File -Path "dist/release.md" -Value ""}
-            "BODY_PATH=dist/release.md" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          }
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            ninja-build \
+            patchelf \
+            libgl1-mesa-dev \
+            libegl1 \
+            libxkbcommon-dev \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1 \
+            libasound2-dev \
+            libpulse0 \
+            libdbus-1-3 \
+            libfontconfig1
 
       - name: Install Qt (Windows)
         if: matrix.os == 'windows-latest'
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.3'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
           modules: 'qtmultimedia'
 
-      # --- BUILD WINDOWS ---
-      - name: Build Windows
+      - name: Install Qt (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          modules: 'qtmultimedia'
+
+      - name: Build and Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: ./.github/scripts/BuildWindows.ps1
 
-      # --- CREATING RELEASE ---
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Build and Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: bash ./.github/scripts/BuildLinux.sh
+
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.os }}
+          path: out/dist_files/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve release notes
+        shell: pwsh
+        run: |
+          $ProgramName = "NaxStudio Flow"
+          $Version = "${{ github.ref_name }}"
+          $IsPreRelease = if ($Version -like "*-*" -or $Version -match '^v?0\.') { "true" } else { "false" }
+          $CleanVersion = $Version -replace '^v', '' -replace '-.*$', ''
+
+          "PROGRAM_NAME=$ProgramName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "IS_PRERELEASE=$IsPreRelease" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $ChangesFilePath = "dist/changes-v${CleanVersion}.md"
+          if (Test-Path $ChangesFilePath) {
+            "BODY_PATH=$ChangesFilePath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          } else {
+            if (!(Test-Path "dist/release.md")) {
+              New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+              New-Item -ItemType File -Path "dist/release.md" -Value "" | Out-Null
+            }
+            "BODY_PATH=dist/release.md" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: out/dist_files
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
           name: "${{ env.PROGRAM_NAME }} ${{ github.ref_name }}"
           files: |
