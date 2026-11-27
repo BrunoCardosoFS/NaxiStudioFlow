@@ -22,6 +22,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup environment
+        shell: pwsh
+        run: |
+          $ProgramName = "NaxStudio Flow"
+          $SafeRef = ("${{ github.ref_name }}" -replace '[^a-zA-Z0-9._-]', '-')
+          $ShortSha = "${{ github.sha }}".Substring(0, 7)
+          $Version = "dev-${SafeRef}-${ShortSha}"
+
+          "PROGRAM_NAME=$ProgramName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION=$Version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_MAJOR=0" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_MINOR=0" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION_PATCH=0" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $DistDir = "out"
+          if (Test-Path $DistDir) { Remove-Item -Recurse -Force $DistDir }
+          New-Item -ItemType Directory -Path $DistDir | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/dist_files" | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/windows" | Out-Null
+          New-Item -ItemType Directory -Path "$DistDir/ubuntu" | Out-Null
+
+          "DIST_DIR=$DistDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_FILES_DIR=$DistDir/dist_files" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_WINDOWS_DIR=$DistDir/windows" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DIST_UBUNTU_DIR=$DistDir/ubuntu" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -30,6 +56,7 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            patchelf \
             libgl1-mesa-dev \
             libegl1 \
             libxkbcommon-dev \
@@ -65,26 +92,19 @@ jobs:
           target: 'desktop'
           modules: 'qtmultimedia'
 
-      - name: Configure CMake
-        shell: bash
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-          else
-            cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-          fi
+      - name: Build, Test and Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./.github/scripts/BuildWindows.ps1
 
-      - name: Build
+      - name: Build, Test and Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: cmake --build build --config Release --parallel
+        run: bash ./.github/scripts/BuildLinux.sh
 
-      - name: Run Tests
-        shell: bash
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            ctest --test-dir build -C Release --output-on-failure
-          else
-            ctest --test-dir build --output-on-failure
-          fi
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.os }}
+          path: out/dist_files/*
+          if-no-files-found: error

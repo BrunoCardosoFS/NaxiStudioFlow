@@ -29,35 +29,14 @@ cmake --build "${BUILD_DIR}" --config "${CONFIG}" --parallel
 echo "--- Running Tests ---"
 QT_QPA_PLATFORM=offscreen ctest --test-dir "${BUILD_DIR}" --output-on-failure
 
-echo "--- Preparing Portable Layout (bin/ + data/) ---"
+echo "--- Preparing Portable Layout (bin/ + empty data/) ---"
 BIN_DIR="${ABS_DIST_UBUNTU_DIR}/bin"
 LIB_DIR="${BIN_DIR}/lib"
 PLUGINS_DIR="${BIN_DIR}/plugins"
 DATA_DIR="${ABS_DIST_UBUNTU_DIR}/data"
 
 rm -rf "${BIN_DIR}" "${DATA_DIR}"
-mkdir -p "${BIN_DIR}" "${LIB_DIR}" "${PLUGINS_DIR}"
-mkdir -p "${DATA_DIR}/blocks" "${DATA_DIR}/profiles" "${DATA_DIR}/logs" "${DATA_DIR}/config"
-
-cat > "${DATA_DIR}/catalog.json" <<'EOF'
-{
-  "version": 1,
-  "folders": [
-    {
-      "id": "comandos-playlist",
-      "title": "Comandos",
-      "type": "command",
-      "items": [
-        {
-          "id": "pause",
-          "title": "Pausa",
-          "command": "pause"
-        }
-      ]
-    }
-  ]
-}
-EOF
+mkdir -p "${BIN_DIR}" "${LIB_DIR}" "${PLUGINS_DIR}" "${DATA_DIR}"
 
 cp "${BUILD_DIR}/flow" "${BIN_DIR}/flow"
 chmod +x "${BIN_DIR}/flow"
@@ -174,5 +153,5 @@ rm -rf "${BUILD_DIR}"
 
 echo "--- Creating Portable Tarball ---"
 TAR_NAME="${ABS_DIST_FILES_DIR}/${PROJECT_NAME}-${VERSION_TAG}-Portable-Linux-x86_64.tar.gz"
-tar -czf "${TAR_NAME}" -C "${ABS_DIST_UBUNTU_DIR}" .
+tar -czf "${TAR_NAME}" -C "${ABS_DIST_UBUNTU_DIR}" bin data COPYING
 echo "Build and Packaging completed: ${TAR_NAME}"

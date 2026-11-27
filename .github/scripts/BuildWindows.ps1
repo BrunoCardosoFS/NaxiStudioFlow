@@ -23,37 +23,14 @@ $env:QT_QPA_PLATFORM = "offscreen"
 ctest --test-dir $BuildDir -C $Config --output-on-failure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "--- Preparing Portable Layout (bin/ + data/) ---" -ForegroundColor Green
+Write-Host "--- Preparing Portable Layout (bin/ + empty data/) ---" -ForegroundColor Green
 $BinDir = Join-Path $AbsDistWindowsDir "bin"
 $DataDir = Join-Path $AbsDistWindowsDir "data"
 
+if (Test-Path $BinDir) { Remove-Item -Recurse -Force $BinDir }
+if (Test-Path $DataDir) { Remove-Item -Recurse -Force $DataDir }
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
-foreach ($SubDir in @("blocks", "profiles", "logs", "config")) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $DataDir $SubDir) | Out-Null
-}
-
-$DefaultCatalogJson = @'
-{
-  "version": 1,
-  "folders": [
-    {
-      "id": "comandos-playlist",
-      "title": "Comandos",
-      "type": "command",
-      "items": [
-        {
-          "id": "pause",
-          "title": "Pausa",
-          "command": "pause"
-        }
-      ]
-    }
-  ]
-}
-'@
-$Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-[System.IO.File]::WriteAllText((Join-Path $DataDir "catalog.json"), $DefaultCatalogJson + "`n", $Utf8NoBom)
 
 Copy-Item "$BuildDir\$Config\flow.exe" -Destination $BinDir
 Copy-Item "COPYING" -Destination $AbsDistWindowsDir
@@ -64,6 +41,13 @@ windeployqt --dir $BinDir --no-translations "$BinDir\flow.exe"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "--- Creating Portable ZIP File ---" -ForegroundColor Green
-$ZipName = "$AbsDistFilesDir\${ProjectName}-${env:VERSION}-Portable-Windows-x86_64.zip"
-Compress-Archive -Path "$AbsDistWindowsDir\*" -DestinationPath $ZipName -Force
+$ZipName = Join-Path $AbsDistFilesDir "${ProjectName}-${env:VERSION}-Portable-Windows-x86_64.zip"
+if (Test-Path $ZipName) { Remove-Item -Force $ZipName }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $AbsDistWindowsDir,
+    $ZipName,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $false
+)
 Write-Host "Build and Packaging completed: $ZipName"
