@@ -9,6 +9,8 @@
 #include <QUuid>
 #include <QWidget>
 
+#include <functional>
+
 #include "core/audio/WaveformExtractor.h"
 #include "core/playlist/PlaylistListModel.h"
 #include "core/playlist/player/PlayerManager.h"
@@ -23,9 +25,12 @@ class MixEditor : public QWidget {
   Q_OBJECT
 
 public:
+  using MediaPathResolverFn = std::function<QString(const QString &path)>;
+
   explicit MixEditor(QWidget *parent = nullptr);
   ~MixEditor() override;
 
+  void setMediaPathResolver(MediaPathResolverFn resolver);
   bool loadPlaylistItem(PlaylistListModel *model, const QUuid &itemUuid);
   const PlayerMetadata &currentMetadata() const { return m_metadata; }
   QUuid currentItemUuid() const { return m_itemUuid; }
@@ -88,6 +93,7 @@ private:
   QPointer<PlaylistListModel> m_playlistModel;
   QUuid m_itemUuid;
   QString m_filePath;
+  MediaPathResolverFn m_mediaPathResolver;
   PlayerMetadata m_metadata;
   qint64 m_playheadMs = 0;
 

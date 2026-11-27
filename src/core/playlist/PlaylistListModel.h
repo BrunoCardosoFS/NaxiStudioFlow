@@ -20,6 +20,7 @@ class PlaylistListModel : public QAbstractListModel {
   Q_OBJECT
 public:
   using DurationResolver = std::function<qint64(const QString &path)>;
+  using MediaPathResolverFn = std::function<QString(const QString &path)>;
 
   explicit PlaylistListModel(QObject *parent = nullptr);
   ~PlaylistListModel() override;
@@ -56,6 +57,7 @@ public:
   void cancelDurationProbes();
 
   void setDurationResolver(DurationResolver resolver);
+  void setMediaPathResolver(MediaPathResolverFn resolver);
   void cacheDuration(const QString &path, qint64 durationMs);
 
   void setPlayingRow(int row, int mixingOutgoingRow = -1);
@@ -100,7 +102,9 @@ private:
   QUuid m_activeProbeUuid;
   QUuid m_pendingOverlayUuid;
   DurationResolver m_durationResolver;
+  MediaPathResolverFn m_mediaPathResolver;
 
+  QString resolveMediaPath(const QString &path) const;
   void rebuildUuidMap();
   void updateUuidMapFrom(int startRow);
   void recalculateBlockMetadataInternal(int overridePlayingRow,

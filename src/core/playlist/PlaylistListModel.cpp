@@ -408,6 +408,20 @@ void PlaylistListModel::setDurationResolver(DurationResolver resolver) {
   m_durationResolver = std::move(resolver);
 }
 
+void PlaylistListModel::setMediaPathResolver(MediaPathResolverFn resolver) {
+  m_mediaPathResolver = std::move(resolver);
+}
+
+QString PlaylistListModel::resolveMediaPath(const QString &path) const {
+  if (m_mediaPathResolver && !path.isEmpty()) {
+    const QString resolved = m_mediaPathResolver(path);
+    if (!resolved.isEmpty()) {
+      return resolved;
+    }
+  }
+  return path;
+}
+
 void PlaylistListModel::cacheDuration(const QString &path, qint64 durationMs) {
   if (!path.isEmpty() && durationMs > 0) {
     if (m_durationCache.size() >= kMaxDurationCacheEntries &&
@@ -1011,15 +1025,19 @@ void PlaylistListModel::enqueueDurationProbe(const QUuid &uuid) {
     return;
   }
 
+  const QString resolvedPath = resolveMediaPath(item->path);
   if (m_durationResolver) {
-    const qint64 resolved = m_durationResolver(item->path);
+    const qint64 resolved = m_durationResolver(resolvedPath);
     if (resolved > 0) {
       applyProbedDuration(uuid, resolved);
     }
     return;
   }
 
-  const qint64 cachedDuration = m_durationCache.value(item->path, 0);
+  qint64 cachedDuration = m_durationCache.value(item->path, 0);
+  if (cachedDuration <= 0 && resolvedPath != item->path) {
+    cachedDuration = m_durationCache.value(resolvedPath, 0);
+  }
   if (cachedDuration > 0) {
     applyProbedDuration(uuid, cachedDuration);
     return;
@@ -1049,7 +1067,11 @@ void PlaylistListModel::processNextDurationProbe() {
       continue;
     }
 
-    const qint64 cachedDuration = m_durationCache.value(it->path, 0);
+    const QString resolvedPath = resolveMediaPath(it->path);
+    qint64 cachedDuration = m_durationCache.value(it->path, 0);
+    if (cachedDuration <= 0 && resolvedPath != it->path) {
+      cachedDuration = m_durationCache.value(resolvedPath, 0);
+    }
     if (cachedDuration > 0) {
       applyProbedDuration(uuid, cachedDuration);
       continue;
@@ -1099,7 +1121,7 @@ void PlaylistListModel::processNextDurationProbe() {
       });
     }
 
-    const QUrl targetUrl = QUrl::fromLocalFile(it->path);
+    const QUrl targetUrl = QUrl::fromLocalFile(resolvedPath);
     if (m_probePlayer->source() == targetUrl) {
       // Qt6 QMediaPlayer::setSource(sameUrl) is a no-op; reset source first.
       m_probePlayer->setSource(QUrl());

@@ -176,6 +176,10 @@ void MixEditor::initConnections() {
           [this]() { markFieldAtPlayhead(FieldFadeOut); });
 }
 
+void MixEditor::setMediaPathResolver(MediaPathResolverFn resolver) {
+  m_mediaPathResolver = std::move(resolver);
+}
+
 bool MixEditor::loadPlaylistItem(PlaylistListModel *model,
                                  const QUuid &itemUuid) {
   if (!model || itemUuid.isNull()) {
@@ -196,6 +200,12 @@ bool MixEditor::loadPlaylistItem(PlaylistListModel *model,
   m_playlistModel = model;
   m_itemUuid = itemUuid;
   m_filePath = item->path;
+  if (m_mediaPathResolver && !item->path.isEmpty()) {
+    const QString resolved = m_mediaPathResolver(item->path);
+    if (!resolved.isEmpty()) {
+      m_filePath = resolved;
+    }
+  }
   m_metadata = PlaylistManager::metadataFromItem(*item);
   normalizeMetadataInPlace();
 
@@ -204,7 +214,7 @@ bool MixEditor::loadPlaylistItem(PlaylistListModel *model,
   m_lastDurationForRanges = -1;
 
   ui->labelFileName->setText(item->title);
-  ui->labelFileName->setToolTip(item->path);
+  ui->labelFileName->setToolTip(m_filePath);
 
   m_waveformWidget->resetZoom();
   m_waveformWidget->setDurationMs(m_metadata.duration);

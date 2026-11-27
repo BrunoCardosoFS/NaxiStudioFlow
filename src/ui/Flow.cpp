@@ -6,6 +6,8 @@
 
 #include "core/cartwall/CartWallTableModel.h"
 #include "core/playlist/PlaylistManager.h"
+#include "core/storage/AppPaths.h"
+#include "core/storage/MediaPathResolver.h"
 #include "ui/widgets/cartwall/CartWallItemDelegate.h"
 #include "ui/widgets/cartwall/CartWallView.h"
 #include "ui/widgets/editor/MixEditor.h"
@@ -33,13 +35,11 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
   this->ui->DockTop->setTitleBarWidget(new QWidget());
   // this->ui->DockTop->setTitleBarWidget(nullptr);
 
-  if (!this->settings->contains("db")) {
-    this->settings->setValue("db",
-                             QCoreApplication::applicationDirPath() + "/../db");
-  }
+  m_dataDir = AppPaths::resolveDataDir(this->settings);
+  AppPaths::ensureDataStructure(m_dataDir);
 
   this->catalogWidget = new CatalogWidget(this);
-  this->catalogWidget->setDatabasePath(this->settings->value("db").toString());
+  this->catalogWidget->setDatabasePath(m_dataDir);
   this->ui->DocCatalogWidget->layout()->addWidget(this->catalogWidget);
 
   // this->showFullScreen();
@@ -53,6 +53,8 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
   this->ui->selectProfile->hide();
 
   this->playlistManager = new PlaylistManager(this);
+  this->playlistManager->setMediaPathResolver(
+      [this](const QString &path) { return resolveMediaPath(path); });
   this->playlistDelegate = new PlaylistItemDelegate(this);
   this->ui->playlistView->setModel(this->playlistManager->model());
   this->ui->playlistView->setItemDelegate(this->playlistDelegate);
@@ -165,6 +167,8 @@ void Flow::openMixEditorForPlaylistItem(const QUuid &itemUuid) {
   if (!this->m_mixEditor) {
     this->m_mixEditor = new MixEditor(this);
     this->m_mixEditor->setAttribute(Qt::WA_DeleteOnClose, true);
+    this->m_mixEditor->setMediaPathResolver(
+        [this](const QString &path) { return resolveMediaPath(path); });
   }
 
   if (!this->m_mixEditor->loadPlaylistItem(this->playlistManager->model(),
@@ -202,4 +206,13 @@ void Flow::updateTransportButtons(PlaylistStatus status) {
 
 bool Flow::eventFilter(QObject *watched, QEvent *event) {
   return QMainWindow::eventFilter(watched, event);
+}
+
+QString Flow::resolveMediaPath(const QString &path) const {
+  if (!this->catalogWidget || !this->catalogWidget->folderModel()) {
+    return path;
+  }
+  const MediaFileResolution res = MediaPathResolver::resolveMediaFile(
+      path, this->catalogWidget->folderModel()->mediaFolders());
+  return res.found ? res.resolvedPath : path;
 }

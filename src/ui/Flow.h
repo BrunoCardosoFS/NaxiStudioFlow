@@ -37,11 +37,13 @@ private:
   Ui::Flow *ui;
 
   QSettings *settings = new QSettings("NaxStudio", "Flow", this);
+  QString m_dataDir;
   CatalogWidget *catalogWidget = nullptr;
   PlaylistManager *playlistManager = nullptr;
   PlaylistItemDelegate *playlistDelegate = nullptr;
   QPointer<MixEditor> m_mixEditor;
 
+  QString resolveMediaPath(const QString &path) const;
   void saveLayout();
   void restoreLayout();
   void updateClock();

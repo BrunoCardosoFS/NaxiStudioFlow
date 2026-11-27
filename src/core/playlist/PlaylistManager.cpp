@@ -196,6 +196,23 @@ void PlaylistManager::setStopFadeMs(qint64 ms) {
   m_stopFadeMs = qMax<qint64>(0, ms);
 }
 
+void PlaylistManager::setMediaPathResolver(MediaPathResolverFn resolver) {
+  m_mediaPathResolver = std::move(resolver);
+  if (m_model) {
+    m_model->setMediaPathResolver(m_mediaPathResolver);
+  }
+}
+
+QString PlaylistManager::resolveItemPath(const QString &path) const {
+  if (m_mediaPathResolver && !path.isEmpty()) {
+    const QString resolved = m_mediaPathResolver(path);
+    if (!resolved.isEmpty()) {
+      return resolved;
+    }
+  }
+  return path;
+}
+
 void PlaylistManager::play() {
   if (m_status == PlaylistStatus::Playing) {
     return;
@@ -519,8 +536,9 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
   auto selectTargetSlotForMedia = [&](const PlaylistItem *mediaItem) -> int {
     int slotIdx = -1;
     if (mediaItem && mediaItem->type == ItemType::Media) {
+      const QString resolvedPath = resolveItemPath(mediaItem->path);
       const int preloadedSlot =
-          findSlotForItem(mediaItem->uuid, mediaItem->path);
+          findSlotForItem(mediaItem->uuid, resolvedPath);
       if (preloadedSlot >= 0 && m_slots[preloadedSlot].player &&
           (m_slots[preloadedSlot].role == SlotRole::PreloadNext ||
            m_slots[preloadedSlot].role == SlotRole::PreloadExt)) {
@@ -622,10 +640,11 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
       emit statusChanged(m_status);
     }
 
+    const QString resolvedPath = resolveItemPath(item->path);
     const int targetSlot = selectTargetSlotForMedia(item);
     PlayerSlot &slot = m_slots[targetSlot];
     const bool alreadyPreloaded =
-        (slot.itemUuid == item->uuid && slot.loadedPath == item->path &&
+        (slot.itemUuid == item->uuid && slot.loadedPath == resolvedPath &&
          slot.role != SlotRole::Free && slot.player &&
          (slot.player->status() == PlayerStatus::Loaded ||
           slot.player->status() == PlayerStatus::Loading));
@@ -636,7 +655,7 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
 
     slot.role = SlotRole::Active;
     slot.itemUuid = item->uuid;
-    slot.loadedPath = item->path;
+    slot.loadedPath = resolvedPath;
     slot.lastUiPositionMs = -1;
     m_activeSlot = targetSlot;
     m_transitionTriggeredForActive = false;
@@ -659,14 +678,14 @@ void PlaylistManager::startPlaybackFromRow(int startRow, bool fadeOutOutgoing) {
       }
       slot.player->play();
     } else {
-      slot.player->load(QUrl::fromLocalFile(item->path), metadataFromItem(*item),
-                        true);
+      slot.player->load(QUrl::fromLocalFile(resolvedPath),
+                        metadataFromItem(*item), true);
     }
 
     if (slot.player->status() == PlayerStatus::Error) {
       qWarning() << "Playback failed for item at row" << candidateRow << ":"
-                 << item->path;
-      emit playbackError(candidateRow, item->path);
+                 << resolvedPath;
+      emit playbackError(candidateRow, resolvedPath);
       {
         ScopedFlag modelGuard(m_updatingModelMetadata);
         m_model->markRowFinished(candidateRow);
@@ -724,8 +743,9 @@ void PlaylistManager::preloadSlot(int slotIndex, int targetRow, SlotRole role) {
     return;
   }
 
+  const QString resolvedPath = resolveItemPath(item->path);
   if (slot.role != SlotRole::Free && slot.itemUuid == item->uuid &&
-      slot.loadedPath == item->path) {
+      slot.loadedPath == resolvedPath) {
     slot.role = role;
     {
       ScopedFlag guard(m_updatingModelMetadata);
@@ -746,15 +766,15 @@ void PlaylistManager::preloadSlot(int slotIndex, int targetRow, SlotRole role) {
 
   slot.role = role;
   slot.itemUuid = item->uuid;
-  slot.loadedPath = item->path;
+  slot.loadedPath = resolvedPath;
   {
     ScopedFlag guard(m_updatingModelMetadata);
     m_model->setItemPlayerId(targetRow, slotIndex);
   }
 
   if (slot.player) {
-    slot.player->load(QUrl::fromLocalFile(item->path), metadataFromItem(*item),
-                      false);
+    slot.player->load(QUrl::fromLocalFile(resolvedPath),
+                      metadataFromItem(*item), false);
   }
 }
 
@@ -983,8 +1003,8 @@ void PlaylistManager::checkMixTrigger(qint64 pos) {
       m_pendingOverlay.sourceSlot = m_activeSlot;
       m_pendingOverlay.triggerPosMs = m_cachedTriggerPos;
 
-      const int skippedSlot =
-          findSlotForItem(skippedItem->uuid, skippedItem->path);
+      const int skippedSlot = findSlotForItem(
+          skippedItem->uuid, resolveItemPath(skippedItem->path));
       if (skippedSlot >= 0) {
         m_slots[skippedSlot].role = SlotRole::PendingOverlay;
       }
@@ -1079,15 +1099,16 @@ void PlaylistManager::triggerPendingOverlay() {
   }
 
   PlayerSlot &slot = m_slots[targetSlot];
+  const QString resolvedPath = resolveItemPath(item->path);
   const bool alreadyLoaded =
-      (slot.itemUuid == item->uuid && slot.loadedPath == item->path &&
+      (slot.itemUuid == item->uuid && slot.loadedPath == resolvedPath &&
        slot.player &&
        (slot.player->status() == PlayerStatus::Loaded ||
         slot.player->status() == PlayerStatus::Loading));
 
   slot.role = SlotRole::Tail;
   slot.itemUuid = item->uuid;
-  slot.loadedPath = item->path;
+  slot.loadedPath = resolvedPath;
   slot.lastUiPositionMs = -1;
 
   {
@@ -1106,12 +1127,12 @@ void PlaylistManager::triggerPendingOverlay() {
       }
       slot.player->play();
     } else {
-      slot.player->load(QUrl::fromLocalFile(item->path), metadataFromItem(*item),
-                        true);
+      slot.player->load(QUrl::fromLocalFile(resolvedPath),
+                        metadataFromItem(*item), true);
     }
 
     if (slot.player->status() == PlayerStatus::Error) {
-      emit playbackError(row, item->path);
+      emit playbackError(row, resolvedPath);
       freeSlot(targetSlot);
       return;
     }

@@ -2,6 +2,7 @@
 #define PLAYLISTMANAGER_H
 
 #include <array>
+#include <functional>
 
 #include <QObject>
 #include <QString>
@@ -23,6 +24,7 @@ public:
   static constexpr qint64 kUiPositionMinDeltaMs = 33;
 
   enum class SlotRole { Free, Active, Tail, PreloadNext, PreloadExt, PendingOverlay };
+  using MediaPathResolverFn = std::function<QString(const QString &path)>;
 
   explicit PlaylistManager(QObject *parent = nullptr);
   explicit PlaylistManager(std::array<PlayerManager *, kPlayerCount> players,
@@ -51,6 +53,8 @@ public:
 
   void setStopFadeMs(qint64 ms);
   qint64 stopFadeMs() const { return m_stopFadeMs; }
+
+  void setMediaPathResolver(MediaPathResolverFn resolver);
 
   static PlayerMetadata metadataFromItem(const PlaylistItem &item);
   static qint64 computeMixTriggerPosition(const PlayerMetadata &currentMeta,
@@ -112,10 +116,12 @@ private:
   qint64 m_minPreloadWindowMs = kDefaultMinPreloadWindowMs;
   qint64 m_manualNextFadeMs = kDefaultManualNextFadeMs;
   qint64 m_stopFadeMs = kDefaultStopFadeMs;
+  MediaPathResolverFn m_mediaPathResolver;
 
   QTimer *m_timer = nullptr;
 
   void initConnections();
+  QString resolveItemPath(const QString &path) const;
   int activeRow() const;
   int findSlotForItem(const QUuid &uuid, const QString &path) const;
   void freeSlot(int slotIndex);
