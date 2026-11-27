@@ -122,6 +122,14 @@
         <source>Outros</source>
         <translation>Others</translation>
     </message>
+    <message>
+        <source>Espelho local</source>
+        <translation>Local mirror</translation>
+    </message>
+    <message>
+        <source>Caminho indisponível</source>
+        <translation>Path unavailable</translation>
+    </message>
 </context>
 <context>
     <name>MixEditor</name>

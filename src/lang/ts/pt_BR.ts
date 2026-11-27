@@ -114,6 +114,14 @@
         <source>Outros</source>
         <translation>Outros</translation>
     </message>
+    <message>
+        <source>Espelho local</source>
+        <translation>Espelho local</translation>
+    </message>
+    <message>
+        <source>Caminho indisponível</source>
+        <translation>Caminho indisponível</translation>
+    </message>
 </context>
 <context>
     <name>MixEditor</name>
