@@ -26,6 +26,7 @@
 #include "core/playlist/PlaylistManager.h"
 #include "core/playlist/player/PlayerManager.h"
 #include "core/storage/AppPaths.h"
+#include "core/storage/DataBootstrap.h"
 #include "core/storage/MediaPathResolver.h"
 #include "ui/widgets/catalog/CatalogWidget.h"
 #include "ui/widgets/editor/MixEditor.h"
@@ -217,8 +218,14 @@ void TestStorageAndMirrors::testAppPathsEnsureDataStructureAndBootstrap() {
   QTemporaryDir tempDir;
   QVERIFY(tempDir.isValid());
 
+  // 1. Fresh extracted portable layout: empty data/ directory already exists
   const QString dataDir = tempDir.filePath(QStringLiteral("Flow/data"));
-  QVERIFY(AppPaths::ensureDataStructure(dataDir, true));
+  QVERIFY(QDir().mkpath(dataDir));
+
+  const DataBootstrapResult initRes = DataBootstrap::initialize(dataDir, true);
+  QVERIFY2(initRes.ok, qPrintable(initRes.errorMessage));
+  QCOMPARE(initRes.createdDirs.size(), 4);
+  QCOMPARE(initRes.createdFiles.size(), 1);
 
   QVERIFY(QFileInfo::exists(dataDir));
   QVERIFY(QFileInfo(AppPaths::blocksDir(dataDir)).isDir());
@@ -237,14 +244,33 @@ void TestStorageAndMirrors::testAppPathsEnsureDataStructureAndBootstrap() {
   QCOMPARE(folders[0].items.size(), 1);
   QCOMPARE(folders[0].items[0].commandType, CommandType::Pause);
 
-  // Calling ensureDataStructure again must NOT overwrite existing catalog.json
+  // 2. Existing user data (catalog.json + files inside blocks/config) must be preserved
   const QByteArray customCatalog = R"({"version":1,"folders":[{"id":"custom","title":"Custom","path":"C:/custom","type":"music"}]})";
   QVERIFY(writeFile(catalogFile, customCatalog));
-  QVERIFY(AppPaths::ensureDataStructure(dataDir, true));
+  const QString userBlockFile =
+      QDir(AppPaths::blocksDir(dataDir)).filePath(QStringLiteral("2026-11-27.json"));
+  QVERIFY(writeFile(userBlockFile, QByteArray("{\"block\":1}")));
+
+  const DataBootstrapResult secondRes = DataBootstrap::initialize(dataDir, true);
+  QVERIFY(secondRes.ok);
+  QVERIFY(secondRes.createdDirs.isEmpty());
+  QVERIFY(secondRes.createdFiles.isEmpty());
 
   const QVector<FolderItem> after = CatalogRepository::loadFolders(dataDir);
   QCOMPARE(after.size(), 1);
   QCOMPARE(after[0].id, QStringLiteral("custom"));
+  QVERIFY(QFileInfo::exists(userBlockFile));
+
+  // 3. Partial recovery: removing only logs/ recreates only logs/ without touching catalog.json
+  QVERIFY(QDir(AppPaths::logsDir(dataDir)).rmdir(QStringLiteral(".")));
+  const DataBootstrapResult partialRes = DataBootstrap::initialize(dataDir, true);
+  QVERIFY(partialRes.ok);
+  QCOMPARE(partialRes.createdDirs.size(), 1);
+  QCOMPARE(partialRes.createdDirs.first(),
+           QDir::cleanPath(AppPaths::logsDir(dataDir)));
+  QVERIFY(partialRes.createdFiles.isEmpty());
+  QCOMPARE(CatalogRepository::loadFolders(dataDir)[0].id,
+           QStringLiteral("custom"));
 }
 
 void TestStorageAndMirrors::testCatalogRepositoryMirrorParsingAndDeduplication() {

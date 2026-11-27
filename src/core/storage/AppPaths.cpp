@@ -2,12 +2,9 @@
 
 #include <QCoreApplication>
 #include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QSettings>
+
+#include "core/storage/DataBootstrap.h"
 
 QString AppPaths::defaultDataDir(const QString &applicationDirPath) {
   const QString baseDir = applicationDirPath.trimmed().isEmpty()
@@ -64,68 +61,10 @@ QString AppPaths::configDir(const QString &dataDir) {
 }
 
 QByteArray AppPaths::defaultCatalogJson() {
-  QJsonObject pauseItem;
-  pauseItem.insert(QStringLiteral("id"), QStringLiteral("pause"));
-  pauseItem.insert(QStringLiteral("title"), QStringLiteral("Pausa"));
-  pauseItem.insert(QStringLiteral("command"), QStringLiteral("pause"));
-
-  QJsonArray items;
-  items.append(pauseItem);
-
-  QJsonObject commandFolder;
-  commandFolder.insert(QStringLiteral("id"),
-                       QStringLiteral("comandos-playlist"));
-  commandFolder.insert(QStringLiteral("title"), QStringLiteral("Comandos"));
-  commandFolder.insert(QStringLiteral("type"), QStringLiteral("command"));
-  commandFolder.insert(QStringLiteral("items"), items);
-
-  QJsonArray folders;
-  folders.append(commandFolder);
-
-  QJsonObject root;
-  root.insert(QStringLiteral("version"), 1);
-  root.insert(QStringLiteral("folders"), folders);
-
-  return QJsonDocument(root).toJson(QJsonDocument::Indented);
+  return DataBootstrap::defaultCatalogJson();
 }
 
 bool AppPaths::ensureDataStructure(const QString &dataDir,
                                    bool createDefaultCatalog) {
-  const QString trimmed = dataDir.trimmed();
-  if (trimmed.isEmpty()) {
-    return false;
-  }
-
-  QDir dir;
-  const QStringList requiredDirs = {
-      trimmed,
-      blocksDir(trimmed),
-      profilesDir(trimmed),
-      logsDir(trimmed),
-      configDir(trimmed),
-  };
-
-  for (const QString &subDir : requiredDirs) {
-    if (!dir.mkpath(subDir)) {
-      return false;
-    }
-  }
-
-  if (createDefaultCatalog) {
-    const QString catalogPath = catalogFilePath(trimmed);
-    if (!QFileInfo::exists(catalogPath)) {
-      QFile file(catalogPath);
-      if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        return false;
-      }
-      const QByteArray json = defaultCatalogJson();
-      if (file.write(json) != json.size()) {
-        file.close();
-        return false;
-      }
-      file.close();
-    }
-  }
-
-  return true;
+  return DataBootstrap::initialize(dataDir, createDefaultCatalog).ok;
 }

@@ -28,6 +28,8 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
 
     storage/AppPaths.cpp
     storage/AppPaths.h
+    storage/DataBootstrap.cpp
+    storage/DataBootstrap.h
     storage/MediaPathResolver.cpp
     storage/MediaPathResolver.h
 

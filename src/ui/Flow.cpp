@@ -7,6 +7,7 @@
 #include "core/cartwall/CartWallTableModel.h"
 #include "core/playlist/PlaylistManager.h"
 #include "core/storage/AppPaths.h"
+#include "core/storage/DataBootstrap.h"
 #include "core/storage/MediaPathResolver.h"
 #include "ui/widgets/cartwall/CartWallItemDelegate.h"
 #include "ui/widgets/cartwall/CartWallView.h"
@@ -36,7 +37,7 @@ Flow::Flow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Flow) {
   // this->ui->DockTop->setTitleBarWidget(nullptr);
 
   m_dataDir = AppPaths::resolveDataDir(this->settings);
-  AppPaths::ensureDataStructure(m_dataDir);
+  DataBootstrap::initialize(m_dataDir);
 
   this->catalogWidget = new CatalogWidget(this);
   this->catalogWidget->setDatabasePath(m_dataDir);

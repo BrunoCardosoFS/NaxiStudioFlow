@@ -12,6 +12,8 @@ qt_add_executable(test_playlist_manager
     ${PROJECT_SOURCE_DIR}/src/core/playlist/player/PlayerManager.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.h
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.h
     ${PROJECT_SOURCE_DIR}/src/core/utils/TimeUtils.cpp
@@ -59,6 +61,8 @@ qt_add_executable(test_mix_editor
     ${PROJECT_SOURCE_DIR}/src/core/playlist/player/PlayerManager.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.h
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.h
     ${PROJECT_SOURCE_DIR}/src/core/utils/TimeUtils.cpp
@@ -119,6 +123,8 @@ qt_add_executable(test_commands
     ${PROJECT_SOURCE_DIR}/src/core/playlist/player/PlayerManager.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.h
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.h
     ${PROJECT_SOURCE_DIR}/src/core/utils/TimeUtils.cpp
@@ -175,6 +181,8 @@ qt_add_executable(test_storage_and_mirrors
     ${PROJECT_SOURCE_DIR}/src/core/playlist/player/PlayerManager.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/AppPaths.h
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/storage/DataBootstrap.h
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.cpp
     ${PROJECT_SOURCE_DIR}/src/core/storage/MediaPathResolver.h
     ${PROJECT_SOURCE_DIR}/src/core/utils/TimeUtils.cpp
