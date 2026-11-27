@@ -90,23 +90,20 @@ Os pipelines do repositório ficam em `.github/workflows/` e seus scripts auxili
 
 | Arquivo | Disparo | Plataformas | Responsabilidade |
 | :--- | :--- | :--- | :--- |
-| [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | `push` / `pull_request` em `main`, `workflow_dispatch` | `windows-latest`, `ubuntu-latest` | Configura com `-DBUILD_TESTING=ON`, compila em `Release` e executa toda a suíte `ctest` com `QT_QPA_PLATFORM=offscreen`. |
+| [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | `push` / `pull_request` em `main`, `workflow_dispatch` | `windows-latest`, `ubuntu-latest` | Compila em `Release` com `-DBUILD_TESTING=ON`, executa toda a suíte `ctest` (`QT_QPA_PLATFORM=offscreen`), gera os pacotes portáteis Windows/Linux e os disponibiliza como *Workflow Artifacts* para download. |
 | [`.github/workflows/build.yml`](../../.github/workflows/build.yml) | Tags `v*`, `workflow_dispatch` | `windows-latest`, `ubuntu-latest` | Compila, executa `ctest`, empacota os binários portáteis e publica ambos os pacotes em uma única GitHub Release (marcando automaticamente como *Pre-Release* qualquer tag `v0.x.x` ou com sufixo `-*`). |
-| [`.github/scripts/BuildWindows.ps1`](../../.github/scripts/BuildWindows.ps1) | Chamado por `build.yml` | Windows (`x86_64`) | Compila, roda `ctest`, executa `windeployqt` em `bin/`, cria `data/` inicial e gera `NaxStudio Flow-<versão>-Portable-Windows-x86_64.zip`. |
-| [`.github/scripts/BuildLinux.sh`](../../.github/scripts/BuildLinux.sh) | Chamado por `build.yml` | Linux (`x86_64`) | Compila via Ninja, roda `ctest`, coleta bibliotecas/plugins Qt6+FFmpeg em `bin/` com `qt.conf` e `patchelf` (`$ORIGIN`), cria `data/` inicial e gera `NaxStudio Flow-<versão>-Portable-Linux-x86_64.tar.gz`. |
+| [`.github/scripts/BuildWindows.ps1`](../../.github/scripts/BuildWindows.ps1) | Chamado por `ci.yml` e `build.yml` | Windows (`x86_64`) | Compila, roda `ctest`, executa `windeployqt` em `bin/`, inclui a pasta vazia `data/` e `COPYING` e gera `NaxStudio Flow-<versão>-Portable-Windows-x86_64.zip`. |
+| [`.github/scripts/BuildLinux.sh`](../../.github/scripts/BuildLinux.sh) | Chamado por `ci.yml` e `build.yml` | Linux (`x86_64`) | Compila via Ninja, roda `ctest`, coleta bibliotecas/plugins Qt6+FFmpeg em `bin/` com `qt.conf` e `patchelf` (`$ORIGIN`), inclui a pasta vazia `data/` e `COPYING` e gera `NaxStudio Flow-<versão>-Portable-Linux-x86_64.tar.gz`. |
 
 ### Layout dos Pacotes Portáteis Gerados
 
-Tanto o `.zip` (Windows) quanto o `.tar.gz` (Linux) contêm a mesma estrutura auto-contida diretamente na raiz do arquivo compactado, garantindo que o executável em `bin/` resolva automaticamente `../data`:
+Tanto o `.zip` (Windows) quanto o `.tar.gz` (Linux) contêm a mesma estrutura limpa diretamente na raiz do arquivo compactado:
 
 ```text
 ├── bin/          # flow.exe / flow, bibliotecas Qt/FFmpeg e plugins
-├── data/
-│   ├── catalog.json   # Catálogo mínimo inicial (version: 1 + Comandos/Pausa)
-│   ├── blocks/
-│   ├── profiles/
-│   ├── logs/
-│   └── config/
+├── data/         # Diretório vazio (subpastas e catalog.json criados na 1ª execução pelo DataBootstrap)
 └── COPYING
 ```
+
+> **Segurança em Atualizações**: Como o pacote distribuído contém `data/` completamente vazio (sem arquivos nem subpastas), extrair ou copiar uma nova versão sobre uma instalação existente nunca sobrescreve `catalog.json`, blocos, perfis, logs ou configurações do usuário. Na primeira inicialização do executável, `DataBootstrap::initialize()` cria apenas as pastas ou arquivos ausentes.
 

@@ -87,7 +87,7 @@ O Flow resolve o diretório de dados automaticamente como `../data` a partir da 
 - Durante o **desenvolvimento local**, o executável compilado em `build/flow` (ou `build/flow.exe`) resolve automaticamente para `<raiz-do-repo>/data/`.
 - Caso precise apontar para outro diretório em testes ou múltiplas instâncias, utilize a variável de ambiente `NAXFLOW_DATA_DIR` (ou a chave `"dataDir"` no `QSettings`).
 
-Na inicialização, `AppPaths::ensureDataStructure()` cria automaticamente as subpastas necessárias e um `catalog.json` mínimo caso ainda não exista:
+Na primeira inicialização, o módulo `DataBootstrap::initialize()` cria automaticamente apenas as subpastas e arquivos ausentes (`blocks/`, `profiles/`, `logs/`, `config/` e um `catalog.json` mínimo), sem sobrescrever dados já existentes do usuário:
 
 ```text
 Flow/

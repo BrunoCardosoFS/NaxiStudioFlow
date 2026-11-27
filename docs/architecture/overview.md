@@ -25,7 +25,7 @@ flowchart TD
         PlaylistCore["Playlist\nPlaylistManager / PlaylistListModel"]
         CartWallCore["Cartucheira\nCartWallTableModel"]
         AudioEngine["Motor de Áudio\nPlayerManager (QMediaPlayer + QAudioOutput)"]
-        StorageCore["Armazenamento & Caminhos\nAppPaths / MediaPathResolver"]
+        StorageCore["Armazenamento & Caminhos\nAppPaths / DataBootstrap / MediaPathResolver"]
         Utils["Utilitários\nTimeUtils / Models (models.h)"]
     end
 
@@ -79,7 +79,7 @@ flowchart TD
   - `catalog/`: Repositório de leitura de JSON (`CatalogRepository`), scanner multithread assíncrono (`CatalogScanner` e `CatalogScannerWorker`) e modelos de lista (`FolderListModel` e `CatalogListModel`).
   - `playlist/`: Gerenciador de execução contínua (`PlaylistManager`), modelo de dados e cálculo de blocos (`PlaylistListModel`) e controle individual de reprodução/fade (`player/PlayerManager`).
   - `cartwall/`: Estrutura de slot (`CartItem`) e modelo tabular linear mapeado em grade (`CartWallTableModel`).
-  - `storage/`: Resolução portátil do diretório de dados e bootstrap inicial (`AppPaths`), além da resolução em cascata de diretórios e arquivos de mídia entre caminho primário e espelhos locais (`MediaPathResolver`).
+  - `storage/`: Resolução portátil do diretório de dados (`AppPaths`), módulo de inicialização segura na primeira execução (`DataBootstrap`) e resolução em cascata de diretórios e arquivos de mídia entre caminho primário e espelhos locais (`MediaPathResolver`).
   - `utils/`: Funções puras de formatação de tempo (`TimeUtils`).
 
 ### 3. `src/ui/` - Interface Gráfica (Views, Delegates e Docks)
@@ -129,7 +129,7 @@ Flow/
 └── COPYING                   # Licença GPLv3
 ```
 
-### Resolução Dinâmica (`../data`) e Bootstrap Automático (`AppPaths`)
+### Resolução Dinâmica (`../data`) e Bootstrap na Primeira Inicialização (`AppPaths` + `DataBootstrap`)
 
 1. **Resolução Relativa ao Binário**:
    - Por padrão, `AppPaths::resolveDataDir()` calcula dinamicamente `../data` a partir de `QCoreApplication::applicationDirPath()`, **sem gravar caminhos absolutos no `QSettings`**.
@@ -138,9 +138,9 @@ Flow/
    - `NAXFLOW_DATA_DIR` (variável de ambiente): maior prioridade, útil para ambientes automatizados ou múltiplas instâncias.
    - `QSettings("NaxStudio", "Flow")` chave `"dataDir"`: *override* explícito opcional quando configurado. A chave legada `"db"` (`../db`) é ignorada.
    - Padrão portátil: `<applicationDirPath>/../data`.
-3. **Bootstrap na Inicialização**:
-   - Na inicialização do `Flow`, `AppPaths::ensureDataStructure()` garante a criação automática de `data/` e de todas as subpastas (`blocks/`, `profiles/`, `logs/`, `config/`).
-   - Caso `data/catalog.json` ainda não exista, é gerado um arquivo inicial mínimo (`version: 1`) contendo a pasta virtual `Comandos` com o comando `Pausa` (`"command": "pause"`), sem jamais sobrescrever um `catalog.json` já existente.
+3. **Bootstrap Seguro na Primeira Execução (`DataBootstrap::initialize()`)**:
+   - Os pacotes distribuídos (`.zip` e `.tar.gz`) entregam `bin/`, uma pasta `data/` **vazia** (sem arquivos nem subpastas) e `COPYING`. Assim, se o usuário copiar os arquivos de uma atualização por cima de uma instalação existente, nenhum dado local em `data/` é sobrescrito.
+   - Na inicialização do `Flow`, o módulo `DataBootstrap::initialize()` verifica e cria apenas as subpastas ausentes (`blocks/`, `profiles/`, `logs/`, `config/`) e gera um `data/catalog.json` mínimo (`version: 1` + pasta virtual `Comandos` com `Pausa`) **somente se o arquivo ainda não existir**.
 
-Essa organização permite fazer backup, migração ou atualização dos binários em `Flow/bin/` sem risco de sobrescrever as configurações, perfis, logs ou blocos locais em `Flow/data/`.
+Essa organização permite fazer backup, migração ou atualização dos binários em `Flow/bin/` (ou extrair um novo pacote sobre a pasta existente) sem risco de sobrescrever as configurações, perfis, logs ou blocos locais em `Flow/data/`.
 
